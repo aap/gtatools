@@ -1,0 +1,12 @@
+#!/bin/sh
+
+rm -r txd
+mkdir txd
+cd gta3_archive
+for i in *[Tt][Xx][Dd]; do
+	txdconv $i ../txd/$i
+done
+cd ../txd
+makedir *
+mv gta.dir ../txd.dir
+mv gta.img ../txd.img

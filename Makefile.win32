@@ -1,0 +1,16 @@
+OBJDIR = obj
+_OBJ = gta.obj directory.obj world.obj camera.obj pipeline.obj gl.obj\
+primitives.obj drawable.obj objects.obj
+OBJ = $(OBJDIR)\$(_OBJ: = obj\) # can't subsitute $(OBJDIR) here
+_OBJRW = renderware.obj dffread.obj dffwrite.obj txdread.obj\
+ps2native.obj xboxnative.obj ifpread.obj
+OBJDIRRW = ..\rwtools\obj
+OBJRW = $(OBJDIRRW)\$(_OBJRW: = ..\rwtools\obj\)
+CFLAGS=/EHsc glew32.lib
+BIN=gta
+
+build: $(OBJRW) $(OBJ) 
+	$(CC) $(CFLAGS) $(OBJ) $(OBJRW) -o $(BIN)
+
+$(OBJ) $(OBJDIR)/:
+	cd src && nmake -f Makefile.win32
