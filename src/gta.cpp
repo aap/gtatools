@@ -55,7 +55,6 @@ void parseDat(ifstream &f)
 				cerr << "couldn't open ide " <<fileName<<endl;
 				exit(1);
 			}
-//			cout << filename << endl;
 			objectList.readIde(inFile);
 			inFile.close();
 		} else if (type == "IPL" || type == "MAPZONE") {
@@ -64,7 +63,6 @@ void parseDat(ifstream &f)
 				cerr << "couldn't open ipl " <<fileName<<endl;
 				exit(1);
 			}
-//			cout << filename << endl;
 			world.readIpl(inFile,
 			     fileName.substr(fileName.find_last_of(PSEP_S)+1));
 			inFile.close();
@@ -77,8 +75,6 @@ void parseDat(ifstream &f)
 		} else if (type == "SPLASH") {
 		}
 	}
-
-	world.associateLods();
 }
 
 int main(int argc, char *argv[])
@@ -135,7 +131,6 @@ int main(int argc, char *argv[])
 	directory.addFromFile(dirFile, imgPath);
 	dirFile.close();
 
-
 	// try to open txd archive for optimized textures
 	dirPath = getPath("models/txd.dir");
 	imgPath = getPath("models/txd.img");
@@ -153,7 +148,6 @@ int main(int argc, char *argv[])
 			dirFile.close();
 		}
 	}
-
 
 	// TODO: load other files
 
@@ -198,6 +192,8 @@ void stringToLower(string &s)
 			s[i] = tolower(s[i]);
 }
 
+// split s into fields separated by c
+// ugly
 void getFields(string &s, char c, vector<string> &v)
 {
 	v.clear();
@@ -226,11 +222,15 @@ void getFields(string &s, char c, vector<string> &v)
 		if (j == string::npos)
 			v.push_back(s.substr(i, s.length()));
 	}
-	// remove whitespace in front
+
+	// remove surrounding whitespace
 	for (i = 0; i < v.size(); i++) {
 		j = v[i].find_first_not_of(" \t");
 		if (j != string::npos)
 			v[i] = v[i].substr(j);
+		string::size_type k = v[i].find_last_of(" \t");
+		if (k != string::npos)
+			v[i] = v[i].substr(j, k-j);
 	}
 }
 

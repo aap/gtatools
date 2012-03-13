@@ -30,6 +30,7 @@ public:
 	int lod;
 
 	/* functions */
+	void draw(void);
 	void transform(void);
 };
 
@@ -52,8 +53,8 @@ public:
 class Island
 {
 public:
-	std::vector<int> lodIds;
 	std::vector<Instance *> islandLods;
+	std::vector<Instance *> Lods;
 	std::vector<Instance *> instances;
 
 	std::vector<Zone *> zones;
@@ -69,21 +70,23 @@ public:
 class World
 {
 private:
+	// list of ALL instances
 	std::vector<Instance *> instances;
 
 	std::vector<Island> islands;
 
 	uint activeIsland;
 
+	void addInstance(Instance *i);
 public:
 	void drawIslands(void);
 
 	int getLod(Instance *);
+	Instance *getInstance(uint i);
 	void readIpl(std::ifstream &, std::string fileName);
 	void readBinIpl(std::ifstream &);
 	void readTextIpl(std::ifstream &);
 	void associateLods(void);
-	void dump(void);
 
 };
 

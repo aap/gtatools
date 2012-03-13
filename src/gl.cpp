@@ -106,15 +106,14 @@ void renderScene(void)
 	glUniform1i(u_Texture, 0);
 
 	drawWire = false;
-
 //	drawable.draw(false);
 //	drawable.draw(true);
-
-	world.drawIslands();
 
 //	drawWire = true;
 //	drawable.draw(false);
 //	drawable.draw(true);
+
+	world.drawIslands();
 
 	// 2d overlay
 	glDisable(GL_DEPTH_TEST);
@@ -295,6 +294,8 @@ void init(char *model, char *texdict)
 	glBindBuffer(GL_ARRAY_BUFFER, axes_vbo);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(axes), axes, GL_STATIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	world.associateLods();
 
 /*
 	string txd = texdict;

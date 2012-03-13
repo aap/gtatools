@@ -8,6 +8,10 @@ using namespace rw;
 
 typedef unsigned int uint;
 
+/*
+ * NOT FINISHED
+ */
+
 uint32 appendFile(uint32 length, ifstream &in, ofstream &out)
 {
 	uint32 written = 0;

@@ -16,6 +16,10 @@ using namespace std;
 
 World world;
 
+/*
+ * World
+ */
+
 void World::drawIslands(void)
 {
 	quat camPos = cam.getPosition();
@@ -29,6 +33,7 @@ void World::drawIslands(void)
 		}
 	}
 
+	// TODO: don't forget transparency
 	islands[0].draw();
 	islands[activeIsland].draw();
 	for (uint i = 0; i < islands.size(); i++) {
@@ -66,6 +71,35 @@ void World::readIpl(ifstream &in, string iplName)
 	}
 }
 
+void World::addInstance(Instance *i)
+{
+	// add instance to the appropriate island; if none is found,
+	// add to the default island (0)
+	uint j;
+	for (j = 0; j < islands.size(); j++)
+		if (islands[j].pointInIsland(i->position)) {
+			if (i->isIslandLod)
+				islands[j].islandLods.push_back(i);
+			else if (i->isLod)
+				islands[j].Lods.push_back(i);
+			else
+				islands[j].instances.push_back(i);
+			break;
+		}
+	if (j == islands.size()) {
+		if (i->isIslandLod)
+			islands[0].islandLods.push_back(i);
+		else if (i->isLod)
+			islands[0].Lods.push_back(i);
+		else
+			islands[0].instances.push_back(i);
+	}
+
+	instances.push_back(i);
+
+	indices.push_back(ind++);
+}
+
 void World::readBinIpl(ifstream &in)
 {
 	in.seekg(4, ios::cur);
@@ -93,27 +127,7 @@ void World::readBinIpl(ifstream &in)
 		else if (ip->name.substr(0,9) == "islandlod")
 			ip->isIslandLod = true;
 
-		uint j;
-		for (j = 0; j < islands.size(); j++)
-			if (islands[j].pointInIsland(ip->position)) {
-				if (ip->isIslandLod)
-					islands[j].islandLods.
-						      push_back(ip);
-				else
-					islands[j].instances.
-						      push_back(ip);
-				break;
-			}
-		if (j == islands.size()) {
-			if (ip->isIslandLod)
-				islands[0].islandLods.push_back(ip);
-			else
-				islands[0].instances.push_back(ip);
-		}
-		
-		instances.push_back(ip);
-	
-		indices.push_back(ind++);
+		addInstance(ip);
 	}
 }
 
@@ -204,27 +218,7 @@ void World::readTextIpl(ifstream &in)
 			if (hasLod)
 				ip->lod = atoi(fields[i++].c_str());
 
-			uint j;
-			for (j = 0; j < islands.size(); j++)
-				if (islands[j].pointInIsland(ip->position)) {
-					if (ip->isIslandLod)
-						islands[j].islandLods.
-						              push_back(ip);
-					else
-						islands[j].instances.
-						              push_back(ip);
-					break;
-				}
-			if (j == islands.size()) {
-				if (ip->isIslandLod)
-					islands[0].islandLods.push_back(ip);
-				else
-					islands[0].instances.push_back(ip);
-			}
-			
-			instances.push_back(ip);
-		
-			indices.push_back(ind++);
+			addInstance(ip);
 		} else if (blockType == ZONE) {
 			int i = 0;
 			Zone *z = new Zone;
@@ -276,17 +270,6 @@ void World::associateLods(void)
 				instances[ip->lod]->hires.push_back(i);
 		}
 	}
-
-/*
-	for (uint i = 0; i < ilods.size(); i++) {
-		for (uint j = 0; j < islands.size(); j++) {
-			if (islands[j].pointInIsland(ilods[i]->position)) {
-				islands[j].lodIds.push_back(i);
-				break;
-			}
-		}
-	}
-*/
 }
 
 int World::getLod(Instance *ip)
@@ -302,66 +285,28 @@ int World::getLod(Instance *ip)
 	return -1;
 }
 
-void World::dump(void)
+Instance *World::getInstance(uint i)
 {
+	if (i >= 0 && i < instances.size())
+		return instances[i];
+	return 0;
 }
+
+/*
+ * Island
+ */
 
 void Island::draw(void)
 {
-	for (uint i = 0; i < instances.size(); i++) {
-		Instance *ip = instances[i];
-		WorldObject *op = (WorldObject*)objectList.get(ip->id);
-
-		glm::mat4 save = gl::modelMat;
-
-		if (cam.distanceTo(quat(ip->position[0],
-		                        ip->position[1],
-		                        ip->position[2])) //>= 300)
-	            >= op->drawDistances[0])
-			continue;
-//		if (!ip->isLod)
-//			continue;
-
-		ip->transform();
-
-		if (!op->isLoaded)
-			op->load();
-		op->drawable.draw(false);
-		op->drawable.draw(true);
-
-		gl::modelMat = save;
-		glm::mat4 modelView = gl::viewMat * gl::modelMat;
-		glm::mat3 normal = glm::inverseTranspose(glm::mat3(modelView));
-		glUniformMatrix4fv(gl::u_ModelView, 1, GL_FALSE,
-				   glm::value_ptr(modelView));
-		glUniformMatrix3fv(gl::u_NormalMat, 1, GL_FALSE,
-				   glm::value_ptr(normal));
-	}
+	for (uint i = 0; i < instances.size(); i++)
+		instances[i]->draw();
 }
 
 void Island::drawLod(void)
 {
-	for (uint i = 0; i < islandLods.size(); i++) {
-		Instance *ip = islandLods[i];
-		WorldObject *op = (WorldObject*)objectList.get(ip->id);
+	for (uint i = 0; i < islandLods.size(); i++)
+		islandLods[i]->draw();
 
-		glm::mat4 save = gl::modelMat;
-
-		ip->transform();
-
-		if (!op->isLoaded)
-			op->load();
-		op->drawable.draw(false);
-		op->drawable.draw(true);
-
-		gl::modelMat = save;
-		glm::mat4 modelView = gl::viewMat * gl::modelMat;
-		glm::mat3 normal = glm::inverseTranspose(glm::mat3(modelView));
-		glUniformMatrix4fv(gl::u_ModelView, 1, GL_FALSE,
-				   glm::value_ptr(modelView));
-		glUniformMatrix3fv(gl::u_NormalMat, 1, GL_FALSE,
-				   glm::value_ptr(normal));
-	}
 	draw();
 }
 
@@ -393,6 +338,10 @@ bool Island::pointInIsland(float *p)
 	return false;
 }
 
+/*
+ * Zone
+ */
+
 bool Zone::pointInZone(float *p)
 {
 	if (p[0] >= corner1[0] && p[0] <= corner2[0] &&
@@ -401,6 +350,40 @@ bool Zone::pointInZone(float *p)
 		return true;
 	}
 	return false;
+}
+
+/*
+ * Instance
+ */
+
+void Instance::draw(void)
+{
+	WorldObject *op = (WorldObject*)objectList.get(id);
+
+	glm::mat4 save = gl::modelMat;
+
+	if (cam.distanceTo(quat(position[0], position[1], position[2]))
+	    >= op->drawDistances[0]) {
+		Instance *ip = world.getInstance(lod);
+		if (ip != 0)
+			ip->draw();
+		return;
+	}
+
+	transform();
+
+	if (!op->isLoaded)
+		op->load();
+	op->drawable.draw(false);
+	op->drawable.draw(true);
+
+	gl::modelMat = save;
+	glm::mat4 modelView = gl::viewMat * gl::modelMat;
+	glm::mat3 normal = glm::inverseTranspose(glm::mat3(modelView));
+	glUniformMatrix4fv(gl::u_ModelView, 1, GL_FALSE,
+			   glm::value_ptr(modelView));
+	glUniformMatrix3fv(gl::u_NormalMat, 1, GL_FALSE,
+			   glm::value_ptr(normal));
 }
 
 void Instance::transform(void)
