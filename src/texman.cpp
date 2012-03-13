@@ -88,19 +88,27 @@ uint TexManager::add(string fileName)
 	txd->fileName = fileName;
 	txd->refCount = 1;
 
-	// TODO: replace linear search
-	for (uint i = 0; i < txdList.size(); i++) {
-		if (txdList[i]->fileName > txd->fileName) {
-			txdList.insert(txdList.begin()+i, txd);
-			return i;
+	if (txdList.size() > 0) {
+		int min, max, mid;
+		min = 0; max = txdList.size() - 1;
+
+		while (min <= max) {
+			mid = (min+max) / 2;
+			if (txdList[mid]->fileName == txd->fileName) {
+				cout << "this shouldn't happen\n";
+				txd->unload();
+				delete txd;
+				return mid;
+			}
+			if (txdList[mid]->fileName > txd->fileName)
+				max = mid - 1;
+			else if (txdList[mid]->fileName < txd->fileName)
+				min = mid + 1;
 		}
-		if (txdList[i]->fileName == txd->fileName) {
-			cout << "this shouldn't happen\n";
-//			txd->unload();
-//			delete txd;
-//			return i;
-		}
+		txdList.insert(txdList.begin()+min, txd);
+		return min;
 	}
+
 	txdList.push_back(txd);
 	return txdList.size()-1;
 }

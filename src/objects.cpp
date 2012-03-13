@@ -84,7 +84,15 @@ void ObjectList::readIde(ifstream &in)
 
 			newObj->flags = atoi(fields[i++].c_str());
 
-			objects[newObj->id] = (Object *) newObj;
+			if (blockType == TOBJ) {
+				newObj->timeOn = atoi(fields[i++].c_str());
+				newObj->timeOff = atoi(fields[i++].c_str());
+				newObj->isTimed = true;
+			} else {
+				newObj->isTimed = false;
+			}
+
+			add(newObj);
 		} else if (blockType == PEDS) {
 			Ped *newObj;
 			int i = 0;
@@ -118,7 +126,7 @@ void ObjectList::readIde(ifstream &in)
 				stringToLower(newObj->voice2);
 			}
 
-			objects[newObj->id] = (Object *) newObj;
+			add(newObj);
 		} else if (blockType == CARS) {
 			Car *newObj;
 			int i = 0;
@@ -156,7 +164,7 @@ void ObjectList::readIde(ifstream &in)
 				newObj->lodId = atoi(fields[i++].c_str());
 			}
 
-			objects[newObj->id] = (Object *) newObj;
+			add(newObj);
 		}
 	} while(!in.eof());
 }
@@ -166,6 +174,15 @@ Object *ObjectList::get(int i)
 	if (i < objectCount && i >= 0)
 		return objects[i];
 	return 0;
+}
+
+void ObjectList::add(Object *o)
+{
+	if (o->id >= objectCount || o->id < 0) {
+		cout << "warning: id " << o->id << " out of range\n";
+		return;
+	}
+	objects[o->id] = o;
 }
 
 int ObjectList::getObjectCount(void)
@@ -190,6 +207,23 @@ ObjectList::~ObjectList(void)
 	for (int i = 0; i < objectCount; i++)
 		delete objects[i];
 	delete[] objects;
+}
+
+bool WorldObject::isVisibleAtTime(int hour)
+{
+	if (timeOn < timeOff) {	/* Day object */
+		if (hour < timeOn ||
+		    hour >= timeOff)
+			return false;
+		else
+			return true;
+	} else {		/* Night object */
+		if (hour < timeOff ||
+		    hour >= timeOn)
+			return true;
+		else
+			return false;
+	}
 }
 
 WorldObject::WorldObject(void)

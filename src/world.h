@@ -72,22 +72,30 @@ class World
 private:
 	// list of ALL instances
 	std::vector<Instance *> instances;
-
 	std::vector<Island> islands;
-
 	uint activeIsland;
+
+	int interior;
+	int hour, minute;
 
 	void addInstance(Instance *i);
 public:
-	void drawIslands(void);
-
 	int getLod(Instance *);
 	Instance *getInstance(uint i);
 	void readIpl(std::ifstream &, std::string fileName);
 	void readBinIpl(std::ifstream &);
 	void readTextIpl(std::ifstream &);
 	void associateLods(void);
+	void drawIslands(void);
 
+	void setInterior(int i);
+	int getInterior(void);
+
+	int getHour(void);
+	int getMinute(void);
+	void setHour(int);
+	void setMinute(int);
+	World(void);
 };
 
 extern World world;

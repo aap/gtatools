@@ -45,8 +45,8 @@ void World::drawIslands(void)
 //		islands[i].drawZones();
 }
 
-int ind;
-vector<int> indices;
+static int ind;
+static vector<int> indices;
 
 void World::readIpl(ifstream &in, string iplName)
 {
@@ -257,6 +257,8 @@ void World::associateLods(void)
 	/* Associate each instance with its LOD and vice versa */
 	for (uint i = 0; i < instances.size(); i++) {
 		Instance *ip = instances[i];
+		if (ip->isLod || ip->isIslandLod)
+			continue;
 		if (game == GTASA) {
 			if (indices[i] == 0)
 				base = i;
@@ -270,14 +272,60 @@ void World::associateLods(void)
 				instances[ip->lod]->hires.push_back(i);
 		}
 	}
+
+	/* Some LODs don't have hires instances, add dummies */
+
+	WorldObject *dummyObj;
+	dummyObj = new WorldObject;
+	dummyObj->type = OBJS;
+	dummyObj->id = objectList.getObjectCount()-1;
+	dummyObj->modelName = "LODDUMMY";
+	dummyObj->textureName = "LODDUMMY";
+	dummyObj->objectCount = 1;
+	// determined heuristically
+	// but it doesn't seem to be right
+	dummyObj->drawDistances.push_back(60);
+	dummyObj->flags = 0;
+	objectList.add(dummyObj);
+
+	for (uint i = 0; i < instances.size(); i++) {
+		Instance *lod = instances[i];
+		if (!lod->isLod || lod->hires.size() != 0)
+			continue;
+
+		Instance *ip = new Instance;
+		ip->lod = i;
+		ip->id = dummyObj->id;
+		ip->name = lod->name;
+		ip->name[0] = 'x'; ip->name[1] = 'x'; ip->name[2] = 'x';
+		ip->isIslandLod = ip->isLod = false;
+		ip->interior = 0;
+		ip->position[0] = lod->position[0];
+		ip->position[1] = lod->position[1];
+		ip->position[2] = lod->position[2];
+		ip->scale[0] = 1.0f;
+		ip->scale[1] = 1.0f;
+		ip->scale[2] = 1.0f;
+		ip->rotation[0] = 0.0f;
+		ip->rotation[1] = 0.0f;
+		ip->rotation[2] = 0.0f;
+		ip->rotation[3] = 1.0f;
+
+		addInstance(ip);
+
+		uint ind = instances.size()-1;
+		lod->hires.push_back(ind);
+	}
+
+	indices.resize(0);
 }
 
 int World::getLod(Instance *ip)
 {
 	string lodName = ip->name;
 	lodName[0] = 'l'; lodName[1] = 'o'; lodName[2] = 'd';
-	if (lodName == ip->name)
-		return -1;
+//	if (lodName == ip->name)
+//		return -1;
 	for (uint i = 0; i < instances.size(); i++) {
 		if (instances[i]->name == lodName)
 			return i;
@@ -290,6 +338,40 @@ Instance *World::getInstance(uint i)
 	if (i >= 0 && i < instances.size())
 		return instances[i];
 	return 0;
+}
+
+void World::setInterior(int i) { interior = i; }
+int World::getInterior(void) { return interior; }
+int World::getHour(void) { return hour; }
+int World::getMinute(void) { return minute; }
+void World::setHour(int h)
+{
+	if (h < 0)
+		hour = 23;
+	else if (h >= 24)
+		hour = 0;
+	else
+		hour = h;
+}
+
+void World::setMinute(int m)
+{
+	if (m < 0) {
+		minute = 59;
+		setHour(hour-1);
+	} else if (m >= 60) {
+		minute = 0;
+		setHour(hour+1);
+	} else {
+		minute = m;
+	}
+}
+
+World::World(void)
+{
+	interior = 0;
+	hour = 12;
+	minute = 0;
 }
 
 /*
@@ -370,10 +452,32 @@ void Instance::draw(void)
 		return;
 	}
 
+	if (op->modelName == "LODDUMMY")
+		return;
+
+	// check for interior (if intr < 0 everything is drawn)
+	int intr = world.getInterior();
+	if (interior != intr && intr >= 0) {
+		if (game == GTAVC) {
+			if (interior != 13)
+				return;
+		} if (game == GTASA) {
+			if (interior != 13 && interior != 1024
+			    && interior != 256)
+				return;
+		}
+	}
+
+	// check for time
+	if (op->isTimed && !op->isVisibleAtTime(world.getHour()))
+		return;
+
 	transform();
 
-	if (!op->isLoaded)
+	if (!op->isLoaded) {
+		cout << interior << " ";
 		op->load();
+	}
 	op->drawable.draw(false);
 	op->drawable.draw(true);
 
@@ -403,3 +507,4 @@ void Instance::transform(void)
 	glUniformMatrix3fv(gl::u_NormalMat, 1, GL_FALSE,
 	                   glm::value_ptr(normal));
 }
+

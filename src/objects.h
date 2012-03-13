@@ -97,6 +97,7 @@ public:
 	int timeOn;
 	int timeOff;
 
+	bool isVisibleAtTime(int hour);
 	WorldObject(void);
 };
 
@@ -107,6 +108,7 @@ private:
 	int objectCount;
 public:
 	Object *get(int i);
+	void add(Object *o);
 	int getObjectCount(void);
 
 	void init(int objs);

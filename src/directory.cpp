@@ -34,12 +34,6 @@ void Directory::addFromFile(ifstream &f, string container)
 		f.read(fileName, 24*sizeof(char));
 
 		std::string name = fileName;
-//		cout << name << " " << i << endl;
-		
-		// special_thing_for_path.d in gta3 is too long
-//		if (fileName[23] != '\0') { 
-//			name += "ff";
-//		}
 
 		addFile(name, start, length, container);
 	}
@@ -47,22 +41,29 @@ void Directory::addFromFile(ifstream &f, string container)
 
 void Directory::addFile(DirectoryFile *dirFile)
 {
-	// TODO: replace linear search
-	for (uint i = 0; i < fileList.size(); i++) {
-		if (fileList[i]->fileName > dirFile->fileName) {
-			deque<DirectoryFile*>::iterator it;
-			it = fileList.begin()+i;
-			fileList.insert(it, dirFile);
-			return;
-		}
-		// replace existing entry
-		if (fileList[i]->fileName == dirFile->fileName) {
-			fileList[i]->fileName = dirFile->fileName;
-			fileList[i]->start = dirFile->start;
-			fileList[i]->length = dirFile->length;
-			fileList[i]->containingFile = dirFile->containingFile;
-		}
+	if (fileList.size() > 0) {
+		string s = dirFile->fileName;
 
+		int min, max, mid;
+		min = 0; max = fileList.size() - 1;
+
+		while (min <= max) {
+			mid = (min+max) / 2;
+			if (fileList[mid]->fileName == s) {
+				fileList[mid]->fileName = dirFile->fileName;
+				fileList[mid]->start = dirFile->start;
+				fileList[mid]->length = dirFile->length;
+				fileList[mid]->containingFile =
+					dirFile->containingFile;
+				return;
+			}
+			if (fileList[mid]->fileName > s)
+				max = mid - 1;
+			else if (fileList[mid]->fileName < s)
+				min = mid + 1;
+		}
+		fileList.insert(fileList.begin()+min, dirFile);
+		return;
 	}
 
 	fileList.push_back(dirFile);

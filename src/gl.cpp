@@ -126,6 +126,8 @@ void renderScene(void)
 	                   glm::value_ptr(gl::projMat));
 	glUniformMatrix4fv(gl::u_ModelView, 1, GL_FALSE,
 	                   glm::value_ptr(modelView));
+
+	glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
 /*
 	glVertexAttrib4f(in_Color, 1.0f, 1.0f, 1.0f, 1.0f);
 	glRasterPos2i(0,0);
@@ -159,6 +161,36 @@ void keypress(uchar key, int x, int y)
 		break;
 	case 's':
 		cam.changeDistance(10.0f);
+		break;
+	case 'i':
+		world.setInterior(world.getInterior()+1);
+		cout << "Interior: " << world.getInterior() << endl;
+		break;
+	case 'I':
+		world.setInterior(world.getInterior()-1);
+		cout << "Interior: " << world.getInterior() << endl;
+		break;
+	case 'c':
+		cout << "enter new camara coords: " << endl;
+		float x, y, z;
+		cin >> x >> y >> z;
+		cam.setTarget(quat(x, y, z));
+		break;
+	case 'm':
+		world.setMinute(world.getMinute()+1);
+		cout << world.getHour() << ":" << world.getMinute() << endl;
+		break;
+	case 'M':
+		world.setMinute(world.getMinute()-1);
+		cout << world.getHour() << ":" << world.getMinute() << endl;
+		break;
+	case 'h':
+		world.setHour(world.getHour()+1);
+		cout << world.getHour() << ":" << world.getMinute() << endl;
+		break;
+	case 'H':
+		world.setHour(world.getHour()-1);
+		cout << world.getHour() << ":" << world.getMinute() << endl;
 		break;
 	case 'q':
 	case 27:
