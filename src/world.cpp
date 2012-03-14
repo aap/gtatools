@@ -40,9 +40,6 @@ void World::drawIslands(void)
 		if (i != activeIsland)
 			islands[i].drawLod();
 	}
-
-//	for (uint i = 0; i < islands.size(); i++)
-//		islands[i].drawZones();
 }
 
 static int ind;
@@ -96,7 +93,6 @@ void World::addInstance(Instance *i)
 	}
 
 	instances.push_back(i);
-
 	indices.push_back(ind++);
 }
 
@@ -126,6 +122,9 @@ void World::readBinIpl(ifstream &in)
 			ip->isLod = true;
 		else if (ip->name.substr(0,9) == "islandlod")
 			ip->isIslandLod = true;
+		if (game == GTASA)
+			if (ip->name.find("_lod") != string::npos)
+				ip->isLod = true;
 
 		addInstance(ip);
 	}
@@ -191,6 +190,9 @@ void World::readTextIpl(ifstream &in)
 				ip->isLod = true;
 			else if (ip->name.substr(0,9) == "islandlod")
 				ip->isIslandLod = true;
+			if (game == GTASA)
+				if (ip->name.find("_lod") != string::npos)
+					ip->isLod = true;
 
 			if (hasInterior)
 				ip->interior = atoi(fields[i++].c_str());
@@ -257,11 +259,11 @@ void World::associateLods(void)
 	/* Associate each instance with its LOD and vice versa */
 	for (uint i = 0; i < instances.size(); i++) {
 		Instance *ip = instances[i];
+		if (indices[i] == 0)
+			base = i;
 		if (ip->isLod || ip->isIslandLod)
 			continue;
 		if (game == GTASA) {
-			if (indices[i] == 0)
-				base = i;
 			if (ip->lod != -1) {
 				ip->lod = base + ip->lod;
 				instances[ip->lod]->hires.push_back(i);
@@ -282,9 +284,8 @@ void World::associateLods(void)
 	dummyObj->modelName = "LODDUMMY";
 	dummyObj->textureName = "LODDUMMY";
 	dummyObj->objectCount = 1;
-	// determined heuristically
-	// but it doesn't seem to be right
-	dummyObj->drawDistances.push_back(60);
+	// not sure about that one
+	dummyObj->drawDistances.push_back(100);
 	dummyObj->flags = 0;
 	objectList.add(dummyObj);
 
@@ -292,6 +293,7 @@ void World::associateLods(void)
 		Instance *lod = instances[i];
 		if (!lod->isLod || lod->hires.size() != 0)
 			continue;
+//		cout << "adding dummy for " << lod->name << endl;
 
 		Instance *ip = new Instance;
 		ip->lod = i;
@@ -320,17 +322,47 @@ void World::associateLods(void)
 	indices.resize(0);
 }
 
+/* finds LOD instance for 3/VC LOD system and returns index */
 int World::getLod(Instance *ip)
 {
-	string lodName = ip->name;
-	lodName[0] = 'l'; lodName[1] = 'o'; lodName[2] = 'd';
-//	if (lodName == ip->name)
-//		return -1;
-	for (uint i = 0; i < instances.size(); i++) {
-		if (instances[i]->name == lodName)
-			return i;
+	// regular LOD name
+	string lodName1 = ip->name;
+	lodName1[0] = 'l'; lodName1[1] = 'o'; lodName1[2] = 'd';
+	// some objects have LODs without '_dy' and '_nt' suffix
+	string lodName2 = lodName1;
+	size_t pos;
+	pos = lodName2.find("_nt");
+	if (pos != string::npos) {
+		lodName2.resize(lodName2.size()-3);
+	} else {
+		pos = lodName2.find("_dy");
+		if (pos != string::npos)
+			lodName2.resize(lodName2.size()-3);
 	}
-	return -1;
+
+	// look for the LOD with the least distance
+	float bestD = 1000000;
+	int bestLod = -1;
+
+	for (uint i = 0; i < instances.size(); i++) {
+		Instance *inst = instances[i];
+		if (inst->name == lodName1 || inst->name == lodName1) {
+			float d = (inst->position[0] - ip->position[0])*
+			          (inst->position[0] - ip->position[0]) +
+			          (inst->position[1] - ip->position[1])*
+			          (inst->position[1] - ip->position[1]) +
+			          (inst->position[2] - ip->position[2])*
+			          (inst->position[2] - ip->position[2]);
+			if (d <= bestD) {
+				bestD = d;
+				bestLod = i;
+			}
+			// there probably won't be better matches
+			if (bestD <= 100)
+				return bestLod;
+		}
+	}
+	return bestLod;
 }
 
 Instance *World::getInstance(uint i)
@@ -444,8 +476,11 @@ void Instance::draw(void)
 
 	glm::mat4 save = gl::modelMat;
 
-	if (cam.distanceTo(quat(position[0], position[1], position[2]))
-	    >= op->drawDistances[0]) {
+	// check draw distance
+	float d = cam.distanceTo(quat(position[0], position[1], position[2]));
+	int ai = op->getCorrectAtomic(d);
+	// if the instance is not drawn, try the LOD version
+	if (ai < 0) {
 		Instance *ip = world.getInstance(lod);
 		if (ip != 0)
 			ip->draw();
@@ -474,12 +509,12 @@ void Instance::draw(void)
 
 	transform();
 
-	if (!op->isLoaded) {
-		cout << interior << " ";
+	if (!op->isLoaded)
 		op->load();
-	}
-	op->drawable.draw(false);
-	op->drawable.draw(true);
+	// the index apparently starts from the back
+	ai = (op->drawDistances.size()-1)-ai;
+	op->drawable.drawAtomic(ai, false);
+	op->drawable.drawAtomic(ai, true);
 
 	gl::modelMat = save;
 	glm::mat4 modelView = gl::viewMat * gl::modelMat;

@@ -5,6 +5,10 @@ using namespace std;
 
 ObjectList objectList;
 
+/*
+ * ObjectList
+ */
+
 void ObjectList::readIde(ifstream &in)
 {
 	string line;
@@ -209,6 +213,21 @@ ObjectList::~ObjectList(void)
 	delete[] objects;
 }
 
+/*
+ * WorldObject
+ */
+
+int WorldObject::getCorrectAtomic(float d)
+{
+	if (drawDistances.size() != objectCount)
+		cout << "whaa\n";
+	for (uint i = 0; i < drawDistances.size(); i++) {
+		if (d <= drawDistances[i])
+			return i;
+	}
+	return -1;
+}
+
 bool WorldObject::isVisibleAtTime(int hour)
 {
 	if (timeOn < timeOff) {	/* Day object */
@@ -231,9 +250,13 @@ WorldObject::WorldObject(void)
 	isTimed = false;
 }
 
+/*
+ * Model
+ */
+
 void Model::load(void)
 {
-	cout << modelName << " " << textureName << endl;
+//	cout << modelName << " " << textureName << endl;
 	if (drawable.load(modelName+".dff", textureName+".txd") == -1)
 		return;
 	isLoaded = true;

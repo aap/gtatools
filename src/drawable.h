@@ -38,15 +38,6 @@ struct Geometry {
 	std::vector<GLfloat> vertices;
 };
 
-/*
-struct Texture {
-	std::string name;
-	std::string maskName;
-	GLuint tex;
-	int dictIndex;
-};
-*/
-
 class Drawable
 {
 private:
@@ -57,11 +48,7 @@ private:
 	Frame *root;
 	std::vector<Frame *> frmList;
 	// textures
-//	std::vector<Texture> texList;
-
 	TexDictionary *texDict;
-
-//	rw::TextureDictionary texDict;
 
 	rw::Animation anim;
 	Frame *animRoot;
@@ -69,8 +56,6 @@ private:
 	int frame;
 	int endFrame;
 
-//	int searchModelTexture(std::string name);
-//	int searchDictTexture(rw::TextureDictionary &dict, std::string name);
 	void attachTexDict(TexDictionary &t);
 	void updateFrames(Frame *r);
 	void updateGeometries(void);

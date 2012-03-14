@@ -399,6 +399,16 @@ void Drawable::draw(bool drawTransparent)
 
 void Drawable::drawAtomic(int ai, bool drawTransparent)
 {
+	if (ai >= 0 && ai < clump.atomicList.size()) {
+		rw::Atomic &atm = clump.atomicList[ai];
+		if (atm.frameIndex >= frmList.size()) {
+			cout << "whuoaaa\n";
+			return;
+		}
+		drawFrame(atm.frameIndex, drawTransparent, true);
+	} else {
+		// can happen
+	}
 }
 
 void Drawable::drawFrame(int fi, bool drawTransparent, bool recurse)

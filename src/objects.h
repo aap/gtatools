@@ -98,6 +98,7 @@ public:
 	int timeOff;
 
 	bool isVisibleAtTime(int hour);
+	int getCorrectAtomic(float d);
 	WorldObject(void);
 };
 
