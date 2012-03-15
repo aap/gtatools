@@ -71,6 +71,13 @@ void parseDat(ifstream &f)
 		} else if (type == "MODELFILE") {
 			directory.addFile(fileName);
 		} else if (type == "IMG") {
+			inFile.open(fileName.c_str(), ios::binary);
+			if (inFile.fail()) {
+				cerr << "couldn't open img " << fileName<<endl;
+				exit(1);
+			}
+			directory.addFromFile(inFile, fileName);
+			inFile.close();
 		} else if (type == "COLFILE") {
 		} else if (type == "SPLASH") {
 		}
@@ -130,6 +137,18 @@ int main(int argc, char *argv[])
 	}
 	directory.addFromFile(dirFile, imgPath);
 	dirFile.close();
+
+	// load gta_int.img and player.img
+	if (game == GTASA) {
+		imgPath = getPath("models/gta_int.img");
+		dirFile.open(imgPath.c_str(), ios::binary);
+		if (dirFile.fail()) {
+			cerr << "can't open img/dir file\n";
+			return 1;
+		}
+		directory.addFromFile(dirFile, imgPath);
+		dirFile.close();
+	}
 
 	// try to open txd archive for optimized textures
 	dirPath = getPath("models/txd.dir");

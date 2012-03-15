@@ -32,6 +32,7 @@ struct quaternion
 	quaternion  operator+ (const N& rhs) const;
 	quaternion  operator- (const quaternion& rhs) const;
 	quaternion  operator- (const N& rhs) const;
+	quaternion  operator- () const;
 	quaternion  operator* (const quaternion& rhs) const;
 	quaternion  operator* (const N& rhs) const;
 	quaternion  operator/ (const quaternion& rhs) const;
@@ -244,6 +245,14 @@ quaternion<N> quaternion<N>::operator-(const N& rhs) const
 {
 	quaternion<N> newquat = *this;
 	newquat -= rhs;
+	return newquat;
+}
+
+template <class N>
+quaternion<N> quaternion<N>::operator-() const
+{
+	quaternion<N> newquat = *this;
+	newquat *= -1;
 	return newquat;
 }
 

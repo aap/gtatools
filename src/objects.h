@@ -37,6 +37,8 @@ public:
 	bool isLoaded;
 	Drawable drawable;
 
+	quat boundingSphere;
+
 	void load(void);
 	Model(void);
 };

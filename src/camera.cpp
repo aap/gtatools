@@ -12,6 +12,7 @@ void Camera::look()
 	updateCam();
 
 	gl::projMat = glm::perspective(fov, aspectRatio, n, f);
+	updateFrustum();
 	gl::viewMat = glm::mat4(1.0f);
 
 	gl::viewMat = glm::translate(gl::viewMat, glm::vec3(0.0f, 0.0f, -r));
@@ -73,6 +74,99 @@ void Camera::moveInOut(float d)
 	quat cam(-sin(theta)*sin(phi), sin(theta)*cos(phi), cos(theta));
 
 	target -= cam*d;
+}
+
+void Camera::updateFrustum(void)
+{
+	float hnear, wnear;
+
+	hnear = tan(fov/2)*n;
+	wnear = hnear * aspectRatio;
+
+	quat d(-sin(theta)*sin(phi), sin(theta)*cos(phi), cos(theta));
+	quat pos = d * r + target;
+	d *= -1;
+	quat left = up.wedge(d);
+	quat up_local = d.wedge(left);
+
+	// relative to camera
+	quat nc = d*n;
+	quat fc = d*f;
+
+	// absolute
+	quat ntr = pos + nc - left*wnear/2 + up_local*hnear/2;
+	quat nbl = pos + nc + left*wnear/2 - up_local*hnear/2;
+
+	quat a;
+	float b;
+	// right plane
+	a = nc - left*wnear/2;
+	a = -up_local.wedge(a);
+	a.normalize();
+	b = a.dot(ntr);
+	planes[0] = a;
+	planes[0].w = b;
+
+	// left plane
+	a = nc + left*wnear/2;
+	a = up_local.wedge(a);
+	a.normalize();
+	b = a.dot(nbl);
+	planes[1] = a;
+	planes[1].w = b;
+
+	// top plane
+	a = nc + up_local*hnear/2;
+	a = -left.wedge(a);
+	a.normalize();
+	b = a.dot(ntr);
+	planes[2] = a;
+	planes[2].w = b;
+
+	// bottom plane
+	a = nc - up_local*hnear/2;
+	a = left.wedge(a);
+	a.normalize();
+	b = a.dot(nbl);
+	planes[3] = a;
+	planes[3].w = b;
+
+	// near plane
+	a = -d;
+	b = a.dot(nc + pos);
+	planes[4] = a;
+	planes[4].w = b;
+
+	// far plane
+	b = d.dot(fc + pos);
+	planes[5] = d;
+	planes[5].w = b;
+}
+
+bool Camera::isPointInFrustum(quat p)
+{
+	for (uint i = 0; i < 6; i++) {
+		quat n = planes[i];
+		n.w = 0;
+		float d = planes[i].w;
+		if (p.dot(n) - d > 0)
+			return false;
+	}
+	return true;
+}
+
+bool Camera::isSphereInFrustum(quat s)
+{
+	float r = s.w;
+	s.w = 0;
+	for (uint i = 0; i < 6; i++) {
+		quat n = planes[i];
+		n.w = 0;
+		float d = planes[i].w;
+		if (s.dot(n) - d > r)
+			return false;
+	}
+	return true;
 }
 
 void Camera::updateCam()
@@ -201,6 +295,6 @@ Camera::Camera()
 	fov = 70.0f;
 	aspectRatio = 1.0f;
 	n = 0.1f;
-	f = 100000.0f;
+	f = 10000.0f;
 }
 

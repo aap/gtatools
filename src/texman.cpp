@@ -90,7 +90,7 @@ uint TexManager::add(string fileName)
 
 	if (txdList.size() > 0) {
 		int min, max, mid;
-		min = 0; max = txdList.size() - 1;
+		min = 1; max = txdList.size() - 1;
 
 		while (min <= max) {
 			mid = (min+max) / 2;

@@ -29,6 +29,7 @@ namespace gl {
 
 	extern GLuint whiteTex;
 	extern bool drawWire;
+	extern bool drawTransparent;
 
 	extern glm::mat4 modelMat;
 	extern glm::mat4 viewMat;

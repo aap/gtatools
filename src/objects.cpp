@@ -219,8 +219,6 @@ ObjectList::~ObjectList(void)
 
 int WorldObject::getCorrectAtomic(float d)
 {
-	if (drawDistances.size() != objectCount)
-		cout << "whaa\n";
 	for (uint i = 0; i < drawDistances.size(); i++) {
 		if (d <= drawDistances[i])
 			return i;
@@ -259,6 +257,7 @@ void Model::load(void)
 //	cout << modelName << " " << textureName << endl;
 	if (drawable.load(modelName+".dff", textureName+".txd") == -1)
 		return;
+	boundingSphere = drawable.getBoundingSphere();
 	isLoaded = true;
 }
 

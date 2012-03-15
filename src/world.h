@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include "objects.h"
+#include "math.h"
 
 #define END 0
 enum iplSections {
@@ -19,9 +20,9 @@ public:
 	int id;
 	std::string name;
 	int interior;
-	float position[3];
-	float scale[3];
-	float rotation[4];
+	quat position;
+	quat scale;
+	quat rotation;
 
 	bool isLod;
 	bool isIslandLod;
@@ -39,29 +40,30 @@ class Zone
 public:
 	std::string name;
 	int type;
-	float corner1[3];
-	float corner2[3];
+	quat corner1;
+	quat corner2;
 	int islandNum;
 
 	// sa
 	std::string text;
 
 	/* functions */
-	bool pointInZone(float *p);
+	bool pointInZone(quat p);
+	bool sphereInZone(quat p, float r);
 };
 
 class Island
 {
 public:
 	std::vector<Instance *> islandLods;
-	std::vector<Instance *> Lods;
 	std::vector<Instance *> instances;
 
 	std::vector<Zone *> zones;
 	std::vector<Zone *> islandZones;
 
 	/* functions */
-	bool pointInIsland(float *p);
+	bool pointInIsland(quat p);
+	bool sphereInIsland(quat p, float r);
 	void draw(void);
 	void drawLod(void);
 	void drawZones(void);

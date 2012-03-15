@@ -87,41 +87,41 @@ void drawSphere(GLfloat r, GLint slices, GLint stacks)
 	glDeleteBuffers(1, &vbo_sphere);
 }
 
-void drawCube2(GLfloat *pos1, GLfloat *pos2)
+void drawCube2(quat pos1, quat pos2)
 {
 	GLuint vbo_cube;
 	GLfloat cube[] = {
 		// verts
 		// bottom
-		pos1[0], pos1[1], pos1[2],
-		pos1[0], pos2[1], pos1[2],
-		pos2[0], pos2[1], pos1[2],
-		pos2[0], pos1[1], pos1[2],
+		pos1.x, pos1.y, pos1.z,
+		pos1.x, pos2.y, pos1.z,
+		pos2.x, pos2.y, pos1.z,
+		pos2.x, pos1.y, pos1.z,
 		// top
-		pos2[0], pos1[1], pos2[2],
-		pos2[0], pos2[1], pos2[2],
-		pos1[0], pos2[1], pos2[2],
-		pos1[0], pos1[1], pos2[2],
+		pos2.x, pos1.y, pos2.z,
+		pos2.x, pos2.y, pos2.z,
+		pos1.x, pos2.y, pos2.z,
+		pos1.x, pos1.y, pos2.z,
 		// left
-		pos1[0], pos1[1], pos1[2],
-		pos1[0], pos1[1], pos2[2],
-		pos1[0], pos2[1], pos2[2],
-		pos1[0], pos2[1], pos1[2],
+		pos1.x, pos1.y, pos1.z,
+		pos1.x, pos1.y, pos2.z,
+		pos1.x, pos2.y, pos2.z,
+		pos1.x, pos2.y, pos1.z,
 		// right
-		pos2[0], pos2[1], pos1[2],
-		pos2[0], pos2[1], pos2[2],
-		pos2[0], pos1[1], pos2[2],
-		pos2[0], pos1[1], pos1[2],
+		pos2.x, pos2.y, pos1.z,
+		pos2.x, pos2.y, pos2.z,
+		pos2.x, pos1.y, pos2.z,
+		pos2.x, pos1.y, pos1.z,
 		// front
-		pos1[0], pos1[1], pos1[2],
-		pos2[0], pos1[1], pos1[2],
-		pos2[0], pos1[1], pos2[2],
-		pos1[0], pos1[1], pos2[2],
+		pos1.x, pos1.y, pos1.z,
+		pos2.x, pos1.y, pos1.z,
+		pos2.x, pos1.y, pos2.z,
+		pos1.x, pos1.y, pos2.z,
 		// back
-		pos1[0], pos2[1], pos2[2],
-		pos2[0], pos2[1], pos2[2],
-		pos2[0], pos2[1], pos1[2],
-		pos1[0], pos2[1], pos1[2],
+		pos1.x, pos2.y, pos2.z,
+		pos2.x, pos2.y, pos2.z,
+		pos2.x, pos2.y, pos1.z,
+		pos1.x, pos2.y, pos1.z,
 
 		// normals
 		// bottom

@@ -4,6 +4,16 @@
 
 class Camera
 {
+private:
+	void updateFrustum(void);
+	void updateCam(void);
+	float theta, phi, r;
+	float fov, aspectRatio;
+	float n, f;
+	quat up;
+	quat target;
+	quat planes[6];
+
 public:
 	void look(void);
 	Camera(void);
@@ -29,14 +39,8 @@ public:
 	void changeYaw(float yaw);
 	void changeDistance(float d);
 	void changeTarget(quat q);
-
-private:
-	void updateCam(void);
-	float theta, phi, r;
-	float fov, aspectRatio;
-	float n, f;
-	quat up;
-	quat target;
+	bool isPointInFrustum(quat p);
+	bool isSphereInFrustum(quat s);
 };
 
 extern Camera cam;

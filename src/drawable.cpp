@@ -111,6 +111,11 @@ void Drawable::attachClump(rw::Clump &c)
 			// TODO: to this for other textures also
 		}
 
+		geo.boundingSphere = quat(rwg.boundingSphere[3],
+		                          rwg.boundingSphere[0],
+		                          rwg.boundingSphere[1],
+		                          rwg.boundingSphere[2]);
+
 		uint numVertices = rwg.vertices.size() / 3;
 
 		size = numVertices*3*sizeof(GLfloat);	// vertices
@@ -401,10 +406,6 @@ void Drawable::drawAtomic(int ai, bool drawTransparent)
 {
 	if (ai >= 0 && ai < clump.atomicList.size()) {
 		rw::Atomic &atm = clump.atomicList[ai];
-		if (atm.frameIndex >= frmList.size()) {
-			cout << "whuoaaa\n";
-			return;
-		}
 		drawFrame(atm.frameIndex, drawTransparent, true);
 	} else {
 		// can happen
@@ -456,6 +457,7 @@ void Drawable::drawFrame(int fi, bool drawTransparent, bool recurse)
 }
 
 void Drawable::drawGeometry(int gi, bool drawTransparent)
+//void Drawable::drawGeometry(int gi, bool dt)
 {
 	if (uint(gi) >= clump.geometryList.size())
 		return;
@@ -576,4 +578,12 @@ void Drawable::drawGeometry(int gi, bool drawTransparent)
 	glDisableVertexAttribArray(in_TexCoord);
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+
+quat Drawable::getBoundingSphere(void)
+{
+	if (geoList.size() > 0)
+		return geoList[0].boundingSphere;
+	return quat(0.0f, 0.0f, 0.0f, 0.0f);
 }

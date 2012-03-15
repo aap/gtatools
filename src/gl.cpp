@@ -27,6 +27,7 @@ Pipeline *currentPipe;
 
 GLuint whiteTex;
 bool drawWire;
+bool drawTransparent;
 
 glm::mat4 modelMat;
 glm::mat4 viewMat;
@@ -73,8 +74,7 @@ void renderScene(void)
 	lightPos = viewMat * lightPos;
 	glm::vec3 lightCol = glm::vec3(0.5f, 0.5f, 0.5f);
 
-	glm::vec3 amb = glm::vec3(0.5f, 0.5f, 0.5f);
-
+	glm::vec3 amb = glm::vec3(0.49f, 0.47f, 0.33f);
 
 	simplePipe.use();
 	glBindTexture(GL_TEXTURE_2D, 0);
@@ -91,7 +91,6 @@ void renderScene(void)
 	glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
 
 	drawAxes(glm::value_ptr(modelMat));
-
 
 	gtaPipe.use();
 	glUniformMatrix4fv(gl::u_Projection, 1, GL_FALSE,
@@ -113,7 +112,10 @@ void renderScene(void)
 //	drawable.draw(false);
 //	drawable.draw(true);
 
+//	drawTransparent = false;
 	world.drawIslands();
+//	drawTransparent = true;
+//	world.drawIslands();
 
 	// 2d overlay
 	glDisable(GL_DEPTH_TEST);
@@ -283,10 +285,9 @@ void init(char *model, char *texdict)
 	glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
 	glClearDepth(1.0);
 	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LESS);
-	//glDepthFunc(GL_LEQUAL);
+//	glDepthFunc(GL_LESS);
+	glDepthFunc(GL_LEQUAL);
 	glEnable(GL_ALPHA_TEST);
-
 	
 	int white = 0xFFFFFFFF;
 	glGenTextures(1, &whiteTex);
@@ -306,6 +307,7 @@ void init(char *model, char *texdict)
 	cam.setDistance(20.0f);
 	cam.setAspectRatio((GLfloat) width / height);
 	cam.setTarget(quat(335.5654907, -159.0345306, 17.85120964));
+//	cam.setTarget(quat(1664.125, -1560.851563, 23.3515625));
 
 
 	GLfloat axes[] = {

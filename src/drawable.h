@@ -1,15 +1,16 @@
 #ifndef DRAWABLE_H
 #define DRAWABLE_H
 
-#include "gta.h"
-#include "texman.h"
-
 #include <vector>
 #include <string>
 #include <GL/glew.h>
 #include <glm/glm.hpp>
 
 #include <renderware.h>
+
+#include "gta.h"
+#include "texman.h"
+#include "math.h"
 
 struct Frame {
 	std::string name;
@@ -36,6 +37,8 @@ struct Geometry {
 
 	bool isSkinned;
 	std::vector<GLfloat> vertices;
+
+	quat boundingSphere;
 };
 
 class Drawable
@@ -61,9 +64,8 @@ private:
 	void updateGeometries(void);
 	void applyAnim(Frame *f);
 	void drawGeometry(int g, bool drawTransp);
-public:
 
-	/* functions */
+public:
 	int load(std::string model, std::string texdict);
 	void unload(void);
 	void attachClump(rw::Clump &c);	// better use a pointer
@@ -74,6 +76,7 @@ public:
 	void drawAtomic(int a, bool drawTransp);
 	void drawFrame(int fi, bool drawTransp, bool recurse);
 	void printFrames(int level, Frame *r);
+	quat getBoundingSphere(void);
 };
 
 #endif

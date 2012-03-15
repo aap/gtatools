@@ -23,11 +23,9 @@ World world;
 void World::drawIslands(void)
 {
 	quat camPos = cam.getPosition();
-	float pos[3];
-	pos[0] = camPos.x; pos[1] = camPos.y; pos[2] = camPos.z;
 
 	for (uint i = 0; i < islands.size(); i++) {
-		if (islands[i].pointInIsland(pos)) {
+		if (islands[i].pointInIsland(camPos)) {
 			activeIsland = i;
 			break;
 		}
@@ -37,9 +35,13 @@ void World::drawIslands(void)
 	islands[0].draw();
 	islands[activeIsland].draw();
 	for (uint i = 0; i < islands.size(); i++) {
-		if (i != activeIsland)
+		if (i != activeIsland) {
 			islands[i].drawLod();
+		}
 	}
+
+//	for (uint i = 0; i < islands.size(); i++)
+//		islands[i].drawZones();
 }
 
 static int ind;
@@ -70,30 +72,38 @@ void World::readIpl(ifstream &in, string iplName)
 
 void World::addInstance(Instance *i)
 {
+	instances.push_back(i);
+	indices.push_back(ind++);
+
+	if (i->isLod)
+		return;
+
+	// TODO: tune this value
+	float dist = 100.0f;
+	if (game == GTASA)
+		dist = 500.0f;
 	// add instance to the appropriate island; if none is found,
 	// add to the default island (0)
 	uint j;
-	for (j = 0; j < islands.size(); j++)
-		if (islands[j].pointInIsland(i->position)) {
-			if (i->isIslandLod)
+	for (j = 1; j < islands.size(); j++)
+		if (i->isIslandLod) {
+			if (islands[j].pointInIsland(i->position)) {
 				islands[j].islandLods.push_back(i);
-			else if (i->isLod)
-				islands[j].Lods.push_back(i);
-			else
+				break;
+			}
+		} else {
+			if (islands[j].sphereInIsland(i->position, dist)) {
 				islands[j].instances.push_back(i);
-			break;
+				break;
+			}
 		}
 	if (j == islands.size()) {
-		if (i->isIslandLod)
+		if (i->isIslandLod) {
+			cout << i->name << " not inserted\n";
 			islands[0].islandLods.push_back(i);
-		else if (i->isLod)
-			islands[0].Lods.push_back(i);
-		else
+		} else
 			islands[0].instances.push_back(i);
 	}
-
-	instances.push_back(i);
-	indices.push_back(ind++);
 }
 
 void World::readBinIpl(ifstream &in)
@@ -106,14 +116,15 @@ void World::readBinIpl(ifstream &in)
 	Instance *ip;
 	for (uint i = 0; i < instCount; i++) {
 		ip = new Instance;
-		in.read((char *) ip->position, 3*sizeof(float));
-		in.read((char *) ip->rotation, 4*sizeof(float));
+		float tmp[4];
+		in.read((char *) tmp, 3*sizeof(float));
+		ip->position = quat(tmp[0], tmp[1], tmp[2]);
+		in.read((char *) tmp, 4*sizeof(float));
+		ip->rotation = quat(tmp[3], tmp[0], tmp[1], tmp[2]);
 		in.read((char *) &ip->id, sizeof(uint));
 		in.read((char *) &ip->interior, sizeof(uint));
 		in.read((char *) &ip->lod, sizeof(uint));
-		ip->scale[0] = 1.0f;
-		ip->scale[1] = 1.0f;
-		ip->scale[2] = 1.0f;
+		ip->scale = quat(1.0f, 1.0f, 1.0f);
 
 		ip->name = ((WorldObject*)objectList.get(ip->id))->modelName;
 
@@ -199,23 +210,25 @@ void World::readTextIpl(ifstream &in)
 			else
 				ip->interior = 0;
 
-			ip->position[0] = atof(fields[i++].c_str());
-			ip->position[1] = atof(fields[i++].c_str());
-			ip->position[2] = atof(fields[i++].c_str());
+			ip->position = quat(atof(fields[i].c_str()),
+			                    atof(fields[i+1].c_str()),
+			                    atof(fields[i+2].c_str()));
+			i += 3;
+
 
 			if (hasScale) {
-				ip->scale[0] = atof(fields[i++].c_str());
-				ip->scale[1] = atof(fields[i++].c_str());
-				ip->scale[2] = atof(fields[i++].c_str());
+				ip->scale = quat(atof(fields[i].c_str()),
+			                         atof(fields[i+1].c_str()),
+			                         atof(fields[i+2].c_str()));
+				i += 3;
 			} else {
-				ip->scale[0] = 1.0f;
-				ip->scale[1] = 1.0f;
-				ip->scale[2] = 1.0f;
+				ip->scale = quat(1.0f, 1.0f, 1.0f);
 			}
-			ip->rotation[0] = atof(fields[i++].c_str());
-			ip->rotation[1] = atof(fields[i++].c_str());
-			ip->rotation[2] = atof(fields[i++].c_str());
-			ip->rotation[3] = atof(fields[i++].c_str());
+			ip->rotation = quat(atof(fields[i].c_str()),
+			                    atof(fields[i+1].c_str()),
+			                    atof(fields[i+2].c_str()));
+			i += 3;
+			ip->rotation.w = atof(fields[i++].c_str());
 
 			if (hasLod)
 				ip->lod = atoi(fields[i++].c_str());
@@ -228,12 +241,13 @@ void World::readTextIpl(ifstream &in)
 			z->name = fields[i++];
 			stringToLower(z->name);
 			z->type = atoi(fields[i++].c_str());
-			z->corner1[0] = atof(fields[i++].c_str());
-			z->corner1[1] = atof(fields[i++].c_str());
-			z->corner1[2] = atof(fields[i++].c_str());
-			z->corner2[0] = atof(fields[i++].c_str());
-			z->corner2[1] = atof(fields[i++].c_str());
-			z->corner2[2] = atof(fields[i++].c_str());
+			z->corner1 = quat(atof(fields[i].c_str()),
+			                  atof(fields[i+1].c_str()),
+			                  atof(fields[i+2].c_str()));
+			z->corner2 = quat(atof(fields[i+3].c_str()),
+			                  atof(fields[i+4].c_str()),
+			                  atof(fields[i+5].c_str()));
+			i += 6;
 			z->islandNum = atoi(fields[i++].c_str());
 
 			if (fields.size() >= 10) {
@@ -302,16 +316,9 @@ void World::associateLods(void)
 		ip->name[0] = 'x'; ip->name[1] = 'x'; ip->name[2] = 'x';
 		ip->isIslandLod = ip->isLod = false;
 		ip->interior = 0;
-		ip->position[0] = lod->position[0];
-		ip->position[1] = lod->position[1];
-		ip->position[2] = lod->position[2];
-		ip->scale[0] = 1.0f;
-		ip->scale[1] = 1.0f;
-		ip->scale[2] = 1.0f;
-		ip->rotation[0] = 0.0f;
-		ip->rotation[1] = 0.0f;
-		ip->rotation[2] = 0.0f;
-		ip->rotation[3] = 1.0f;
+		ip->position = lod->position;
+		ip->scale = quat(1.0f, 1.0f, 1.0f);
+		ip->rotation = quat(1.0f, 0.0f, 0.0f, 0.0f);
 
 		addInstance(ip);
 
@@ -347,12 +354,7 @@ int World::getLod(Instance *ip)
 	for (uint i = 0; i < instances.size(); i++) {
 		Instance *inst = instances[i];
 		if (inst->name == lodName1 || inst->name == lodName1) {
-			float d = (inst->position[0] - ip->position[0])*
-			          (inst->position[0] - ip->position[0]) +
-			          (inst->position[1] - ip->position[1])*
-			          (inst->position[1] - ip->position[1]) +
-			          (inst->position[2] - ip->position[2])*
-			          (inst->position[2] - ip->position[2]);
+			float d = (inst->position - ip->position).normsq();
 			if (d <= bestD) {
 				bestD = d;
 				bestLod = i;
@@ -421,7 +423,7 @@ void Island::drawLod(void)
 	for (uint i = 0; i < islandLods.size(); i++)
 		islandLods[i]->draw();
 
-	draw();
+//	draw();
 }
 
 void Island::drawZones(void)
@@ -444,7 +446,16 @@ void Island::drawZones(void)
 
 	glDisable(GL_BLEND);
 }
-bool Island::pointInIsland(float *p)
+
+bool Island::sphereInIsland(quat p, float r)
+{
+	for (uint i = 0; i < islandZones.size(); i++)
+		if (islandZones[i]->sphereInZone(p, r))
+			return true;
+	return false;
+}
+
+bool Island::pointInIsland(quat p)
 {
 	for (uint i = 0; i < islandZones.size(); i++)
 		if (islandZones[i]->pointInZone(p))
@@ -456,11 +467,21 @@ bool Island::pointInIsland(float *p)
  * Zone
  */
 
-bool Zone::pointInZone(float *p)
+bool Zone::sphereInZone(quat p, float r)
 {
-	if (p[0] >= corner1[0] && p[0] <= corner2[0] &&
-	    p[1] >= corner1[1] && p[1] <= corner2[1] &&
-	    p[2] >= corner1[2] && p[2] <= corner2[2]) {
+	if (p.x - corner1.x >= r && p.x - corner2.x <= -r &&
+	    p.y - corner1.y >= r && p.y - corner2.y <= -r &&
+	    p.z - corner1.z >= r && p.z - corner2.z <= -r ) {
+		return true;
+	}
+	return false;
+}
+
+bool Zone::pointInZone(quat p)
+{
+	if (p.x - corner1.x >= 0 && p.x - corner2.x <= 0 &&
+	    p.y - corner1.y >= 0 && p.y - corner2.y <= 0 &&
+	    p.z - corner1.z >= 0 && p.z - corner2.z <= 0 ) {
 		return true;
 	}
 	return false;
@@ -477,8 +498,13 @@ void Instance::draw(void)
 	glm::mat4 save = gl::modelMat;
 
 	// check draw distance
-	float d = cam.distanceTo(quat(position[0], position[1], position[2]));
+	float d = cam.distanceTo(position);
 	int ai = op->getCorrectAtomic(d);
+
+	// culling does not yet work
+//	if (op->isLoaded)
+//		if (!cam.isSphereInFrustum(op->boundingSphere + position))
+//			return;
 	// if the instance is not drawn, try the LOD version
 	if (ai < 0) {
 		Instance *ip = world.getInstance(lod);
@@ -497,8 +523,8 @@ void Instance::draw(void)
 			if (interior != 13)
 				return;
 		} if (game == GTASA) {
-			if (interior != 13 && interior != 1024
-			    && interior != 256)
+			if (interior != 13 && interior != 256 &&
+			    interior != 1024 && interior != 4096)
 				return;
 		}
 	}
@@ -528,12 +554,13 @@ void Instance::draw(void)
 void Instance::transform(void)
 {
 	glm::quat q;
-	q.x = -rotation[0];
-	q.y = -rotation[1];
-	q.z = -rotation[2];
-	q.w = rotation[3];
+
+	q.w = rotation.w;
+	q.x = -rotation.x;
+	q.y = -rotation.y;
+	q.z = -rotation.z;
 	gl::modelMat = glm::translate(gl::modelMat,
-	                      glm::vec3(position[0], position[1], position[2]));
+	                      glm::vec3(position.x, position.y, position.z));
 	gl::modelMat *= glm::mat4_cast(q);
 	glm::mat4 modelView = gl::viewMat * gl::modelMat;
 	glm::mat3 normal = glm::inverseTranspose(glm::mat3(modelView));
@@ -542,4 +569,3 @@ void Instance::transform(void)
 	glUniformMatrix3fv(gl::u_NormalMat, 1, GL_FALSE,
 	                   glm::value_ptr(normal));
 }
-
