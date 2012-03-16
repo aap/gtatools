@@ -31,7 +31,8 @@ void World::drawIslands(void)
 		}
 	}
 
-	// TODO: don't forget transparency
+	gl::drawTransparent = false;
+	transpInstances.clear();
 	islands[0].draw();
 	islands[activeIsland].draw();
 	for (uint i = 0; i < islands.size(); i++) {
@@ -40,8 +41,9 @@ void World::drawIslands(void)
 		}
 	}
 
-//	for (uint i = 0; i < islands.size(); i++)
-//		islands[i].drawZones();
+	gl::drawTransparent = true;
+	for (uint i = 0; i < transpInstances.size(); i++)
+		transpInstances[i]->justDraw();
 }
 
 static int ind;
@@ -376,6 +378,12 @@ Instance *World::getInstance(uint i)
 	return 0;
 }
 
+void World::addTransparent(Instance *ip, float dist)
+{
+	// TODO: depth sort
+	transpInstances.push_back(ip);
+}
+
 void World::setInterior(int i) { interior = i; }
 int World::getInterior(void) { return interior; }
 int World::getHour(void) { return hour; }
@@ -424,8 +432,6 @@ void Island::drawLod(void)
 {
 	for (uint i = 0; i < islandLods.size(); i++)
 		islandLods[i]->draw();
-
-//	draw();
 }
 
 void Island::drawZones(void)
@@ -527,6 +533,7 @@ void Instance::draw(void)
 				return;
 		} if (game == GTASA) {
 			if (interior != 13 && interior != 256 &&
+			    interior != 269 && interior != 2048 &&
 			    interior != 1024 && interior != 4096)
 				return;
 		}
@@ -536,6 +543,34 @@ void Instance::draw(void)
 	if (op->isTimed && !op->isVisibleAtTime(world.getHour()))
 		return;
 
+	if (op->flags & 4 || op->flags & 8)
+		world.addTransparent(this, d);
+
+	transform();
+
+	if (!op->isLoaded)
+		op->load();
+	// the index apparently starts from the back
+	ai = (op->drawDistances.size()-1)-ai;
+	op->drawable.drawAtomic(ai, false);
+	op->drawable.drawAtomic(ai, true);
+
+	gl::modelMat = save;
+	glm::mat4 modelView = gl::viewMat * gl::modelMat;
+	glm::mat3 normal = glm::inverseTranspose(glm::mat3(modelView));
+	glUniformMatrix4fv(gl::u_ModelView, 1, GL_FALSE,
+			   glm::value_ptr(modelView));
+	glUniformMatrix3fv(gl::u_NormalMat, 1, GL_FALSE,
+			   glm::value_ptr(normal));
+}
+
+void Instance::justDraw(void)
+{
+	WorldObject *op = (WorldObject*)objectList.get(id);
+	float d = cam.distanceTo(position);
+	int ai = op->getCorrectAtomic(d);
+
+	glm::mat4 save = gl::modelMat;
 	transform();
 
 	if (!op->isLoaded)

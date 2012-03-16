@@ -456,8 +456,8 @@ void Drawable::drawFrame(int fi, bool drawTransparent, bool recurse)
 
 }
 
-void Drawable::drawGeometry(int gi, bool drawTransparent)
-//void Drawable::drawGeometry(int gi, bool dt)
+//void Drawable::drawGeometry(int gi, bool drawTransparent)
+void Drawable::drawGeometry(int gi, bool dt)
 {
 	if (uint(gi) >= clump.geometryList.size())
 		return;
@@ -506,6 +506,7 @@ void Drawable::drawGeometry(int gi, bool drawTransparent)
 	for (uint j = 0; j < g.splits.size(); j++) {
 		rw::Split s = g.splits[j];
 		bool isTransparent = false;
+
 		// bind texture
 		glActiveTexture(GL_TEXTURE0);
 		int matid = s.matIndex;
@@ -528,6 +529,11 @@ void Drawable::drawGeometry(int gi, bool drawTransparent)
 		}
 		if (g.materialList[matid].color[3] != 255)
 			isTransparent = true;
+		if (isTransparent != drawTransparent) {
+			offset += s.indices.size();
+			continue;
+		}
+
 		glUniform1i(u_Texture, 0);
 
 		glm::vec4 matCol;
@@ -537,17 +543,14 @@ void Drawable::drawGeometry(int gi, bool drawTransparent)
 		matCol.w = (float) g.materialList[matid].color[3] / 255.0f;
 		glUniform4fv(u_MatColor, 1, glm::value_ptr(matCol));
 
-		if (isTransparent != drawTransparent) {
-			offset += s.indices.size();
-			continue;
-		}
-
 		if (isTransparent) {
 			glEnable(GL_BLEND);
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			glEnable(GL_ALPHA_TEST);
 			glAlphaFunc(GL_GREATER, 0.0);
 		} else {
 			glDisable(GL_BLEND);
+			glDisable(GL_ALPHA_TEST);
 		}
 
 		if (gl::drawWire) {

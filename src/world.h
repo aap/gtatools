@@ -32,6 +32,7 @@ public:
 
 	/* functions */
 	void draw(void);
+	void justDraw(void);
 	void transform(void);
 };
 
@@ -74,8 +75,11 @@ class World
 private:
 	// list of ALL instances
 	std::vector<Instance *> instances;
+
 	std::vector<Island> islands;
 	uint activeIsland;
+
+	std::vector<Instance *> transpInstances;
 
 	int interior;
 	int hour, minute;
@@ -89,6 +93,7 @@ public:
 	void readTextIpl(std::ifstream &);
 	void associateLods(void);
 	void drawIslands(void);
+	void addTransparent(Instance *ip, float dist);
 
 	void setInterior(int i);
 	int getInterior(void);

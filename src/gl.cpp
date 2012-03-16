@@ -112,10 +112,7 @@ void renderScene(void)
 //	drawable.draw(false);
 //	drawable.draw(true);
 
-//	drawTransparent = false;
 	world.drawIslands();
-//	drawTransparent = true;
-//	world.drawIslands();
 
 	// 2d overlay
 	glDisable(GL_DEPTH_TEST);
@@ -287,7 +284,6 @@ void init(char *model, char *texdict)
 	glEnable(GL_DEPTH_TEST);
 //	glDepthFunc(GL_LESS);
 	glDepthFunc(GL_LEQUAL);
-	glEnable(GL_ALPHA_TEST);
 	
 	int white = 0xFFFFFFFF;
 	glGenTextures(1, &whiteTex);
