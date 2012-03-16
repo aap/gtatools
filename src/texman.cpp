@@ -8,6 +8,10 @@ using namespace std;
 
 TexManager TexMan;
 
+/*
+ * TexManager
+ */
+
 TexDictionary *TexManager::get(string fileName)
 {
 	stringToLower(fileName);
@@ -36,6 +40,7 @@ void TexManager::release(string fileName)
 		}
 	}
 }
+
 
 uint TexManager::find(string fileName)
 {
@@ -119,6 +124,15 @@ TexManager::TexManager(void)
 	t->fileName = "NOTFOUND";
 	txdList.push_back(t);
 }
+
+void TexManager::addParentInfo(std::string child, std::string parent)
+{
+//	cout << child << " " << parent << endl;
+}
+
+/*
+ * TexDictionary
+ */
 
 Texture *TexDictionary::get(string searchName)
 {

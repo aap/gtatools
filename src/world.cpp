@@ -290,6 +290,7 @@ void World::associateLods(void)
 	}
 
 	/* Some LODs don't have hires instances, add dummies */
+	// TODO: find out how the game handles these
 
 	WorldObject *dummyObj;
 	dummyObj = new WorldObject;
@@ -300,6 +301,7 @@ void World::associateLods(void)
 	dummyObj->objectCount = 1;
 	// not sure about that one
 	dummyObj->drawDistances.push_back(100);
+//	dummyObj->drawDistances.push_back(0);
 	dummyObj->flags = 0;
 	objectList.add(dummyObj);
 
@@ -469,9 +471,9 @@ bool Island::pointInIsland(quat p)
 
 bool Zone::sphereInZone(quat p, float r)
 {
-	if (p.x - corner1.x >= r && p.x - corner2.x <= -r &&
-	    p.y - corner1.y >= r && p.y - corner2.y <= -r &&
-	    p.z - corner1.z >= r && p.z - corner2.z <= -r ) {
+	if (p.x - r >= corner1.x && p.x + r <= corner2.x &&
+	    p.y - r >= corner1.y && p.y + r <= corner2.y &&
+	    p.z - r >= corner1.z && p.z + r <= corner2.z) {
 		return true;
 	}
 	return false;
@@ -479,9 +481,9 @@ bool Zone::sphereInZone(quat p, float r)
 
 bool Zone::pointInZone(quat p)
 {
-	if (p.x - corner1.x >= 0 && p.x - corner2.x <= 0 &&
-	    p.y - corner1.y >= 0 && p.y - corner2.y <= 0 &&
-	    p.z - corner1.z >= 0 && p.z - corner2.z <= 0 ) {
+	if (p.x >= corner1.x && p.x <= corner2.x &&
+	    p.y >= corner1.y && p.y <= corner2.y &&
+	    p.z >= corner1.z && p.z <= corner2.z) {
 		return true;
 	}
 	return false;
@@ -501,11 +503,12 @@ void Instance::draw(void)
 	float d = cam.distanceTo(position);
 	int ai = op->getCorrectAtomic(d);
 
-	// culling does not yet work
-//	if (op->isLoaded)
-//		if (!cam.isSphereInFrustum(op->boundingSphere + position))
-//			return;
-	// if the instance is not drawn, try the LOD version
+	// frustum cull
+	if (op->isLoaded)
+		if (!cam.isSphereInFrustum(op->boundingSphere + position))
+			return;
+
+	// if the instance is too far away, try the LOD version
 	if (ai < 0) {
 		Instance *ip = world.getInstance(lod);
 		if (ip != 0)

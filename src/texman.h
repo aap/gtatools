@@ -29,6 +29,7 @@ private:
 	uint add(std::string fileName);
 	uint find(std::string fileName);
 public:
+	void addParentInfo(std::string child, std::string parent);
 	TexDictionary *get(std::string fileName);
 	void release(std::string fileName);
 	TexManager(void);

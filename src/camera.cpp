@@ -12,7 +12,6 @@ void Camera::look()
 	updateCam();
 
 	gl::projMat = glm::perspective(fov, aspectRatio, n, f);
-	updateFrustum();
 	gl::viewMat = glm::mat4(1.0f);
 
 	gl::viewMat = glm::translate(gl::viewMat, glm::vec3(0.0f, 0.0f, -r));
@@ -22,6 +21,7 @@ void Camera::look()
 	                          glm::vec3(0.0f,0.0f,1.0f));
 	gl::viewMat = glm::translate(gl::viewMat,
 	                             glm::vec3(-target.x,-target.y, -target.z));
+	updateFrustum();
 }
 
 void Camera::PanLR(float d)
@@ -78,69 +78,51 @@ void Camera::moveInOut(float d)
 
 void Camera::updateFrustum(void)
 {
-	float hnear, wnear;
+	glm::mat4 m = gl::projMat * gl::viewMat;
 
-	hnear = tan(fov/2)*n;
-	wnear = hnear * aspectRatio;
+	float l;
 
-	quat d(-sin(theta)*sin(phi), sin(theta)*cos(phi), cos(theta));
-	quat pos = d * r + target;
-	d *= -1;
-	quat left = up.wedge(d);
-	quat up_local = d.wedge(left);
+	planes[0] = quat(m[0][2] + m[0][3],
+	                 m[1][2] + m[1][3],
+	                 m[2][2] + m[2][3]);
+	l = planes[0].norm();
+	planes[0].w = m[3][2] + m[3][3];
+	planes[0] /= l;
 
-	// relative to camera
-	quat nc = d*n;
-	quat fc = d*f;
+	planes[1] = quat(-m[0][2] + m[0][3],
+	                 -m[1][2] + m[1][3],
+	                 -m[2][2] + m[2][3]);
+	l = planes[1].norm();
+	planes[1].w = -m[3][2] + m[3][3];
+	planes[1] /= l;
 
-	// absolute
-	quat ntr = pos + nc - left*wnear/2 + up_local*hnear/2;
-	quat nbl = pos + nc + left*wnear/2 - up_local*hnear/2;
+	planes[2] = quat(m[0][1] + m[0][3],
+	                 m[1][1] + m[1][3],
+	                 m[2][1] + m[2][3]);
+	l = planes[2].norm();
+	planes[2].w = m[3][1] + m[3][3];
+	planes[2] /= l;
 
-	quat a;
-	float b;
-	// right plane
-	a = nc - left*wnear/2;
-	a = -up_local.wedge(a);
-	a.normalize();
-	b = a.dot(ntr);
-	planes[0] = a;
-	planes[0].w = b;
+	planes[3] = quat(-m[0][1] + m[0][3],
+	                 -m[1][1] + m[1][3],
+	                 -m[2][1] + m[2][3]);
+	l = planes[3].norm();
+	planes[3].w = -m[3][1] + m[3][3];
+	planes[3] /= l;
 
-	// left plane
-	a = nc + left*wnear/2;
-	a = up_local.wedge(a);
-	a.normalize();
-	b = a.dot(nbl);
-	planes[1] = a;
-	planes[1].w = b;
+	planes[4] = quat(m[0][0] + m[0][3],
+	                 m[1][0] + m[1][3],
+	                 m[2][0] + m[2][3]);
+	l = planes[4].norm();
+	planes[4].w = m[3][0] + m[3][3];
+	planes[4] /= l;
 
-	// top plane
-	a = nc + up_local*hnear/2;
-	a = -left.wedge(a);
-	a.normalize();
-	b = a.dot(ntr);
-	planes[2] = a;
-	planes[2].w = b;
-
-	// bottom plane
-	a = nc - up_local*hnear/2;
-	a = left.wedge(a);
-	a.normalize();
-	b = a.dot(nbl);
-	planes[3] = a;
-	planes[3].w = b;
-
-	// near plane
-	a = -d;
-	b = a.dot(nc + pos);
-	planes[4] = a;
-	planes[4].w = b;
-
-	// far plane
-	b = d.dot(fc + pos);
-	planes[5] = d;
-	planes[5].w = b;
+	planes[5] = quat(-m[0][0] + m[0][3],
+	                 -m[1][0] + m[1][3],
+	                 -m[2][0] + m[2][3]);
+	l = planes[5].norm();
+	planes[5].w = -m[3][0] + m[3][3];
+	planes[5] /= l;
 }
 
 bool Camera::isPointInFrustum(quat p)
@@ -149,7 +131,7 @@ bool Camera::isPointInFrustum(quat p)
 		quat n = planes[i];
 		n.w = 0;
 		float d = planes[i].w;
-		if (p.dot(n) - d > 0)
+		if (p.dot(n) + d <= -r)
 			return false;
 	}
 	return true;
@@ -163,7 +145,7 @@ bool Camera::isSphereInFrustum(quat s)
 		quat n = planes[i];
 		n.w = 0;
 		float d = planes[i].w;
-		if (s.dot(n) - d > r)
+		if (s.dot(n) + d <= -r)
 			return false;
 	}
 	return true;

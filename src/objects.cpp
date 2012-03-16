@@ -1,5 +1,6 @@
 #include "objects.h"
 #include "world.h"
+#include "texman.h"
 
 using namespace std;
 
@@ -169,6 +170,13 @@ void ObjectList::readIde(ifstream &in)
 			}
 
 			add(newObj);
+		} else if (blockType == TXDP) {
+			int i = 0;
+			string child = fields[i++];
+			string parent = fields[i++];
+			stringToLower(child);
+			stringToLower(parent);
+			TexMan.addParentInfo(child, parent);
 		}
 	} while(!in.eof());
 }
