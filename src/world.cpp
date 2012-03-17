@@ -541,6 +541,7 @@ void Instance::draw(void)
 		} if (game == GTASA) {
 			if (interior != 13 && interior != 256 &&
 			    interior != 269 && interior != 2048 &&
+			    interior != 768 && interior != 512 &&
 			    interior != 1024 && interior != 4096)
 				return;
 		}

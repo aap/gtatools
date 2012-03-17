@@ -16,8 +16,10 @@ struct TexDictionary {
 	std::vector<Texture> texList;
 	std::string fileName;
 	int refCount;
+	bool loaded;
+	TexDictionary *parent;
 
-	void load(rw::TextureDictionary &txd);
+	int load(void);
 	void unload(void);
 	Texture *get(std::string searchName);
 };
@@ -26,15 +28,16 @@ class TexManager
 {
 private:
 	std::deque<TexDictionary *> txdList;
-	uint add(std::string fileName);
+	uint add(std::string fileName, bool load);
 	uint find(std::string fileName);
 public:
-	void addParentInfo(std::string child, std::string parent);
-	TexDictionary *get(std::string fileName);
+	TexDictionary *get(std::string fileName, bool load = true);
 	void release(std::string fileName);
+	void addParentInfo(std::string child, std::string parent);
+	void dump(void);
 	TexManager(void);
 };
 
-extern TexManager TexMan;
+extern TexManager texMan;
 
 #endif

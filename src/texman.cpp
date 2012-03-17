@@ -6,23 +6,35 @@
 
 using namespace std;
 
-TexManager TexMan;
+TexManager texMan;
 
 /*
  * TexManager
  */
 
-TexDictionary *TexManager::get(string fileName)
+TexDictionary *TexManager::get(string fileName, bool load)
 {
 	stringToLower(fileName);
 
 	uint pos = find(fileName);
 	if (pos != 0) {
-		txdList[pos]->refCount++;
+		if (load) {
+			if (!txdList[pos]->loaded) {
+				txdList[pos]->load();
+				if (txdList[pos]->parent && 
+				    !txdList[pos]->parent->loaded) {
+					txdList[pos]->parent->load();
+					txdList[pos]->parent->refCount++;
+				}
+			}
+			txdList[pos]->refCount++;
+		}
 		return txdList[pos];
 	}
 
-	uint i = add(fileName);
+	uint i = add(fileName, load);
+	if (load)
+		txdList[i]->refCount = 1;
 	return txdList[i];
 }
 
@@ -35,12 +47,13 @@ void TexManager::release(string fileName)
 		txdList[pos]->refCount--;
 		if (txdList[pos]->refCount == 0) {
 			txdList[pos]->unload();
-			delete txdList[pos];
-			txdList.erase(txdList.begin()+pos);
+			if (txdList[pos]->parent)
+				release(txdList[pos]->parent->fileName);
+//			delete txdList[pos];
+//			txdList.erase(txdList.begin()+pos);
 		}
 	}
 }
-
 
 uint TexManager::find(string fileName)
 {
@@ -65,33 +78,15 @@ uint TexManager::find(string fileName)
 	return 0;
 }
 
-uint TexManager::add(string fileName)
+uint TexManager::add(string fileName, bool load)
 {
-	ifstream txdf;
-	if (directory.openFile(txdf, fileName) == -1) {
-		cout << "couldn't open " << fileName << endl;
-		return 0;
-	}
-	rw::TextureDictionary rwtxd;
-	rwtxd.read(txdf);
-	txdf.close();
-
-	// convert to a sensible format
-	for (uint i = 0; i < rwtxd.texList.size(); i++) {
-		if (rwtxd.texList[i].platform == rw::PLATFORM_PS2)
-			rwtxd.texList[i].convertFromPS2();
-		if (rwtxd.texList[i].platform == rw::PLATFORM_XBOX)
-			rwtxd.texList[i].convertFromXbox();
-		if (rwtxd.texList[i].dxtCompression)
-			rwtxd.texList[i].decompressDxt();
-		rwtxd.texList[i].convertTo32Bit();
-	}
-
 	TexDictionary *txd = new TexDictionary;
-	txd->load(rwtxd);
-	rwtxd.clear();	// TODO: Why doesn't the deconstructor do this?
+	txd->loaded = false;
+	txd->parent = 0;
 	txd->fileName = fileName;
-	txd->refCount = 1;
+	if (load)
+		if (txd->load() != 0)
+			return 0;
 
 	if (txdList.size() > 0) {
 		int min, max, mid;
@@ -127,7 +122,18 @@ TexManager::TexManager(void)
 
 void TexManager::addParentInfo(std::string child, std::string parent)
 {
-//	cout << child << " " << parent << endl;
+	TexDictionary *txd = get(child, false);
+	txd->parent = get(parent, false);
+}
+
+void TexManager::dump(void)
+{
+	for (uint i = 0; i < txdList.size(); i++) {
+		cout << txdList[i]->fileName<<" "<<txdList[i]->loaded << endl;
+		if (txdList[i]->parent)
+			cout << " " << txdList[i]->parent->fileName << " " <<
+			        txdList[i]->parent->loaded << endl;
+	}
 }
 
 /*
@@ -139,11 +145,33 @@ Texture *TexDictionary::get(string searchName)
 	for (uint i = 0; i < texList.size(); i++)
 		if (texList[i].name == searchName)
 			return &texList[i];
+	if (parent)
+		return parent->get(searchName);
 	return 0;
 }
 
-void TexDictionary::load(rw::TextureDictionary &txd)
+int TexDictionary::load(void)
 {
+	ifstream txdf;
+	if (directory.openFile(txdf, fileName) == -1) {
+		cout << "couldn't open " << fileName << endl;
+		return 1;
+	}
+	rw::TextureDictionary txd;
+	txd.read(txdf);
+	txdf.close();
+
+	// convert to a sensible format
+	for (uint i = 0; i < txd.texList.size(); i++) {
+		if (txd.texList[i].platform == rw::PLATFORM_PS2)
+			txd.texList[i].convertFromPS2();
+		if (txd.texList[i].platform == rw::PLATFORM_XBOX)
+			txd.texList[i].convertFromXbox();
+		if (txd.texList[i].dxtCompression)
+			txd.texList[i].decompressDxt();
+		txd.texList[i].convertTo32Bit();
+	}
+
 	glActiveTexture(GL_TEXTURE0);
 	for (uint i = 0; i < txd.texList.size(); i++) {
 		rw::NativeTexture &nt = txd.texList[i];
@@ -179,10 +207,14 @@ void TexDictionary::load(rw::TextureDictionary &txd)
 		texList.push_back(t);
 	}
 	glBindTexture(GL_TEXTURE_2D, 0);
+	txd.clear();	// TODO: Why doesn't the deconstructor do this?
+	loaded = true;
+	return 0;
 }
 
 void TexDictionary::unload(void)
 {
 	for (uint i = 0; i < texList.size(); i++)
 		glDeleteTextures(1, &texList[i].tex);
+	loaded = false;
 }

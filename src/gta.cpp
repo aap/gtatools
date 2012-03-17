@@ -11,6 +11,7 @@
 #include "directory.h"
 #include "world.h"
 #include "gl.h"
+#include "texman.h"
 
 using namespace std;
 using namespace rw;

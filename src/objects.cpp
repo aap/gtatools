@@ -176,7 +176,9 @@ void ObjectList::readIde(ifstream &in)
 			string parent = fields[i++];
 			stringToLower(child);
 			stringToLower(parent);
-			TexMan.addParentInfo(child, parent);
+			child += ".txd";
+			parent += ".txd";
+			texMan.addParentInfo(child, parent);
 		}
 	} while(!in.eof());
 }

@@ -131,7 +131,6 @@ void Drawable::attachClump(rw::Clump &c)
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
 		glBufferData(GL_ARRAY_BUFFER, size, 0, GL_STATIC_DRAW);
 
-
 		GLfloat *vertices = &rwg.vertices[0];
 		geo.isSkinned = rwg.hasSkin;
 		if (geo.isSkinned) {
@@ -255,7 +254,7 @@ int Drawable::load(string model, string texdict)
 	c.read(dff);
 	dff.close();
 
-	texDict = TexMan.get(texdict);
+	texDict = texMan.get(texdict);
 
 	// catch (uv anim dicts)
 	if (c.atomicList.size() == 0)
@@ -269,7 +268,7 @@ int Drawable::load(string model, string texdict)
 void Drawable::unload(void)
 {
 	clump.clear();
-	TexMan.release(texDict->fileName);
+	texMan.release(texDict->fileName);
 	anim.clear();
 	for (uint i = 0; i < geoList.size(); i++) {
 		if (geoList[i].vbo != 0)
