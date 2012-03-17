@@ -251,6 +251,24 @@ bool WorldObject::isVisibleAtTime(int hour)
 	}
 }
 
+void WorldObject::printInfo(void)
+{
+	cout << id << ", "
+	     << modelName << ", "
+	     << textureName << ", ";
+	if (type == ANIM)
+		cout << animationName << ", ";
+	cout << drawDistances.size() << ", ";
+	for (uint i = 0; i < drawDistances.size(); i++)
+		cout << drawDistances[i] << ", ";
+	cout << flags << ", ";
+	if (type == TOBJ) {
+		cout << timeOn << ", "
+		     << timeOff << ", ";
+	}
+	cout << endl;
+}
+
 WorldObject::WorldObject(void)
 {
 	isTimed = false;

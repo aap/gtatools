@@ -20,17 +20,18 @@ void main(void)
 {
 	vec4 V = u_ModelView * vec4(in_Vertex, 1.0);
 
-	if (in_Normal == vec3(0.0, 0.0, 0.0)) {
-		v_Color = (vec4(u_AmbientLight,0.0) + u_MatColor*in_Color) *
+//	if (in_Normal == vec3(0.0, 0.0, 0.0)) {
+//		v_Color = (vec4(u_AmbientLight,0.0) + u_MatColor*in_Color) *
+		v_Color = (vec4(u_AmbientLight,0.0) + in_Color) *
 		          u_MatColor;
-	} else {
-		vec3 N = normalize(u_NormalMat * in_Normal);
-		float L = max(0.0, dot(N, normalize(u_LightPos.xyz - V.xyz)));
-		v_Color = (vec4(u_AmbientLight, 0.0) +
-		           in_Color *
-		           vec4(u_LightCol,1.0) * vec4(L, L, L, 1.0)) *
-		          u_MatColor;
-	}
+//	} else {
+//		vec3 N = normalize(u_NormalMat * in_Normal);
+//		float L = max(0.0, dot(N, normalize(u_LightPos.xyz - V.xyz)));
+//		v_Color = (vec4(u_AmbientLight, 0.0) +
+//		           in_Color *
+//		           vec4(u_LightCol,1.0) * vec4(L, L, L, 1.0)) *
+//		          u_MatColor;
+//	}
 
 	gl_Position = u_Projection * V;
 	v_TexCoord = in_TexCoord;

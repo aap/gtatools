@@ -63,7 +63,7 @@ private:
 	void updateFrames(Frame *r);
 	void updateGeometries(void);
 	void applyAnim(Frame *f);
-	void drawGeometry(int g, bool drawTransp);
+	void drawGeometry(int g);
 
 public:
 	int load(std::string model, std::string texdict);
@@ -72,9 +72,9 @@ public:
 	void attachTexDict(rw::TextureDictionary &t);	// better use a pointer
 	void attachAnim(rw::Animation &a);
 	void nextFrame(void);
-	void draw(bool drawTransp);
-	void drawAtomic(int a, bool drawTransp);
-	void drawFrame(int fi, bool drawTransp, bool recurse);
+	void draw(void);
+	void drawAtomic(int a);
+	void drawFrame(int fi, bool recurse);
 	void printFrames(int level, Frame *r);
 	quat getBoundingSphere(void);
 };

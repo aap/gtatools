@@ -74,7 +74,11 @@ void World::readIpl(ifstream &in, string iplName)
 
 void World::addInstance(Instance *i)
 {
+	i->isVisible = true;
+
 	instances.push_back(i);
+	uint k = instances.size()-1;
+	instances[k]->index = k;
 	indices.push_back(ind++);
 
 	if (i->isLod)
@@ -522,6 +526,9 @@ void Instance::draw(void)
 		return;
 	}
 
+	if (!isVisible)
+		return;
+
 	if (op->modelName == "LODDUMMY")
 		return;
 
@@ -543,17 +550,19 @@ void Instance::draw(void)
 	if (op->isTimed && !op->isVisibleAtTime(world.getHour()))
 		return;
 
-	if (op->flags & 4 || op->flags & 8)
-		world.addTransparent(this, d);
-
 	transform();
 
+	glStencilFunc(GL_ALWAYS, (index>>gl::stencilShift)&0xFF, -1);
 	if (!op->isLoaded)
 		op->load();
 	// the index apparently starts from the back
 	ai = (op->drawDistances.size()-1)-ai;
-	op->drawable.drawAtomic(ai, false);
-	op->drawable.drawAtomic(ai, true);
+
+	gl::wasTransparent = false;
+	op->drawable.drawAtomic(ai);
+	// the flag from the item definition isn't reliable
+	if (gl::wasTransparent)
+		world.addTransparent(this, d);
 
 	gl::modelMat = save;
 	glm::mat4 modelView = gl::viewMat * gl::modelMat;
@@ -566,6 +575,8 @@ void Instance::draw(void)
 
 void Instance::justDraw(void)
 {
+	if (!isVisible)
+		return;
 	WorldObject *op = (WorldObject*)objectList.get(id);
 	float d = cam.distanceTo(position);
 	int ai = op->getCorrectAtomic(d);
@@ -573,12 +584,12 @@ void Instance::justDraw(void)
 	glm::mat4 save = gl::modelMat;
 	transform();
 
+	glStencilFunc(GL_ALWAYS, (index>>gl::stencilShift)&0xFF, -1);
 	if (!op->isLoaded)
 		op->load();
 	// the index apparently starts from the back
 	ai = (op->drawDistances.size()-1)-ai;
-	op->drawable.drawAtomic(ai, false);
-	op->drawable.drawAtomic(ai, true);
+	op->drawable.drawAtomic(ai);
 
 	gl::modelMat = save;
 	glm::mat4 modelView = gl::viewMat * gl::modelMat;
@@ -606,4 +617,28 @@ void Instance::transform(void)
 	                   glm::value_ptr(modelView));
 	glUniformMatrix3fv(gl::u_NormalMat, 1, GL_FALSE,
 	                   glm::value_ptr(normal));
+}
+
+void Instance::setVisible(bool v)
+{
+	isVisible = v;
+}
+
+void Instance::printInfo(void)
+{
+	cout << id << ", "
+	     << name << ", "
+	     << interior << ", "
+	     << position.x << ", "
+	     << position.y << ", "
+	     << position.z << ", "
+	     << scale.x << ", "
+	     << scale.y << ", "
+	     << scale.z << ", "
+	     << rotation.x << ", "
+	     << rotation.y << ", "
+	     << rotation.z << ", "
+	     << rotation.w << endl;
+	WorldObject *op = (WorldObject*) objectList.get(id);
+	op->printInfo();
 }

@@ -20,6 +20,7 @@ static int isShiftDown, isCtrlDown, isAltDown;
 
 namespace gl {
 
+int stencilShift;
 int width;
 int height;
 Pipeline simplePipe, lambertPipe, gtaPipe;
@@ -28,13 +29,14 @@ Pipeline *currentPipe;
 GLuint whiteTex;
 bool drawWire;
 bool drawTransparent;
+bool wasTransparent;
+uint lastSelected;
 
 glm::mat4 modelMat;
 glm::mat4 viewMat;
 glm::mat4 projMat;
 
 GLuint axes_vbo;
-GLuint cube_vbo;
 
 void dumpmat(glm::mat3 &m)
 {
@@ -58,7 +60,8 @@ void dumpmat(glm::mat4 &m)
 
 void renderScene(void)
 {
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
+	        GL_STENCIL_BUFFER_BIT);
 
 
 	// 3d scene
@@ -72,7 +75,7 @@ void renderScene(void)
 
 	glm::vec4 lightPos = glm::vec4(5.0f, 5.0f, 3.0f, 1.0f);
 	lightPos = viewMat * lightPos;
-	glm::vec3 lightCol = glm::vec3(0.5f, 0.5f, 0.5f);
+	glm::vec3 lightCol = glm::vec3(1.0f, 1.0f, 1.0f);
 
 	glm::vec3 amb = glm::vec3(0.49f, 0.47f, 0.33f);
 
@@ -191,6 +194,12 @@ void keypress(uchar key, int x, int y)
 		world.setHour(world.getHour()-1);
 		cout << world.getHour() << ":" << world.getMinute() << endl;
 		break;
+	case 'v':
+		world.getInstance(lastSelected)->setVisible(false);
+		break;
+	case 'V':
+		world.getInstance(lastSelected)->setVisible(true);
+		break;
 	case 'q':
 	case 27:
 		exit(0);
@@ -208,23 +217,51 @@ void mouseButton(int button, int state, int x, int y)
 {
 	if (state == GLUT_DOWN) {
 		if (button == GLUT_LEFT_BUTTON) {
-			mx = x;
-			my = y;
+			ox = mx = x;
+			oy = my = y;
 			isLDown = 1;
 		}
 		if (button == GLUT_MIDDLE_BUTTON) {
-			mx = x;
-			my = y;
+			ox = mx = x;
+			oy = my = y;
 			isMDown = 1;
 		}
 		if (button == GLUT_RIGHT_BUTTON) {
-			mx = x;
-			my = y;
+			ox = mx = x;
+			oy = my = y;
 			isRDown = 1;
 		}
 	} else if (state == GLUT_UP) {
-		if (button == GLUT_LEFT_BUTTON)
+		if (button == GLUT_LEFT_BUTTON) {
 			isLDown = 0;
+			if (ox - mx == 0 && oy - my == 0) {
+				// read clicked object's index
+				GLubyte stencil[4];
+				// fewer passes would probably be enough
+				stencilShift = 0;
+				renderScene();
+				glReadPixels(x, height - y - 1, 1, 1,
+				             GL_STENCIL_INDEX,
+				             GL_UNSIGNED_INT, stencil);
+				stencilShift = 8;
+				renderScene();
+				glReadPixels(x, height - y - 1, 1, 1,
+				             GL_STENCIL_INDEX,
+				             GL_UNSIGNED_INT, stencil+1);
+				stencilShift = 16;
+				renderScene();
+				glReadPixels(x, height - y - 1, 1, 1,
+				             GL_STENCIL_INDEX,
+				             GL_UNSIGNED_INT, stencil+2);
+				stencilShift = 24;
+				renderScene();
+				glReadPixels(x, height - y - 1, 1, 1,
+				             GL_STENCIL_INDEX,
+				             GL_UNSIGNED_INT, stencil+3);
+				lastSelected = *((uint *) stencil);
+				world.getInstance(lastSelected)->printInfo();
+			}
+		}
 		if (button == GLUT_MIDDLE_BUTTON)
 			isMDown = 0;
 		if (button == GLUT_RIGHT_BUTTON)
@@ -281,10 +318,13 @@ void init(char *model, char *texdict)
 
 	glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
 	glClearDepth(1.0);
+	glClearStencil(0);
 	glEnable(GL_DEPTH_TEST);
 //	glDepthFunc(GL_LESS);
 	glDepthFunc(GL_LEQUAL);
-	
+	glEnable(GL_STENCIL_TEST);
+	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
 	int white = 0xFFFFFFFF;
 	glGenTextures(1, &whiteTex);
 	glBindTexture(GL_TEXTURE_2D, whiteTex);

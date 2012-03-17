@@ -10,6 +10,11 @@
 #include "pipeline.h"
 
 namespace gl {
+	enum DrawMode {
+		DRAW_OPAQUE = 1,
+		DRAW_TRANSPARENT = 2,
+	};
+
 	void dumpmat(glm::mat3 &m);
 	void dumpmat(glm::mat4 &m);
 
@@ -22,6 +27,7 @@ namespace gl {
 	void init(void);
 	void start(int *argc, char *argv[]);
 
+	extern int stencilShift;
 	extern int width;
 	extern int height;
 	extern Pipeline simplePipe;
@@ -30,6 +36,7 @@ namespace gl {
 	extern GLuint whiteTex;
 	extern bool drawWire;
 	extern bool drawTransparent;
+	extern bool wasTransparent;
 
 	extern glm::mat4 modelMat;
 	extern glm::mat4 viewMat;

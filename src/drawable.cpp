@@ -395,24 +395,24 @@ void Drawable::updateFrames(Frame *f)
 		updateFrames(f->children[i]);
 }
 
-void Drawable::draw(bool drawTransparent)
+void Drawable::draw(void)
 {
 	if (frmList.size() == 0)
 		return;
-	drawFrame(0, drawTransparent, true);
+	drawFrame(0, true);
 }
 
-void Drawable::drawAtomic(int ai, bool drawTransparent)
+void Drawable::drawAtomic(int ai)
 {
 	if (ai >= 0 && ai < clump.atomicList.size()) {
 		rw::Atomic &atm = clump.atomicList[ai];
-		drawFrame(atm.frameIndex, drawTransparent, true);
+		drawFrame(atm.frameIndex, true);
 	} else {
 		// can happen
 	}
 }
 
-void Drawable::drawFrame(int fi, bool drawTransparent, bool recurse)
+void Drawable::drawFrame(int fi, bool recurse)
 {
 	if (uint(fi) >= frmList.size())
 		return;
@@ -435,7 +435,7 @@ void Drawable::drawFrame(int fi, bool drawTransparent, bool recurse)
 	if (!strstr(f->name.c_str(), "chassis_vlo") &&
 	    !strstr(f->name.c_str(), "_dam")) {
 		if (f->geo != -1) {
-			drawGeometry(f->geo, drawTransparent);
+			drawGeometry(f->geo);
 		} else {
 			glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
 //			gl::drawSphere(0.1f, 10, 10);
@@ -452,12 +452,11 @@ void Drawable::drawFrame(int fi, bool drawTransparent, bool recurse)
 
 	if (recurse)
 		for (uint i = 0; i < f->children.size(); i++)
-			drawFrame(f->children[i]->index, drawTransparent, true);
+			drawFrame(f->children[i]->index, true);
 
 }
 
-//void Drawable::drawGeometry(int gi, bool drawTransparent)
-void Drawable::drawGeometry(int gi, bool dt)
+void Drawable::drawGeometry(int gi)
 {
 	if (uint(gi) >= clump.geometryList.size())
 		return;
@@ -529,7 +528,8 @@ void Drawable::drawGeometry(int gi, bool dt)
 		}
 		if (g.materialList[matid].color[3] != 255)
 			isTransparent = true;
-		if (isTransparent != drawTransparent) {
+		gl::wasTransparent |= isTransparent;
+		if (isTransparent != gl::drawTransparent) {
 			offset += s.indices.size();
 			continue;
 		}

@@ -102,6 +102,7 @@ public:
 	bool isVisibleAtTime(int hour);
 	int getCorrectAtomic(float d);
 	WorldObject(void);
+	void printInfo(void);
 };
 
 class ObjectList

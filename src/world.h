@@ -17,6 +17,7 @@ enum iplSections {
 class Instance
 {
 public:
+	uint index;
 	int id;
 	std::string name;
 	int interior;
@@ -30,10 +31,14 @@ public:
 	std::vector<int> hires;
 	int lod;
 
+	bool isVisible;
+
 	/* functions */
 	void draw(void);
 	void justDraw(void);
 	void transform(void);
+	void printInfo(void);
+	void setVisible(bool v);
 };
 
 class Zone
