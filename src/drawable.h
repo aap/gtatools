@@ -52,6 +52,7 @@ private:
 	std::vector<Frame *> frmList;
 	// textures
 	TexDictionary *texDict;
+	std::vector<int> atomicList;
 
 	rw::Animation anim;
 	Frame *animRoot;

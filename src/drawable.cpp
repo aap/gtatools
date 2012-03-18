@@ -218,10 +218,31 @@ void Drawable::attachClump(rw::Clump &c)
 
 
 	// atomics
+	//
+	// reorder so number of object according to item definition matches
+	// number of atomic (based on suffix '_L[012]' in frame name
+	vector<int> tmpList;
 	for (uint i = 0; i < clump.atomicList.size(); i++) {
 		rw::Atomic &atm = clump.atomicList[i];
-		frmList[atm.frameIndex]->geo = atm.geometryIndex;
+		Frame *f = frmList[atm.frameIndex];
+		f->geo = atm.geometryIndex;
+		string name = f->name;
+		stringToLower(name);
+		if (name.size() < 3) {
+			tmpList.push_back(atm.frameIndex);
+			continue;
+		}
+		string end = name.substr(name.size()-3, 3);
+		if (end.substr(0,2) == "_l") {
+			int number = end[2] - '0';
+			if (number >= atomicList.size())
+				atomicList.resize(number+1);
+			atomicList[number] = atm.frameIndex;
+		} else {
+			tmpList.push_back(atm.frameIndex);
+		}
 	}
+	atomicList.insert(atomicList.end(), tmpList.begin(), tmpList.end());
 
 	updateFrames(root);
 	updateGeometries();
@@ -403,12 +424,18 @@ void Drawable::draw(void)
 
 void Drawable::drawAtomic(int ai)
 {
+/*
 	if (ai >= 0 && ai < clump.atomicList.size()) {
 		rw::Atomic &atm = clump.atomicList[ai];
 		drawFrame(atm.frameIndex, true);
 	} else {
 		// can happen
 	}
+*/
+	if (ai >= 0 && ai < atomicList.size())
+		drawFrame(atomicList[ai], true);
+	else
+		; // can happen
 }
 
 void Drawable::drawFrame(int fi, bool recurse)

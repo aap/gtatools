@@ -69,6 +69,7 @@ void parseDat(ifstream &f)
 			inFile.close();
 		} else if (type == "TEXDICTION") {
 			directory.addFile(fileName);
+			texMan.addGlobal(fileName);
 		} else if (type == "MODELFILE") {
 			directory.addFile(fileName);
 		} else if (type == "IMG") {

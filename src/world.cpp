@@ -557,7 +557,7 @@ void Instance::draw(void)
 	if (!op->isLoaded)
 		op->load();
 	// the index apparently starts from the back
-	ai = (op->drawDistances.size()-1)-ai;
+//	ai = (op->drawDistances.size()-1)-ai;
 
 	gl::wasTransparent = false;
 	op->drawable.drawAtomic(ai);
@@ -589,7 +589,7 @@ void Instance::justDraw(void)
 	if (!op->isLoaded)
 		op->load();
 	// the index apparently starts from the back
-	ai = (op->drawDistances.size()-1)-ai;
+//	ai = (op->drawDistances.size()-1)-ai;
 	op->drawable.drawAtomic(ai);
 
 	gl::modelMat = save;

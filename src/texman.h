@@ -18,6 +18,7 @@ struct TexDictionary {
 	int refCount;
 	bool loaded;
 	TexDictionary *parent;
+	bool isGlobal;
 
 	int load(void);
 	void unload(void);
@@ -28,12 +29,15 @@ class TexManager
 {
 private:
 	std::deque<TexDictionary *> txdList;
+	std::deque<TexDictionary *> globalTxdList;
 	uint add(std::string fileName, bool load);
 	uint find(std::string fileName);
 public:
 	TexDictionary *get(std::string fileName, bool load = true);
+	Texture *getGlobalTex(std::string texName);
 	void release(std::string fileName);
 	void addParentInfo(std::string child, std::string parent);
+	void addGlobal(std::string fileName);
 	void dump(void);
 	TexManager(void);
 };

@@ -49,8 +49,6 @@ void TexManager::release(string fileName)
 			txdList[pos]->unload();
 			if (txdList[pos]->parent)
 				release(txdList[pos]->parent->fileName);
-//			delete txdList[pos];
-//			txdList.erase(txdList.begin()+pos);
 		}
 	}
 }
@@ -82,6 +80,7 @@ uint TexManager::add(string fileName, bool load)
 {
 	TexDictionary *txd = new TexDictionary;
 	txd->loaded = false;
+	txd->isGlobal = false;
 	txd->parent = 0;
 	txd->fileName = fileName;
 	if (load)
@@ -113,17 +112,39 @@ uint TexManager::add(string fileName, bool load)
 	return txdList.size()-1;
 }
 
-TexManager::TexManager(void)
-{
-	TexDictionary *t = new TexDictionary;
-	t->fileName = "NOTFOUND";
-	txdList.push_back(t);
-}
-
 void TexManager::addParentInfo(std::string child, std::string parent)
 {
 	TexDictionary *txd = get(child, false);
 	txd->parent = get(parent, false);
+}
+
+void TexManager::addGlobal(std::string fileName)
+{
+	TexDictionary *txd = new TexDictionary;
+	txd->loaded = false;
+	txd->isGlobal = true;
+	txd->parent = 0;
+	stringToLower(fileName);
+	size_t pos = fileName.find_last_of("/");
+	if (pos != string::npos)
+		fileName = fileName.substr(pos+1);
+	txd->fileName = fileName;
+//	if (txd->load() != 0)
+//		return;
+	globalTxdList.push_back(txd);
+}
+
+Texture *TexManager::getGlobalTex(std::string texName)
+{
+	for (uint i = 0; i < globalTxdList.size(); i++) {
+		TexDictionary *txd = globalTxdList[i];
+		if (!txd->loaded)
+			txd->load();
+		Texture *tex = txd->get(texName);
+		if (tex != 0)
+			return tex;
+	}
+	return 0;
 }
 
 void TexManager::dump(void)
@@ -132,22 +153,39 @@ void TexManager::dump(void)
 		cout << txdList[i]->fileName<<" "<<txdList[i]->loaded << endl;
 		if (txdList[i]->parent)
 			cout << " " << txdList[i]->parent->fileName << " " <<
-			        txdList[i]->parent->loaded << endl;
+				txdList[i]->parent->loaded << endl;
 	}
+	cout << "globals:\n";
+	for (uint i = 0; i < globalTxdList.size(); i++) {
+		cout << globalTxdList[i]->fileName<<" "<<globalTxdList[i]->loaded << endl;
+	}
+}
+
+TexManager::TexManager(void)
+{
+	TexDictionary *t = new TexDictionary;
+	t->fileName = "NOTFOUND";
+	txdList.push_back(t);
 }
 
 /*
  * TexDictionary
  */
 
-Texture *TexDictionary::get(string searchName)
+Texture *TexDictionary::get(string texName)
 {
+	// try to find texture
+	// if not found, try parent
+	// if still not found, try global texture
 	for (uint i = 0; i < texList.size(); i++)
-		if (texList[i].name == searchName)
+		if (texList[i].name == texName)
 			return &texList[i];
+	Texture *t = 0;
 	if (parent)
-		return parent->get(searchName);
-	return 0;
+		t = parent->get(texName);
+	if (t == 0 && !isGlobal)
+		t = texMan.getGlobalTex(texName);
+	return t;
 }
 
 int TexDictionary::load(void)
@@ -214,7 +252,9 @@ int TexDictionary::load(void)
 
 void TexDictionary::unload(void)
 {
-	for (uint i = 0; i < texList.size(); i++)
+	for (uint i = 0; i < texList.size(); i++) {
 		glDeleteTextures(1, &texList[i].tex);
+		texList[i].tex = 0;
+	}
 	loaded = false;
 }
