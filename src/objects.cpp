@@ -61,7 +61,8 @@ void ObjectList::readIde(ifstream &in)
 		    blockType == ANIM) {
 			WorldObject *newObj;
 			if (fields.size() == 5 ||
-			    (fields.size() == 7 && blockType == TOBJ))
+			    (fields.size() == 7 && blockType == TOBJ) ||
+			    blockType == ANIM)
 				hasObjectCount = false;
 
 			int i = 0;
@@ -76,6 +77,7 @@ void ObjectList::readIde(ifstream &in)
 			if (blockType == ANIM) {
 				newObj->isAnimated = true;
 				newObj->animationName = fields[i++];
+				stringToLower(newObj->animationName);
 			}
 
 			if (hasObjectCount)
@@ -285,7 +287,7 @@ void Model::load(void)
 //	cout << modelName << " " << textureName << endl;
 	if (drawable.load(modelName+".dff", textureName+".txd") == -1)
 		return;
-	boundingSphere = drawable.getBoundingSphere();
+	boundingSpheres = drawable.getBoundingSpheres();
 	isLoaded = true;
 }
 

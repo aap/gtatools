@@ -34,6 +34,7 @@ public:
 	bool isVisible;
 
 	/* functions */
+	bool isCulled(void);
 	void draw(void);
 	void justDraw(void);
 	void transform(void);

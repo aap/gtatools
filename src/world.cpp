@@ -515,7 +515,7 @@ void Instance::draw(void)
 
 	// frustum cull
 	if (op->isLoaded)
-		if (!cam.isSphereInFrustum(op->boundingSphere + position))
+		if (isCulled())
 			return;
 
 	// if the instance is too far away, try the LOD version
@@ -556,11 +556,12 @@ void Instance::draw(void)
 	glStencilFunc(GL_ALWAYS, (index>>gl::stencilShift)&0xFF, -1);
 	if (!op->isLoaded)
 		op->load();
-	// the index apparently starts from the back
-//	ai = (op->drawDistances.size()-1)-ai;
 
 	gl::wasTransparent = false;
-	op->drawable.drawAtomic(ai);
+	if (op->type == ANIM)
+		op->drawable.draw();
+	else
+		op->drawable.drawAtomic(ai);
 	// the flag from the item definition isn't reliable
 	if (gl::wasTransparent)
 		world.addTransparent(this, d);
@@ -588,9 +589,10 @@ void Instance::justDraw(void)
 	glStencilFunc(GL_ALWAYS, (index>>gl::stencilShift)&0xFF, -1);
 	if (!op->isLoaded)
 		op->load();
-	// the index apparently starts from the back
-//	ai = (op->drawDistances.size()-1)-ai;
-	op->drawable.drawAtomic(ai);
+	if (op->type == ANIM)
+		op->drawable.draw();
+	else
+		op->drawable.drawAtomic(ai);
 
 	gl::modelMat = save;
 	glm::mat4 modelView = gl::viewMat * gl::modelMat;
@@ -599,6 +601,16 @@ void Instance::justDraw(void)
 			   glm::value_ptr(modelView));
 	glUniformMatrix3fv(gl::u_NormalMat, 1, GL_FALSE,
 			   glm::value_ptr(normal));
+}
+
+bool Instance::isCulled(void)
+{
+	WorldObject *op = (WorldObject*)objectList.get(id);
+
+	for (uint i = 0; i < op->boundingSpheres.size(); i++)
+		if (cam.isSphereInFrustum(op->boundingSpheres[i] + position))
+			return false;
+	return true;
 }
 
 void Instance::transform(void)

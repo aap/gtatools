@@ -108,12 +108,13 @@ void renderScene(void)
 	glUniform1i(u_Texture, 0);
 
 	drawWire = false;
-//	drawable.draw(false);
-//	drawable.draw(true);
 
-//	drawWire = true;
-//	drawable.draw(false);
-//	drawable.draw(true);
+/*
+	drawTransparent = false;
+	drawable.draw();
+	drawTransparent = true;
+	drawable.draw();
+*/
 
 	world.drawIslands();
 
@@ -342,8 +343,9 @@ void init(char *model, char *texdict)
 	cam.setPitch(PI/8.0f-PI/2.0f);
 	cam.setDistance(20.0f);
 	cam.setAspectRatio((GLfloat) width / height);
-	cam.setTarget(quat(335.5654907, -159.0345306, 17.85120964));
-//	cam.setTarget(quat(1664.125, -1560.851563, 23.3515625));
+//	cam.setTarget(quat(335.5654907, -159.0345306, 17.85120964));
+	cam.setTarget(quat(1664.125, -1560.851563, 23.3515625));
+//	cam.setTarget(quat(-2447.703125, 1012.882813, 56.875));
 
 
 	GLfloat axes[] = {
@@ -393,7 +395,9 @@ void init(char *model, char *texdict)
 	txd += ".txd";
 	if (drawable.load(dff, txd) == -1)
 		exit(1);
+*/
 
+/*
 	rw::AnimPackage anpk;
 	string fileName = "anim/ped.ifp";
 	correctFileName(fileName);

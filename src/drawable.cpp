@@ -432,6 +432,7 @@ void Drawable::drawAtomic(int ai)
 		// can happen
 	}
 */
+
 	if (ai >= 0 && ai < atomicList.size())
 		drawFrame(atomicList[ai], true);
 	else
@@ -610,9 +611,13 @@ void Drawable::drawGeometry(int gi)
 }
 
 
-quat Drawable::getBoundingSphere(void)
+//quat Drawable::getBoundingSphere(void)
+vector<quat> Drawable::getBoundingSpheres(void)
 {
-	if (geoList.size() > 0)
-		return geoList[0].boundingSphere;
-	return quat(0.0f, 0.0f, 0.0f, 0.0f);
+	vector<quat> spheres;
+	for (uint i = 0; i < geoList.size(); i++)
+		spheres.push_back(geoList[i].boundingSphere);
+	if (spheres.size() == 0)
+		spheres.push_back(quat(0.0f, 0.0f, 0.0f, 0.0f));
+	return spheres;
 }

@@ -77,7 +77,7 @@ public:
 	void drawAtomic(int a);
 	void drawFrame(int fi, bool recurse);
 	void printFrames(int level, Frame *r);
-	quat getBoundingSphere(void);
+	std::vector<quat> getBoundingSpheres(void);
 };
 
 #endif

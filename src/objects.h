@@ -37,7 +37,7 @@ public:
 	bool isLoaded;
 	Drawable drawable;
 
-	quat boundingSphere;
+	std::vector<quat> boundingSpheres;
 
 	void load(void);
 	Model(void);
