@@ -171,6 +171,7 @@ int main(int argc, char *argv[])
 	}
 
 	// TODO: load other files
+	directory.addFile(getPath("models/particle.txd"));
 
 	// load default dat file
 	string datFileName2 = getPath("data/default.dat");

@@ -1,9 +1,9 @@
 OBJDIR = ../obj
 _OBJ = gta.o directory.o world.o pipeline.o gl.o camera.o primitives.o \
-drawable.o objects.o texman.o
+drawable.o objects.o texman.o water.o
 OBJ = $(patsubst %,$(OBJDIR)/%,$(_OBJ))
 HEADER = gta.h camera.h directory.h gl.h pipeline.h quat.h world.h \
-primitives.h drawable.h objects.h texman.h
+primitives.h drawable.h objects.h texman.h water.h
 CC = g++
 CFLAGS = -Wall -g
 INC = -I$(HOME)/rwtools/src

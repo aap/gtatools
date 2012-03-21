@@ -9,6 +9,7 @@
 #include "pipeline.h"
 #include "gl.h"
 #include "primitives.h"
+#include "water.h"
 
 #include <GL/glut.h>
 
@@ -117,6 +118,8 @@ void renderScene(void)
 */
 
 	world.drawIslands();
+
+	water.draw();
 
 	// 2d overlay
 	glDisable(GL_DEPTH_TEST);
@@ -341,10 +344,11 @@ void init(char *model, char *texdict)
 	gtaPipe.load("shader/gtaPipe.vert", "shader/simple.frag");
 
 	cam.setPitch(PI/8.0f-PI/2.0f);
-	cam.setDistance(20.0f);
+//	cam.setDistance(20.0f);
+	cam.setDistance(5.0f);
 	cam.setAspectRatio((GLfloat) width / height);
 //	cam.setTarget(quat(335.5654907, -159.0345306, 17.85120964));
-	cam.setTarget(quat(1664.125, -1560.851563, 23.3515625));
+//	cam.setTarget(quat(1664.125, -1560.851563, 23.3515625));
 //	cam.setTarget(quat(-2447.703125, 1012.882813, 56.875));
 
 
@@ -370,7 +374,18 @@ void init(char *model, char *texdict)
 
 	world.associateLods();
 
-/*
+	if (game == GTA3 || game == GTAVC) {
+		string fileName = getPath("data/waterpro.dat");
+		ifstream f(fileName.c_str(), ios::binary);
+		if (f.fail()) {
+			cerr << "couldn't open waterpro.dat\n";
+		} else {
+			water.loadWaterpro(f);
+			f.close();
+		}
+	}
+
+#if 0
 	string txd = texdict;
 	string dff = model;
 	if (txd == "search") {
@@ -395,25 +410,31 @@ void init(char *model, char *texdict)
 	txd += ".txd";
 	if (drawable.load(dff, txd) == -1)
 		exit(1);
-*/
 
-/*
 	rw::AnimPackage anpk;
-	string fileName = "anim/ped.ifp";
-	correctFileName(fileName);
-	fileName = gamePath + PSEP_S + fileName;
+	string fileName = getPath("anim/ped.ifp");
 	ifstream f(fileName.c_str(), ios::binary);
 	anpk.read(f);
 	f.close();
 
+/*
+	rw::AnimPackage anpk;
+	ifstream f;
+	if (directory.openFile(f, "sfw.ifp") == -1)
+		cout << "whaa\n";
+	anpk.read(f);
+	f.close();
+*/
+
 	for (uint i = 0; i < anpk.animList.size(); i++) {
 		stringToLower(anpk.animList[i].name);
+//		if (anpk.animList[i].name == "sprasfw") {
 		if (anpk.animList[i].name == "walk_player") {
 			drawable.attachAnim(anpk.animList[i]);
 			break;
 		}
 	}
-*/
+#endif
 }
 
 void start(int *argc, char *argv[])

@@ -373,6 +373,16 @@ void Drawable::updateGeometries(void)
 			indices[1] = (rwg.vertexBoneIndices[j]&0xFF00)>>8;
 			indices[2] = (rwg.vertexBoneIndices[j]&0xFF0000)>>16;
 			indices[3] = (rwg.vertexBoneIndices[j]&0xFF000000)>>24;
+
+/*
+			if (rwg.specialIndices.size() != 0) {
+				indices[0] = rwg.specialIndices[indices[0]];
+				indices[1] = rwg.specialIndices[indices[1]];
+				indices[2] = rwg.specialIndices[indices[2]];
+				indices[3] = rwg.specialIndices[indices[3]];
+			}
+*/
+
 			weights[0] = rwg.vertexBoneWeights[j*4+0];
 			weights[1] = rwg.vertexBoneWeights[j*4+1];
 			weights[2] = rwg.vertexBoneWeights[j*4+2];
@@ -419,27 +429,18 @@ void Drawable::draw(void)
 {
 	if (frmList.size() == 0)
 		return;
-	drawFrame(0, true);
+	drawFrame(0, true, true);
 }
 
 void Drawable::drawAtomic(int ai)
 {
-/*
-	if (ai >= 0 && ai < clump.atomicList.size()) {
-		rw::Atomic &atm = clump.atomicList[ai];
-		drawFrame(atm.frameIndex, true);
-	} else {
-		// can happen
-	}
-*/
-
 	if (ai >= 0 && ai < atomicList.size())
-		drawFrame(atomicList[ai], true);
+		drawFrame(atomicList[ai], true, false);
 	else
 		; // can happen
 }
 
-void Drawable::drawFrame(int fi, bool recurse)
+void Drawable::drawFrame(int fi, bool recurse, bool transform)
 {
 	if (uint(fi) >= frmList.size())
 		return;
@@ -451,7 +452,9 @@ void Drawable::drawFrame(int fi, bool recurse)
 
 	glm::mat4 save = modelMat;
 
-//	modelMat *= f->ltm;
+	if (transform)
+		modelMat *= f->ltm;
+
 	glm::mat4 modelView = viewMat * modelMat;
 	glm::mat3 normal = glm::inverseTranspose(glm::mat3(modelView));
 	glUniformMatrix4fv(gl::u_ModelView, 1, GL_FALSE,
@@ -465,7 +468,7 @@ void Drawable::drawFrame(int fi, bool recurse)
 			drawGeometry(f->geo);
 		} else {
 			glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
-//			gl::drawSphere(0.1f, 10, 10);
+			gl::drawSphere(0.1f, 10, 10);
 		}
 	}
 
@@ -479,7 +482,7 @@ void Drawable::drawFrame(int fi, bool recurse)
 
 	if (recurse)
 		for (uint i = 0; i < f->children.size(); i++)
-			drawFrame(f->children[i]->index, true);
+			drawFrame(f->children[i]->index, true, transform);
 
 }
 
