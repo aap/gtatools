@@ -344,12 +344,13 @@ void init(char *model, char *texdict)
 	gtaPipe.load("shader/gtaPipe.vert", "shader/simple.frag");
 
 	cam.setPitch(PI/8.0f-PI/2.0f);
-//	cam.setDistance(20.0f);
-	cam.setDistance(5.0f);
+	cam.setDistance(20.0f);
+//	cam.setDistance(5.0f);
 	cam.setAspectRatio((GLfloat) width / height);
 //	cam.setTarget(quat(335.5654907, -159.0345306, 17.85120964));
 //	cam.setTarget(quat(1664.125, -1560.851563, 23.3515625));
 //	cam.setTarget(quat(-2447.703125, 1012.882813, 56.875));
+	cam.setTarget(quat(-1158.1, 412.282, 33.6813));
 
 
 	GLfloat axes[] = {

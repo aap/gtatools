@@ -85,7 +85,7 @@ void World::addInstance(Instance *i)
 		return;
 
 	// TODO: tune this value
-	float dist = 100.0f;
+	float dist = 120.0f;
 	if (game == GTASA)
 		dist = 500.0f;
 	// add instance to the appropriate island; if none is found,

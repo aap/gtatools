@@ -373,16 +373,6 @@ void Drawable::updateGeometries(void)
 			indices[1] = (rwg.vertexBoneIndices[j]&0xFF00)>>8;
 			indices[2] = (rwg.vertexBoneIndices[j]&0xFF0000)>>16;
 			indices[3] = (rwg.vertexBoneIndices[j]&0xFF000000)>>24;
-
-/*
-			if (rwg.specialIndices.size() != 0) {
-				indices[0] = rwg.specialIndices[indices[0]];
-				indices[1] = rwg.specialIndices[indices[1]];
-				indices[2] = rwg.specialIndices[indices[2]];
-				indices[3] = rwg.specialIndices[indices[3]];
-			}
-*/
-
 			weights[0] = rwg.vertexBoneWeights[j*4+0];
 			weights[1] = rwg.vertexBoneWeights[j*4+1];
 			weights[2] = rwg.vertexBoneWeights[j*4+2];
@@ -462,15 +452,15 @@ void Drawable::drawFrame(int fi, bool recurse, bool transform)
 	glUniformMatrix3fv(gl::u_NormalMat, 1, GL_FALSE,
 	                   glm::value_ptr(normal));
 
-	if (!strstr(f->name.c_str(), "chassis_vlo") &&
-	    !strstr(f->name.c_str(), "_dam")) {
+//	if (!strstr(f->name.c_str(), "chassis_vlo") &&
+//	    !strstr(f->name.c_str(), "_dam")) {
 		if (f->geo != -1) {
 			drawGeometry(f->geo);
 		} else {
 			glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
-			gl::drawSphere(0.1f, 10, 10);
+//			gl::drawSphere(0.1f, 10, 10);
 		}
-	}
+//	}
 
 	modelMat = save;
 	modelView = viewMat * modelMat;

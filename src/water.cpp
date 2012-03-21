@@ -49,7 +49,6 @@ void Water::loadWaterpro(std::ifstream &f)
 		base[0] = -2048;
 		base[1] = -2048;
 		Texture *t = txd->get("water_old");
-		cout << t->hasAlpha << endl;
 		tex = t->tex;
 		color[0] = 1.0f;
 		color[1] = 1.0f;
@@ -59,7 +58,6 @@ void Water::loadWaterpro(std::ifstream &f)
 		base[0] = -2448;
 		base[1] = -2048;
 		Texture *t = txd->get("waterclear256");
-		cout << t->hasAlpha << endl;
 		tex = t->tex;
 		color[0] = 0.2627f;
 		color[1] = 0.2627f;
