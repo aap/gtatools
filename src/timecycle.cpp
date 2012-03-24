@@ -120,7 +120,7 @@ void Weather::readLine(vector<string> fields)
 		             atof(fields[i+2].c_str()));
 		i += 4;
 	} else {
-		water = quat(1.0f, 1.0f, 1.0f, 1.0f);
+		water = quat(255, 255, 255, 255);
 	}
 	if (game == GTASA) {
 		rgba1 = quat(atof(fields[i+3].c_str()),

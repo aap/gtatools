@@ -148,6 +148,7 @@ void Water::loadWaterpro(std::ifstream &f)
 		tex = t->tex;
 	}
 
+	vector<GLfloat> texCoords;
 	for (uint x = 0; x < 128; x++) {
 		for (uint y = 0; y < 128; y++) {
 			if (indiceshi[x*128+y] != 0x80) {
@@ -177,33 +178,179 @@ void Water::loadWaterpro(std::ifstream &f)
 				vertices.push_back(x0+patchSize);
 				vertices.push_back(y0+patchSize);
 				vertices.push_back(z);
-			}
-		}
-	}
-	for (uint x = 0; x < 128; x++) {
-		for (uint y = 0; y < 128; y++) {
-			if (indiceshi[x*128+y] != 0x80) {
-				vertices.push_back(0.0f);
-				vertices.push_back(0.0f);
 
-				vertices.push_back(1.0f);
-				vertices.push_back(0.0f);
+				texCoords.push_back(0.0f);
+				texCoords.push_back(0.0f);
 
-				vertices.push_back(0.0f);
-				vertices.push_back(1.0f);
+				texCoords.push_back(1.0f);
+				texCoords.push_back(0.0f);
 
-				vertices.push_back(1.0f);
-				vertices.push_back(0.0f);
+				texCoords.push_back(0.0f);
+				texCoords.push_back(1.0f);
 
-				vertices.push_back(0.0f);
-				vertices.push_back(1.0f);
+				texCoords.push_back(1.0f);
+				texCoords.push_back(0.0f);
 
-				vertices.push_back(1.0f);
-				vertices.push_back(1.0f);
+				texCoords.push_back(0.0f);
+				texCoords.push_back(1.0f);
+
+				texCoords.push_back(1.0f);
+				texCoords.push_back(1.0f);
 			}
 		}
 	}
 
+	float z = palette[indiceshi[0]];
+
+	// western patch
+	vertices.push_back(base[0]-2048);
+	vertices.push_back(base[1]-2048);
+	vertices.push_back(z);
+	texCoords.push_back((base[0]-2048)/patchSize);
+	texCoords.push_back((base[1]-2048)/patchSize);
+
+	vertices.push_back(base[0]);
+	vertices.push_back(base[1]-2048);
+	vertices.push_back(z);
+	texCoords.push_back((base[0])/patchSize);
+	texCoords.push_back((base[1]-2048)/patchSize);
+
+	vertices.push_back(base[0]-2048);
+	vertices.push_back(base[1]+4096+2048);
+	vertices.push_back(z);
+	texCoords.push_back((base[0]-2048)/patchSize);
+	texCoords.push_back((base[1]+4096+2048)/patchSize);
+
+	vertices.push_back(base[0]);
+	vertices.push_back(base[1]-2048);
+	vertices.push_back(z);
+	texCoords.push_back((base[0])/patchSize);
+	texCoords.push_back((base[1]-2048)/patchSize);
+
+	vertices.push_back(base[0]-2048);
+	vertices.push_back(base[1]+4096+2048);
+	vertices.push_back(z);
+	texCoords.push_back((base[0]-2048)/patchSize);
+	texCoords.push_back((base[1]+4096+2048)/patchSize);
+
+	vertices.push_back(base[0]);
+	vertices.push_back(base[1]+4096+2048);
+	vertices.push_back(z);
+	texCoords.push_back((base[0])/patchSize);
+	texCoords.push_back((base[1]+4096+2048)/patchSize);
+
+	// eastern patch
+	vertices.push_back(base[0]+4096);
+	vertices.push_back(base[1]-2048);
+	vertices.push_back(z);
+	texCoords.push_back((base[0]+4096)/patchSize);
+	texCoords.push_back((base[1]-2048)/patchSize);
+
+	vertices.push_back(base[0]+4096+2048);
+	vertices.push_back(base[1]-2048);
+	vertices.push_back(z);
+	texCoords.push_back((base[0]+4096+2048)/patchSize);
+	texCoords.push_back((base[1]-2048)/patchSize);
+
+	vertices.push_back(base[0]+4096);
+	vertices.push_back(base[1]+4096+2048);
+	vertices.push_back(z);
+	texCoords.push_back((base[0]+4096)/patchSize);
+	texCoords.push_back((base[1]+4096+2048)/patchSize);
+
+	vertices.push_back(base[0]+4096+2048);
+	vertices.push_back(base[1]-2048);
+	vertices.push_back(z);
+	texCoords.push_back((base[0]+4096+2048)/patchSize);
+	texCoords.push_back((base[1]-2048)/patchSize);
+
+	vertices.push_back(base[0]+4096);
+	vertices.push_back(base[1]+4096+2048);
+	vertices.push_back(z);
+	texCoords.push_back((base[0]+4096)/patchSize);
+	texCoords.push_back((base[1]+4096+2048)/patchSize);
+
+	vertices.push_back(base[0]+4096+2048);
+	vertices.push_back(base[1]+4096+2048);
+	vertices.push_back(z);
+	texCoords.push_back((base[0]+4096+2048)/patchSize);
+	texCoords.push_back((base[1]+4096+2048)/patchSize);
+
+	// southern patch
+	vertices.push_back(base[0]);
+	vertices.push_back(base[1]-2048);
+	vertices.push_back(z);
+	texCoords.push_back((base[0])/patchSize);
+	texCoords.push_back((base[1]-2048)/patchSize);
+
+	vertices.push_back(base[0]+4096);
+	vertices.push_back(base[1]-2048);
+	vertices.push_back(z);
+	texCoords.push_back((base[0]+4096)/patchSize);
+	texCoords.push_back((base[1]-2048)/patchSize);
+
+	vertices.push_back(base[0]);
+	vertices.push_back(base[1]);
+	vertices.push_back(z);
+	texCoords.push_back((base[0])/patchSize);
+	texCoords.push_back((base[1])/patchSize);
+
+	vertices.push_back(base[0]+4096);
+	vertices.push_back(base[1]-2048);
+	vertices.push_back(z);
+	texCoords.push_back((base[0]+4096)/patchSize);
+	texCoords.push_back((base[1]-2048)/patchSize);
+
+	vertices.push_back(base[0]);
+	vertices.push_back(base[1]);
+	vertices.push_back(z);
+	texCoords.push_back((base[0])/patchSize);
+	texCoords.push_back((base[1])/patchSize);
+
+	vertices.push_back(base[0]+4096);
+	vertices.push_back(base[1]);
+	vertices.push_back(z);
+	texCoords.push_back((base[0]+4096)/patchSize);
+	texCoords.push_back((base[1])/patchSize);
+
+	// northern patch
+	vertices.push_back(base[0]);
+	vertices.push_back(base[1]+4096);
+	vertices.push_back(z);
+	texCoords.push_back((base[0])/patchSize);
+	texCoords.push_back((base[1]+4096)/patchSize);
+
+	vertices.push_back(base[0]+4096);
+	vertices.push_back(base[1]+4096);
+	vertices.push_back(z);
+	texCoords.push_back((base[0]+4096)/patchSize);
+	texCoords.push_back((base[1]+4096)/patchSize);
+
+	vertices.push_back(base[0]);
+	vertices.push_back(base[1]+4096+2048);
+	vertices.push_back(z);
+	texCoords.push_back((base[0])/patchSize);
+	texCoords.push_back((base[1]+4096+2048)/patchSize);
+
+	vertices.push_back(base[0]+4096);
+	vertices.push_back(base[1]+4096);
+	vertices.push_back(z);
+	texCoords.push_back((base[0]+4096)/patchSize);
+	texCoords.push_back((base[1]+4096)/patchSize);
+
+	vertices.push_back(base[0]);
+	vertices.push_back(base[1]+4096+2048);
+	vertices.push_back(z);
+	texCoords.push_back((base[0])/patchSize);
+	texCoords.push_back((base[1]+4096+2048)/patchSize);
+
+	vertices.push_back(base[0]+4096);
+	vertices.push_back(base[1]+4096+2048);
+	vertices.push_back(z);
+	texCoords.push_back((base[0]+4096)/patchSize);
+	texCoords.push_back((base[1]+4096+2048)/patchSize);
+
+	vertices.insert(vertices.end(), texCoords.begin(), texCoords.end());
 
 	glGenBuffers(1, &vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
