@@ -231,7 +231,7 @@ void getFields(string &s, char c, vector<string> &v)
 	if (s.size() == 0)
 		return;
 
-	string::size_type i = 0;
+	size_t i = 0;
 	j = s.find(c);
 	if (j == string::npos) {
 		v.push_back(s);
@@ -240,19 +240,29 @@ void getFields(string &s, char c, vector<string> &v)
 	while (j != string::npos) {
 		v.push_back(s.substr(i, j-i));
 		i = ++j;
-		j = s.find(c, j);
-		if (j == string::npos)
-			v.push_back(s.substr(i, s.length()));
+		if ((j = s.find_first_not_of(" \t", i)) != string::npos)
+			i = j;
+		j = s.find(c, i);
+		if (j == string::npos) {
+			j = s.find_first_of(" \t", i);
+			if (j == string::npos)
+				v.push_back(s.substr(i));
+			else
+				v.push_back(s.substr(i, j-i));
+		}
 	}
 
-	// remove surrounding whitespace
+//	// remove trailing whitespace
 	for (i = 0; i < v.size(); i++) {
-		j = v[i].find_first_not_of(" \t");
-		if (j != string::npos)
-			v[i] = v[i].substr(j);
-		string::size_type k = v[i].find_last_of(" \t");
-		if (k != string::npos)
-			v[i] = v[i].substr(j, k-j);
+		j = v[i].find_first_of(" \t");
+		v[i] = v[i].substr(0, j);
+// old
+//		j = v[i].find_first_not_of(" \t");
+//		if (j != string::npos)
+//			v[i] = v[i].substr(j);
+//		size_t k = v[i].find_last_of(" \t");
+//		if (k != string::npos)
+//			v[i] = v[i].substr(j, k-j);
 	}
 }
 

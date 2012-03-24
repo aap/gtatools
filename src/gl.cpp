@@ -32,6 +32,7 @@ bool drawWire;
 bool drawTransparent;
 bool wasTransparent;
 uint lastSelected;
+string statusLine;
 
 glm::mat4 modelMat;
 glm::mat4 viewMat;
@@ -133,12 +134,14 @@ void renderScene(void)
 	glUniformMatrix4fv(gl::u_ModelView, 1, GL_FALSE,
 	                   glm::value_ptr(modelView));
 
-	glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
-/*
-	glVertexAttrib4f(in_Color, 1.0f, 1.0f, 1.0f, 1.0f);
+//	glBindTexture(GL_TEXTURE_2D, whiteTex);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glVertexAttrib4f(in_Color, 0.0f, 0.0f, 0.0f, 0.0f);
 	glRasterPos2i(0,0);
-	glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, 'a');
-*/
+
+	statusLine = "";
+	for (uint i = 0; i < statusLine.size(); i++)
+		glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, statusLine[i]);
 
 	glutSwapBuffers();
 }
@@ -382,6 +385,15 @@ void init(char *model, char *texdict)
 			cerr << "couldn't open waterpro.dat\n";
 		} else {
 			water.loadWaterpro(f);
+			f.close();
+		}
+	} else {	// must be GTASA
+		string fileName = getPath("data/water.dat");
+		ifstream f(fileName.c_str());
+		if (f.fail()) {
+			cerr << "couldn't open water.dat\n";
+		} else {
+			water.loadWater(f);
 			f.close();
 		}
 	}

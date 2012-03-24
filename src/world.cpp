@@ -139,9 +139,10 @@ void World::readBinIpl(ifstream &in)
 			ip->isLod = true;
 		else if (ip->name.substr(0,9) == "islandlod")
 			ip->isIslandLod = true;
-		if (game == GTASA)
-			if (ip->name.find("_lod") != string::npos)
+		if (game == GTASA && ip->name.size() > 3) {
+			if (ip->name.substr(ip->name.size()-3, 3) == "lod")
 				ip->isLod = true;
+		}
 
 		addInstance(ip);
 	}
@@ -207,8 +208,9 @@ void World::readTextIpl(ifstream &in)
 				ip->isLod = true;
 			else if (ip->name.substr(0,9) == "islandlod")
 				ip->isIslandLod = true;
-			if (game == GTASA)
-				if (ip->name.find("_lod") != string::npos)
+			if (game == GTASA && ip->name.size() > 3)
+				if (ip->name.substr(ip->name.size()-3, 3)
+				    == "lod")
 					ip->isLod = true;
 
 			if (hasInterior)
