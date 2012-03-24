@@ -33,7 +33,7 @@ extern Drawable drawable;
 
 std::string getPath(std::string relative);
 void stringToLower(std::string &);
-void getFields(std::string &s, char c, std::vector<std::string> &v);
+void getFields(std::string &s, std::string sep, std::vector<std::string> &v);
 void correctFileName(std::string &fileName);
 
 #endif

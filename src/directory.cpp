@@ -73,7 +73,7 @@ void Directory::addFile(string path)
 {
 	vector<string> subFolders;
 
-	getFields(path, PSEP_C, subFolders);
+	getFields(path, PSEP_S, subFolders);
 	string name = subFolders[subFolders.size()-1];
 	ifstream f(path.c_str());
 	if (f.fail()) {

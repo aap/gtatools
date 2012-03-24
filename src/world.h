@@ -89,6 +89,7 @@ private:
 
 	int interior;
 	int hour, minute;
+	int timeOfDay;	// this handles switching between day and night colors
 
 	void addInstance(Instance *i);
 public:
@@ -98,7 +99,8 @@ public:
 	void readBinIpl(std::ifstream &);
 	void readTextIpl(std::ifstream &);
 	void associateLods(void);
-	void drawIslands(void);
+	void drawOpaque(void);
+	void drawTransparent(void);
 	void addTransparent(Instance *ip, float dist);
 
 	void setInterior(int i);
@@ -108,6 +110,10 @@ public:
 	int getMinute(void);
 	void setHour(int);
 	void setMinute(int);
+
+	void setTimeOfDay(int);
+	int getTimeOfDay(void);
+
 	World(void);
 };
 

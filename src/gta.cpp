@@ -38,7 +38,7 @@ void parseDat(ifstream &f)
 
 	while (!f.eof()) {
 		getline(f, line);
-		getFields(line, ' ', fields);
+		getFields(line, " \t", fields);
 
 		if (fields.size() < 1 || fields[0][0] == '#')
 			continue;
@@ -214,9 +214,9 @@ void stringToLower(string &s)
 			s[i] = tolower(s[i]);
 }
 
-// split s into fields separated by c
+// split s into fields separated by any character in sep
 // ugly
-void getFields(string &s, char c, vector<string> &v)
+void getFields(string &s, string sep, vector<string> &v)
 {
 	v.clear();
 	// remove carriage return
@@ -232,7 +232,7 @@ void getFields(string &s, char c, vector<string> &v)
 		return;
 
 	size_t i = 0;
-	j = s.find(c);
+	j = s.find_first_of(sep);
 	if (j == string::npos) {
 		v.push_back(s);
 		return;
@@ -242,7 +242,7 @@ void getFields(string &s, char c, vector<string> &v)
 		i = ++j;
 		if ((j = s.find_first_not_of(" \t", i)) != string::npos)
 			i = j;
-		j = s.find(c, i);
+		j = s.find_first_of(sep, i);
 		if (j == string::npos) {
 			j = s.find_first_of(" \t", i);
 			if (j == string::npos)
@@ -274,7 +274,7 @@ void correctPathCase(string &fileName)
 	struct dirent *dirent;
 
 	vector<string> subFolders;
-	getFields(fileName, PSEP_C, subFolders);
+	getFields(fileName, PSEP_S, subFolders);
 
 	string pathSoFar = gamePath;
 	for (uint i = 0; i < subFolders.size(); i++) {

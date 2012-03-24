@@ -18,7 +18,7 @@ void ObjectList::readIde(ifstream &in)
 	bool hasObjectCount = true;
 	do {
 		getline(in, line);
-		getFields(line, ',', fields);
+		getFields(line, ",", fields);
 		if (fields.size() < 1 || line[0] == '#')
 			continue;
 

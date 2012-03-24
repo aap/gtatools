@@ -11,6 +11,7 @@
 #include "primitives.h"
 #include "drawable.h"
 #include "directory.h"
+#include "world.h"
 
 using namespace std;
 using namespace gl;
@@ -173,9 +174,14 @@ void Drawable::attachClump(rw::Clump &c)
 		offset += numVertices*3*sizeof(GLfloat);
 
 		if (rwg.flags & rw::FLAGS_PRELIT) {
-			glBufferSubData(GL_ARRAY_BUFFER, offset,
-					numVertices*4*sizeof(GLubyte),
-			                &rwg.vertexColors[0]);
+			if (world.getTimeOfDay() < 2 || !rwg.hasNightColors) 
+				glBufferSubData(GL_ARRAY_BUFFER, offset,
+						numVertices*4*sizeof(GLubyte),
+						&rwg.vertexColors[0]);
+			else
+				glBufferSubData(GL_ARRAY_BUFFER, offset,
+						numVertices*4*sizeof(GLubyte),
+						&rwg.nightColors[0]);
 			offset += numVertices*4*sizeof(GLubyte);
 		}
 		if (rwg.flags & rw::FLAGS_NORMALS) {
@@ -234,7 +240,7 @@ void Drawable::attachClump(rw::Clump &c)
 		}
 		string end = name.substr(name.size()-3, 3);
 		if (end.substr(0,2) == "_l") {
-			int number = end[2] - '0';
+			uint number = end[2] - '0';
 			if (number >= atomicList.size())
 				atomicList.resize(number+1);
 			atomicList[number] = atm.frameIndex;
@@ -415,6 +421,27 @@ void Drawable::updateFrames(Frame *f)
 		updateFrames(f->children[i]);
 }
 
+void Drawable::setVertexColors(int c)
+{
+	for (uint i = 0; i < clump.geometryList.size(); i++) {
+		rw::Geometry &rwg = clump.geometryList[i];
+		Geometry &geo = geoList[i];
+		int numVertices = rwg.vertices.size()/3;
+		GLint offset = numVertices*3*sizeof(GLfloat);
+		glBindBuffer(GL_ARRAY_BUFFER, geo.vbo);
+		if (c == 0) {				// day colors
+			glBufferSubData(GL_ARRAY_BUFFER, offset,
+					numVertices*4*sizeof(GLubyte),
+					&rwg.vertexColors[0]);
+		} else if (rwg.hasNightColors) {	// night colors
+			glBufferSubData(GL_ARRAY_BUFFER, offset,
+					numVertices*4*sizeof(GLubyte),
+					&rwg.nightColors[0]);
+		}
+	}
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
 void Drawable::draw(void)
 {
 	if (frmList.size() == 0)
@@ -422,9 +449,9 @@ void Drawable::draw(void)
 	drawFrame(0, true, true);
 }
 
-void Drawable::drawAtomic(int ai)
+void Drawable::drawAtomic(uint ai)
 {
-	if (ai >= 0 && ai < atomicList.size())
+	if (ai < atomicList.size())
 		drawFrame(atomicList[ai], true, false);
 	else
 		; // can happen
@@ -452,6 +479,7 @@ void Drawable::drawFrame(int fi, bool recurse, bool transform)
 	glUniformMatrix3fv(gl::u_NormalMat, 1, GL_FALSE,
 	                   glm::value_ptr(normal));
 
+	// this also hides the dam in liberty city
 //	if (!strstr(f->name.c_str(), "chassis_vlo") &&
 //	    !strstr(f->name.c_str(), "_dam")) {
 		if (f->geo != -1) {
@@ -604,7 +632,6 @@ void Drawable::drawGeometry(int gi)
 }
 
 
-//quat Drawable::getBoundingSphere(void)
 vector<quat> Drawable::getBoundingSpheres(void)
 {
 	vector<quat> spheres;

@@ -268,6 +268,14 @@ void Camera::setNearFar(float n, float f)
 	this->f = f;
 }
 
+quat Camera::getCamPos(void)
+{
+	quat cam(-sin(theta)*sin(phi), sin(theta)*cos(phi), cos(theta));
+	cam *= r;
+	cam += target;
+	return cam;
+}
+
 Camera::Camera()
 {
 	theta = phi = 0.0f;

@@ -1,6 +1,7 @@
 #include "gta.h"
 #include "gl.h"
 #include "water.h"
+#include "timecycle.h"
 
 using namespace std;
 using namespace gl;
@@ -9,6 +10,11 @@ Water water;
 
 void Water::draw(void)
 {
+	Weather *w = timeCycle.getCurrentWeatherData();
+	color[0] = w->water.x;
+	color[1] = w->water.y;
+	color[2] = w->water.z;
+	color[3] = w->water.w;
 	glUniform4fv(u_MatColor, 1, color);
 
 	glEnable(GL_BLEND);
@@ -38,10 +44,6 @@ void Water::loadWater(std::ifstream &f)
 		cout << "unknown format of SA water.dat\n";
 		return;
 	}
-	color[0] = 90.0f/255.0f;
-	color[1] = 170.0f/255.0f;
-	color[2] = 170.0f/255.0f;
-	color[3] = 240.0f/255.0f;
 
 	TexDictionary *txd = texMan.get("particle.txd");
 	Texture *t = txd->get("waterclear256");
@@ -53,7 +55,7 @@ void Water::loadWater(std::ifstream &f)
 	vector<string> fields;
 	while (!f.eof()) {
 		getline(f, line);
-		getFields(line, ' ', fields);
+		getFields(line, " \t", fields);
 
 		for (uint i = 0; i < 3; i++ ) {
 			x[i] = atof(fields[i*7+0].c_str());
@@ -139,19 +141,11 @@ void Water::loadWaterpro(std::ifstream &f)
 		base[1] = -2048;
 		Texture *t = txd->get("water_old");
 		tex = t->tex;
-		color[0] = 1.0f;
-		color[1] = 1.0f;
-		color[2] = 1.0f;
-		color[3] = 1.0f;
 	} else {	// must be GTAVC
 		base[0] = -2448;
 		base[1] = -2048;
 		Texture *t = txd->get("waterclear256");
 		tex = t->tex;
-		color[0] = 0.2627f;
-		color[1] = 0.2627f;
-		color[2] = 0.3921f;
-		color[3] = 0.7f;
 	}
 
 	for (uint x = 0; x < 128; x++) {

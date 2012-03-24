@@ -1,6 +1,10 @@
+#include <typeinfo>
+#include <cstdio>
+#include <cstdio>
+
 #include "gta.h"
 
-#include <typeinfo>
+#include <GL/glut.h>
 
 #include "world.h"
 #include "directory.h"
@@ -10,8 +14,8 @@
 #include "gl.h"
 #include "primitives.h"
 #include "water.h"
-
-#include <GL/glut.h>
+#include "timecycle.h"
+#include "sky.h"
 
 using namespace std;
 
@@ -65,9 +69,11 @@ void renderScene(void)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
 	        GL_STENCIL_BUFFER_BIT);
 
+	Weather *w = timeCycle.getCurrentWeatherData();
 
 	// 3d scene
-	glEnable(GL_DEPTH_TEST);
+	timeCycle.calcCurrent(world.getHour(), world.getMinute());
+	cam.setNearFar(0.1f, w->farClp);
 	cam.look();
 
 	// set up modelview mat
@@ -75,11 +81,13 @@ void renderScene(void)
 	glm::mat4 modelView = viewMat * modelMat;
 	glm::mat3 normal = glm::inverseTranspose(glm::mat3(modelView));
 
+	// not used at the moment
 	glm::vec4 lightPos = glm::vec4(5.0f, 5.0f, 3.0f, 1.0f);
 	lightPos = viewMat * lightPos;
 	glm::vec3 lightCol = glm::vec3(1.0f, 1.0f, 1.0f);
 
-	glm::vec3 amb = glm::vec3(0.49f, 0.47f, 0.33f);
+//	glm::vec3 amb = glm::vec3(0.49f, 0.47f, 0.33f);
+	glm::vec3 amb = glm::vec3(w->amb.x, w->amb.y, w->amb.z);
 
 	simplePipe.use();
 	glBindTexture(GL_TEXTURE_2D, 0);
@@ -94,6 +102,12 @@ void renderScene(void)
 	glUniform3fv(gl::u_AmbientLight, 1, glm::value_ptr(amb));
 	glUniform1i(u_Texture, 0);
 	glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
+
+	glDisable(GL_DEPTH_TEST);
+
+	sky.draw();
+
+	glEnable(GL_DEPTH_TEST);
 
 	drawAxes(glm::value_ptr(modelMat));
 
@@ -118,9 +132,12 @@ void renderScene(void)
 	drawable.draw();
 */
 
-	world.drawIslands();
-
+	world.drawOpaque();
 	water.draw();
+	world.drawTransparent();
+
+	if (world.getTimeOfDay() % 2 == 0)
+		world.setTimeOfDay(world.getTimeOfDay()+1);
 
 	// 2d overlay
 	glDisable(GL_DEPTH_TEST);
@@ -139,7 +156,6 @@ void renderScene(void)
 	glVertexAttrib4f(in_Color, 0.0f, 0.0f, 0.0f, 0.0f);
 	glRasterPos2i(0,0);
 
-	statusLine = "";
 	for (uint i = 0; i < statusLine.size(); i++)
 		glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, statusLine[i]);
 
@@ -155,6 +171,8 @@ void reshape(int w, int h)
 
 void keypress(uchar key, int x, int y)
 {
+	char buf[20];
+	quat campos;
 	switch (key) {
 	case 'f':
 		drawable.nextFrame();
@@ -179,33 +197,47 @@ void keypress(uchar key, int x, int y)
 		world.setInterior(world.getInterior()-1);
 		cout << "Interior: " << world.getInterior() << endl;
 		break;
-	case 'c':
-		cout << "enter new camara coords: " << endl;
-		float x, y, z;
-		cin >> x >> y >> z;
-		cam.setTarget(quat(x, y, z));
-		break;
 	case 'm':
 		world.setMinute(world.getMinute()+1);
-		cout << world.getHour() << ":" << world.getMinute() << endl;
+		sprintf(buf, "%02d:%02d", world.getHour(), world.getMinute());
+		statusLine = buf;
 		break;
 	case 'M':
 		world.setMinute(world.getMinute()-1);
-		cout << world.getHour() << ":" << world.getMinute() << endl;
+		sprintf(buf, "%02d:%02d", world.getHour(), world.getMinute());
+		statusLine = buf;
 		break;
 	case 'h':
 		world.setHour(world.getHour()+1);
-		cout << world.getHour() << ":" << world.getMinute() << endl;
+		sprintf(buf, "%02d:%02d", world.getHour(), world.getMinute());
+		statusLine = buf;
 		break;
 	case 'H':
 		world.setHour(world.getHour()-1);
-		cout << world.getHour() << ":" << world.getMinute() << endl;
+		sprintf(buf, "%02d:%02d", world.getHour(), world.getMinute());
+		statusLine = buf;
 		break;
 	case 'v':
 		world.getInstance(lastSelected)->setVisible(false);
 		break;
 	case 'V':
 		world.getInstance(lastSelected)->setVisible(true);
+		break;
+	case 'p':
+		campos = cam.getTarget();
+		cout << campos << endl;
+		break;
+	case 'P':
+		cout << "enter new camara coords: " << endl;
+		float x, y, z;
+		cin >> x >> y >> z;
+		cam.setTarget(quat(x, y, z));
+		break;
+	case 'c':
+		world.setTimeOfDay(0);
+		break;
+	case 'C':
+		world.setTimeOfDay(2);
 		break;
 	case 'q':
 	case 27:
@@ -242,6 +274,7 @@ void mouseButton(int button, int state, int x, int y)
 		if (button == GLUT_LEFT_BUTTON) {
 			isLDown = 0;
 			if (ox - mx == 0 && oy - my == 0) {
+				cout << x << " " << y << endl;
 				// read clicked object's index
 				GLubyte stencil[4];
 				// fewer passes would probably be enough
@@ -347,13 +380,15 @@ void init(char *model, char *texdict)
 	gtaPipe.load("shader/gtaPipe.vert", "shader/simple.frag");
 
 	cam.setPitch(PI/8.0f-PI/2.0f);
-	cam.setDistance(20.0f);
+	cam.setDistance(0.0f);
+//	cam.setDistance(20.0f);
 //	cam.setDistance(5.0f);
 	cam.setAspectRatio((GLfloat) width / height);
 //	cam.setTarget(quat(335.5654907, -159.0345306, 17.85120964));
 //	cam.setTarget(quat(1664.125, -1560.851563, 23.3515625));
 //	cam.setTarget(quat(-2447.703125, 1012.882813, 56.875));
-	cam.setTarget(quat(-1158.1, 412.282, 33.6813));
+//	cam.setTarget(quat(-1158.1, 412.282, 33.6813));
+//	cam.setTarget(quat(1176.17, -1154.5, 87.2194));
 
 
 	GLfloat axes[] = {
@@ -378,6 +413,7 @@ void init(char *model, char *texdict)
 
 	world.associateLods();
 
+	// load water
 	if (game == GTA3 || game == GTAVC) {
 		string fileName = getPath("data/waterpro.dat");
 		ifstream f(fileName.c_str(), ios::binary);
@@ -396,6 +432,16 @@ void init(char *model, char *texdict)
 			water.loadWater(f);
 			f.close();
 		}
+	}
+
+	// load timecycle
+	string fileName = getPath("data/timecyc.dat");
+	ifstream f(fileName.c_str());
+	if (f.fail()) {
+		cerr << "couldn't open timecyc.dat\n";
+	} else {
+		timeCycle.load(f);
+		f.close();
 	}
 
 #if 0
@@ -452,8 +498,8 @@ void init(char *model, char *texdict)
 
 void start(int *argc, char *argv[])
 {
-	width = 640;
-	height = 480;
+	width = 644;
+	height = 340;
 
 	glutInit(argc, argv);
 	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE |

@@ -169,6 +169,7 @@ void drawCube2(quat pos1, quat pos2)
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glDeleteBuffers(1, &vbo_cube);
 }
+
 void drawCube(GLfloat size)
 {
 	GLfloat s = size/2.0f;

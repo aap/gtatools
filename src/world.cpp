@@ -20,7 +20,7 @@ World world;
  * World
  */
 
-void World::drawIslands(void)
+void World::drawOpaque(void)
 {
 	quat camPos = cam.getPosition();
 
@@ -40,7 +40,10 @@ void World::drawIslands(void)
 			islands[i].drawLod();
 		}
 	}
+}
 
+void World::drawTransparent(void)
+{
 	gl::drawTransparent = true;
 	for (uint i = 0; i < transpInstances.size(); i++)
 		transpInstances[i]->justDraw();
@@ -155,7 +158,7 @@ void World::readTextIpl(ifstream &in)
 	int blockType = END;
 	do {
 		getline(in, line);
-		getFields(line, ',', fields);
+		getFields(line, ",", fields);
 		if (fields.size() < 1 || fields[0][0] == '#')
 			continue;
 
@@ -232,11 +235,11 @@ void World::readTextIpl(ifstream &in)
 			} else {
 				ip->scale = quat(1.0f, 1.0f, 1.0f);
 			}
-			ip->rotation = quat(atof(fields[i].c_str()),
+			ip->rotation = quat(atof(fields[i+3].c_str()),
+			                    atof(fields[i+0].c_str()),
 			                    atof(fields[i+1].c_str()),
 			                    atof(fields[i+2].c_str()));
-			i += 3;
-			ip->rotation.w = atof(fields[i++].c_str());
+			i += 4;
 
 			if (hasLod)
 				ip->lod = atoi(fields[i++].c_str());
@@ -402,6 +405,11 @@ void World::setHour(int h)
 		hour = 0;
 	else
 		hour = h;
+
+	if (hour == 20)
+		timeOfDay = 2;
+	else if (hour == 6)
+		timeOfDay = 0;
 }
 
 void World::setMinute(int m)
@@ -417,11 +425,24 @@ void World::setMinute(int m)
 	}
 }
 
+// 0: dawn
+// 1: day
+// 2: sunset
+// 3: night
+void World::setTimeOfDay(int t)
+{
+	if (t >= 0 && t <= 3)
+		timeOfDay = t;
+}
+
+int World::getTimeOfDay(void) { return timeOfDay; }
+
 World::World(void)
 {
 	interior = 0;
 	hour = 12;
 	minute = 0;
+	timeOfDay = 1;
 }
 
 /*
@@ -520,6 +541,13 @@ void Instance::draw(void)
 		if (isCulled())
 			return;
 
+	if (op->isLoaded) {
+		if (world.getTimeOfDay() == 0)
+			op->drawable.setVertexColors(0);
+		else if (world.getTimeOfDay() == 2)
+			op->drawable.setVertexColors(1);
+	}
+
 	// if the instance is too far away, try the LOD version
 	if (ai < 0) {
 		Instance *ip = world.getInstance(lod);
@@ -556,6 +584,7 @@ void Instance::draw(void)
 	transform();
 
 	glStencilFunc(GL_ALWAYS, (index>>gl::stencilShift)&0xFF, -1);
+
 	if (!op->isLoaded)
 		op->load();
 
@@ -564,6 +593,7 @@ void Instance::draw(void)
 		op->drawable.draw();
 	else
 		op->drawable.drawAtomic(ai);
+
 	// the flag from the item definition isn't reliable
 	if (gl::wasTransparent)
 		world.addTransparent(this, d);

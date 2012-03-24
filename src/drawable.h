@@ -73,8 +73,9 @@ public:
 	void attachTexDict(rw::TextureDictionary &t);	// better use a pointer
 	void attachAnim(rw::Animation &a);
 	void nextFrame(void);
+	void setVertexColors(int c);
 	void draw(void);
-	void drawAtomic(int a);
+	void drawAtomic(uint a);
 	void drawFrame(int fi, bool recurse, bool transform);
 	void printFrames(int level, Frame *r);
 	std::vector<quat> getBoundingSpheres(void);

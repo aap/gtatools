@@ -41,6 +41,7 @@ public:
 	void changeTarget(quat q);
 	bool isPointInFrustum(quat p);
 	bool isSphereInFrustum(quat s);
+	quat getCamPos(void);
 };
 
 extern Camera cam;
