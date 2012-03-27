@@ -14,24 +14,10 @@ void Sky::draw(void)
 	GLuint vbo = 0;
 
 	Weather *w = timeCycle.getCurrentWeatherData();
+	quat underworld(0.5, 0.5, 0.5);
+	if (game == GTASA)
+		underworld = w->skyBot;
 	GLfloat box[] = {
-/*
-		 3000, -1000,  500,
-		-3000, -1000,  500,
-		 3000,  1000,  500,
-		-3000,  1000,  500,
-		 3000,  1000,  0,
-		-3000,  1000,  0,
-		 3000,  1000, -100,
-		-3000,  1000, -100,
-		 3000, -1000, -100,
-		-3000, -1000, -100,
-		 3000, -1000,  0,
-		-3000, -1000,  0,
-		 3000, -1000,  500,
-		-3000, -1000,  500,
-*/
-
 		 1000, -100,  50,
 		-1000, -100,  50,
 		 1000,  100,  50,
@@ -53,10 +39,10 @@ void Sky::draw(void)
 		w->skyTop.x, w->skyTop.y, w->skyTop.z,
 		w->skyBot.x, w->skyBot.y, w->skyBot.z,
 		w->skyBot.x, w->skyBot.y, w->skyBot.z,
-		0.5f, 0.5f, 0.5f,
-		0.5f, 0.5f, 0.5f,
-		0.5f, 0.5f, 0.5f,
-		0.5f, 0.5f, 0.5f,
+		underworld.x, underworld.y, underworld.z,
+		underworld.x, underworld.y, underworld.z,
+		underworld.x, underworld.y, underworld.z,
+		underworld.x, underworld.y, underworld.z,
 		w->skyBot.x, w->skyBot.y, w->skyBot.z,
 		w->skyBot.x, w->skyBot.y, w->skyBot.z,
 		w->skyTop.x, w->skyTop.y, w->skyTop.z,

@@ -38,6 +38,8 @@ struct Geometry {
 	bool isSkinned;
 	std::vector<GLfloat> vertices;
 
+	std::vector<GLubyte> vertexColors;
+
 	quat boundingSphere;
 };
 
@@ -60,6 +62,8 @@ private:
 	int frame;
 	int endFrame;
 
+	int currentColorStep;
+
 	void attachTexDict(TexDictionary &t);
 	void updateFrames(Frame *r);
 	void updateGeometries(void);
@@ -73,11 +77,12 @@ public:
 	void attachTexDict(rw::TextureDictionary &t);	// better use a pointer
 	void attachAnim(rw::Animation &a);
 	void nextFrame(void);
-	void setVertexColors(int c);
+	void setVertexColors(void);
 	void draw(void);
 	void drawAtomic(uint a);
 	void drawFrame(int fi, bool recurse, bool transform);
 	void printFrames(int level, Frame *r);
+	void dumpClump(bool detailed);
 	std::vector<quat> getBoundingSpheres(void);
 };
 

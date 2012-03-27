@@ -44,11 +44,23 @@ private:
 	Weather weatherList[23][24];
 	Weather currentWeatherData;
 	int currentWeather;
+	int hour, minute;
+	int colorStep;	// this handles switching between day and night colors
+
 	void readWeatherLine(Weather &w, std::vector<std::string> fields);
+
 public:
 	void load(std::ifstream &f);
 	void calcCurrent(int hour, int minute);
 	Weather *getCurrentWeatherData(void);
+	int getHour(void);
+	int getMinute(void);
+	void setHour(int);
+	void setMinute(int);
+	void setColorStep(int);
+	int getColorStep(void);
+	void updateColorStep(void);
+	TimeCycle(void);
 };
 
 extern TimeCycle timeCycle;

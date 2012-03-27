@@ -72,7 +72,7 @@ void renderScene(void)
 	Weather *w = timeCycle.getCurrentWeatherData();
 
 	// 3d scene
-	timeCycle.calcCurrent(world.getHour(), world.getMinute());
+	timeCycle.calcCurrent(timeCycle.getHour(), timeCycle.getMinute());
 	cam.setNearFar(0.1f, w->farClp);
 	cam.look();
 
@@ -133,11 +133,17 @@ void renderScene(void)
 */
 
 	world.drawOpaque();
-	water.draw();
-	world.drawTransparent();
 
-	if (world.getTimeOfDay() % 2 == 0)
-		world.setTimeOfDay(world.getTimeOfDay()+1);
+	glDepthMask(GL_FALSE);
+	world.drawTransparent1();
+	glDepthMask(GL_TRUE);
+
+	water.draw();
+	world.drawTransparent2();
+
+
+//	if (timeCycle.getTimeOfDay() % 2 == 0)
+//		timeCycle.setTimeOfDay(timeCycle.getTimeOfDay()+1);
 
 	// 2d overlay
 	glDisable(GL_DEPTH_TEST);
@@ -166,28 +172,50 @@ void reshape(int w, int h)
 {
 	width = w;
 	height = h;
+	if (height == 0)
+		height = 1;
+	cam.setAspectRatio((GLfloat) width / height);
 	glViewport(0, 0, width, height);
 }
 
 void keypress(uchar key, int x, int y)
 {
 	char buf[20];
+	WorldObject *op;
 	quat campos;
+	static float dist = 10.0f;
+
 	switch (key) {
 	case 'f':
 		drawable.nextFrame();
 		break;
 	case 'W':
-		cam.moveInOut(10);
+		cam.moveInOut(dist);
 		break;
 	case 'w':
-		cam.changeDistance(-10.0f);
+		cam.changeDistance(-dist);
 		break;
 	case 'S':
-		cam.moveInOut(-10);
+		cam.moveInOut(-dist);
 		break;
 	case 's':
-		cam.changeDistance(10.0f);
+		cam.changeDistance(dist);
+		break;
+	case 'd':
+		op = (WorldObject*)objectList.get(
+			world.getInstance(lastSelected)->id);
+		op->drawable.dumpClump(false);
+		break;
+	case 'D':
+		op = (WorldObject*)objectList.get(
+			world.getInstance(lastSelected)->id);
+		op->drawable.dumpClump(true);
+		break;
+	case 'x':
+		dist /= 2.0f;
+		break;
+	case 'X':
+		dist *= 2.0f;
 		break;
 	case 'i':
 		world.setInterior(world.getInterior()+1);
@@ -198,23 +226,27 @@ void keypress(uchar key, int x, int y)
 		cout << "Interior: " << world.getInterior() << endl;
 		break;
 	case 'm':
-		world.setMinute(world.getMinute()+1);
-		sprintf(buf, "%02d:%02d", world.getHour(), world.getMinute());
+		timeCycle.setMinute(timeCycle.getMinute()+1);
+		sprintf(buf, "%02d:%02d", timeCycle.getHour(),
+		                          timeCycle.getMinute());
 		statusLine = buf;
 		break;
 	case 'M':
-		world.setMinute(world.getMinute()-1);
-		sprintf(buf, "%02d:%02d", world.getHour(), world.getMinute());
+		timeCycle.setMinute(timeCycle.getMinute()-1);
+		sprintf(buf, "%02d:%02d", timeCycle.getHour(),
+		                          timeCycle.getMinute());
 		statusLine = buf;
 		break;
 	case 'h':
-		world.setHour(world.getHour()+1);
-		sprintf(buf, "%02d:%02d", world.getHour(), world.getMinute());
+		timeCycle.setHour(timeCycle.getHour()+1);
+		sprintf(buf, "%02d:%02d", timeCycle.getHour(),
+		                          timeCycle.getMinute());
 		statusLine = buf;
 		break;
 	case 'H':
-		world.setHour(world.getHour()-1);
-		sprintf(buf, "%02d:%02d", world.getHour(), world.getMinute());
+		timeCycle.setHour(timeCycle.getHour()-1);
+		sprintf(buf, "%02d:%02d", timeCycle.getHour(),
+		                          timeCycle.getMinute());
 		statusLine = buf;
 		break;
 	case 'v':
@@ -234,10 +266,12 @@ void keypress(uchar key, int x, int y)
 		cam.setTarget(quat(x, y, z));
 		break;
 	case 'c':
-		world.setTimeOfDay(0);
+		timeCycle.setColorStep(timeCycle.getColorStep()+1);
+		cout << timeCycle.getColorStep() << endl;
 		break;
 	case 'C':
-		world.setTimeOfDay(2);
+		timeCycle.setColorStep(timeCycle.getColorStep()-1);
+		cout << timeCycle.getColorStep() << endl;
 		break;
 	case 'q':
 	case 27:
@@ -384,11 +418,9 @@ void init(char *model, char *texdict)
 //	cam.setDistance(20.0f);
 //	cam.setDistance(5.0f);
 	cam.setAspectRatio((GLfloat) width / height);
-//	cam.setTarget(quat(335.5654907, -159.0345306, 17.85120964));
-//	cam.setTarget(quat(1664.125, -1560.851563, 23.3515625));
-//	cam.setTarget(quat(-2447.703125, 1012.882813, 56.875));
-//	cam.setTarget(quat(-1158.1, 412.282, 33.6813));
-//	cam.setTarget(quat(1176.17, -1154.5, 87.2194));
+	cam.setTarget(quat(335.5654907, -159.0345306, 17.85120964));
+//	cam.setTarget(quat(-1158.1, 412.282, 33.6813));	// dam
+//	cam.setTarget(quat(1176.17, -1154.5, 87.2194));	// la records
 
 
 	GLfloat axes[] = {

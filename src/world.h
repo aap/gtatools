@@ -85,11 +85,10 @@ private:
 	std::vector<Island> islands;
 	uint activeIsland;
 
-	std::vector<Instance *> transpInstances;
+	std::vector<Instance *> transpInstances1;
+	std::vector<Instance *> transpInstances2;
 
 	int interior;
-	int hour, minute;
-	int timeOfDay;	// this handles switching between day and night colors
 
 	void addInstance(Instance *i);
 public:
@@ -100,19 +99,13 @@ public:
 	void readTextIpl(std::ifstream &);
 	void associateLods(void);
 	void drawOpaque(void);
-	void drawTransparent(void);
-	void addTransparent(Instance *ip, float dist);
+	void drawTransparent1(void);
+	void drawTransparent2(void);
+	void addTransparent1(Instance *ip, float dist);
+	void addTransparent2(Instance *ip, float dist);
 
 	void setInterior(int i);
 	int getInterior(void);
-
-	int getHour(void);
-	int getMinute(void);
-	void setHour(int);
-	void setMinute(int);
-
-	void setTimeOfDay(int);
-	int getTimeOfDay(void);
 
 	World(void);
 };

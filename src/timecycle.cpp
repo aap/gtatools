@@ -1,4 +1,5 @@
 #include "gta.h"
+#include "world.h"
 #include "timecycle.h"
 
 using namespace std;
@@ -49,6 +50,8 @@ void Weather::readLine(vector<string> fields)
 		                 atof(fields[i+1].c_str()),
 		                 atof(fields[i+2].c_str()));
 		i += 3;
+	} else {
+		ambObj = amb;
 	}
 	if (game == GTAVC) {
 		ambBl = quat(1, atof(fields[i].c_str()),
@@ -59,7 +62,11 @@ void Weather::readLine(vector<string> fields)
 		                   atof(fields[i+1].c_str()),
 		                   atof(fields[i+2].c_str()));
 		i += 3;
+	} else {
+		ambBl = amb;
+		ambObjBl = ambObj;
 	}
+
 	dir = quat(1, atof(fields[i].c_str()),
 		      atof(fields[i+1].c_str()),
 		      atof(fields[i+2].c_str()));
@@ -80,6 +87,7 @@ void Weather::readLine(vector<string> fields)
 	                    atof(fields[i+1].c_str()),
 	                    atof(fields[i+2].c_str()));
 	i += 3;
+
 	sunSz = atof(fields[i++].c_str());
 	sprSz = atof(fields[i++].c_str());
 	sprBght = atof(fields[i++].c_str());
@@ -142,6 +150,7 @@ void Weather::readLine(vector<string> fields)
 		            atof(fields[i+2].c_str()));
 		i += 4;
 	}
+
 	amb /= 255.0f;
 	ambObj /= 255.0f;
 	ambBl /= 255.0f;
@@ -255,4 +264,63 @@ void TimeCycle::calcCurrent(int hour, int minute)
 Weather *TimeCycle::getCurrentWeatherData(void)
 {
 	return &currentWeatherData;
+}
+
+int TimeCycle::getHour(void) { return hour; }
+int TimeCycle::getMinute(void) { return minute; }
+void TimeCycle::setHour(int h)
+{
+	if (h < 0)
+		hour = 23;
+	else if (h >= 24)
+		hour = 0;
+	else
+		hour = h;
+	updateColorStep();
+}
+
+void TimeCycle::setMinute(int m)
+{
+	if (m < 0) {
+		minute = 59;
+		setHour(hour-1);
+	} else if (m >= 60) {
+		minute = 0;
+		setHour(hour+1);
+	} else {
+		minute = m;
+	}
+	updateColorStep();
+}
+
+void TimeCycle::setColorStep(int t)
+{
+	if (t >= 0 && t <= 5)
+		colorStep = t;
+}
+
+int TimeCycle::getColorStep(void)
+{
+	return colorStep;
+}
+
+// kind of resembles the lighting in the game
+void TimeCycle::updateColorStep(void)
+{
+	if (hour < 6)
+		colorStep = 5;
+	else if (hour == 6)
+		colorStep = 5 - minute/10;
+	else if (hour == 20)
+		colorStep = minute/10;
+	else if (hour > 20)
+		colorStep = 5;
+	else
+		colorStep = 0;
+}
+
+TimeCycle::TimeCycle(void)
+{
+	hour = 12;
+	colorStep = 0;
 }

@@ -12,6 +12,7 @@
 #include "drawable.h"
 #include "directory.h"
 #include "world.h"
+#include "timecycle.h"
 
 using namespace std;
 using namespace gl;
@@ -166,6 +167,8 @@ void Drawable::attachClump(rw::Clump &c)
 				o += 16;
 			}
 		}
+		currentColorStep = 0;
+		geo.vertexColors = rwg.vertexColors;
 
 		GLint offset = 0;
 		glBufferSubData(GL_ARRAY_BUFFER, offset,
@@ -174,14 +177,9 @@ void Drawable::attachClump(rw::Clump &c)
 		offset += numVertices*3*sizeof(GLfloat);
 
 		if (rwg.flags & rw::FLAGS_PRELIT) {
-			if (world.getTimeOfDay() < 2 || !rwg.hasNightColors) 
-				glBufferSubData(GL_ARRAY_BUFFER, offset,
-						numVertices*4*sizeof(GLubyte),
-						&rwg.vertexColors[0]);
-			else
-				glBufferSubData(GL_ARRAY_BUFFER, offset,
-						numVertices*4*sizeof(GLubyte),
-						&rwg.nightColors[0]);
+			glBufferSubData(GL_ARRAY_BUFFER, offset,
+					numVertices*4*sizeof(GLubyte),
+					&geo.vertexColors[0]);
 			offset += numVertices*4*sizeof(GLubyte);
 		}
 		if (rwg.flags & rw::FLAGS_NORMALS) {
@@ -421,14 +419,35 @@ void Drawable::updateFrames(Frame *f)
 		updateFrames(f->children[i]);
 }
 
-void Drawable::setVertexColors(int c)
+void Drawable::setVertexColors(void)
 {
 	for (uint i = 0; i < clump.geometryList.size(); i++) {
 		rw::Geometry &rwg = clump.geometryList[i];
 		Geometry &geo = geoList[i];
+
+		if (!rwg.hasNightColors)
+			continue;
+/*
+		if (c == 0)			// day colors
+			geo.vertexColors = rwg.vertexColors;
+		else if (rwg.hasNightColors)	// night colors
+			geo.vertexColors = rwg.nightColors;
+*/
+
+		// 0.0 is day, 1.0 is night
+		float a = timeCycle.getColorStep() / 5.0f;
+
+		for (uint j = 0; j < rwg.nightColors.size(); j++)
+			geo.vertexColors[j] = rwg.nightColors[j]*a + 
+			                      rwg.vertexColors[j]*(1-a);
+
 		int numVertices = rwg.vertices.size()/3;
 		GLint offset = numVertices*3*sizeof(GLfloat);
 		glBindBuffer(GL_ARRAY_BUFFER, geo.vbo);
+		glBufferSubData(GL_ARRAY_BUFFER, offset,
+				numVertices*4*sizeof(GLubyte),
+				&geo.vertexColors[0]);
+/*
 		if (c == 0) {				// day colors
 			glBufferSubData(GL_ARRAY_BUFFER, offset,
 					numVertices*4*sizeof(GLubyte),
@@ -438,12 +457,17 @@ void Drawable::setVertexColors(int c)
 					numVertices*4*sizeof(GLubyte),
 					&rwg.nightColors[0]);
 		}
+*/
 	}
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	currentColorStep = timeCycle.getColorStep();
 }
 
 void Drawable::draw(void)
 {
+	if (currentColorStep != timeCycle.getColorStep())
+		setVertexColors();
+
 	if (frmList.size() == 0)
 		return;
 	drawFrame(0, true, true);
@@ -451,6 +475,9 @@ void Drawable::draw(void)
 
 void Drawable::drawAtomic(uint ai)
 {
+	if (currentColorStep != timeCycle.getColorStep())
+		setVertexColors();
+
 	if (ai < atomicList.size())
 		drawFrame(atomicList[ai], true, false);
 	else
@@ -640,4 +667,9 @@ vector<quat> Drawable::getBoundingSpheres(void)
 	if (spheres.size() == 0)
 		spheres.push_back(quat(0.0f, 0.0f, 0.0f, 0.0f));
 	return spheres;
+}
+
+void Drawable::dumpClump(bool detailed)
+{
+	clump.dump(detailed);
 }

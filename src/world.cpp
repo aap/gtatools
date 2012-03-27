@@ -11,6 +11,7 @@
 #include "world.h"
 #include "primitives.h"
 #include "gl.h"
+#include "timecycle.h"
 
 using namespace std;
 
@@ -32,7 +33,8 @@ void World::drawOpaque(void)
 	}
 
 	gl::drawTransparent = false;
-	transpInstances.clear();
+	transpInstances1.clear();
+	transpInstances2.clear();
 	islands[0].draw();
 	islands[activeIsland].draw();
 	for (uint i = 0; i < islands.size(); i++) {
@@ -42,11 +44,18 @@ void World::drawOpaque(void)
 	}
 }
 
-void World::drawTransparent(void)
+void World::drawTransparent1(void)
 {
 	gl::drawTransparent = true;
-	for (uint i = 0; i < transpInstances.size(); i++)
-		transpInstances[i]->justDraw();
+	for (uint i = 0; i < transpInstances1.size(); i++)
+		transpInstances1[i]->justDraw();
+}
+
+void World::drawTransparent2(void)
+{
+	gl::drawTransparent = true;
+	for (uint i = 0; i < transpInstances2.size(); i++)
+		transpInstances2[i]->justDraw();
 }
 
 static int ind;
@@ -387,62 +396,23 @@ Instance *World::getInstance(uint i)
 	return 0;
 }
 
-void World::addTransparent(Instance *ip, float dist)
+void World::addTransparent1(Instance *ip, float dist)
+{
+	transpInstances1.push_back(ip);
+}
+
+void World::addTransparent2(Instance *ip, float dist)
 {
 	// TODO: depth sort
-	transpInstances.push_back(ip);
+	transpInstances2.push_back(ip);
 }
 
 void World::setInterior(int i) { interior = i; }
 int World::getInterior(void) { return interior; }
-int World::getHour(void) { return hour; }
-int World::getMinute(void) { return minute; }
-void World::setHour(int h)
-{
-	if (h < 0)
-		hour = 23;
-	else if (h >= 24)
-		hour = 0;
-	else
-		hour = h;
-
-	if (hour == 20)
-		timeOfDay = 2;
-	else if (hour == 6)
-		timeOfDay = 0;
-}
-
-void World::setMinute(int m)
-{
-	if (m < 0) {
-		minute = 59;
-		setHour(hour-1);
-	} else if (m >= 60) {
-		minute = 0;
-		setHour(hour+1);
-	} else {
-		minute = m;
-	}
-}
-
-// 0: dawn
-// 1: day
-// 2: sunset
-// 3: night
-void World::setTimeOfDay(int t)
-{
-	if (t >= 0 && t <= 3)
-		timeOfDay = t;
-}
-
-int World::getTimeOfDay(void) { return timeOfDay; }
 
 World::World(void)
 {
 	interior = 0;
-	hour = 12;
-	minute = 0;
-	timeOfDay = 1;
 }
 
 /*
@@ -541,12 +511,14 @@ void Instance::draw(void)
 		if (isCulled())
 			return;
 
+/*
 	if (op->isLoaded) {
-		if (world.getTimeOfDay() == 0)
+		if (timeCycle.getTimeOfDay() == 0)
 			op->drawable.setVertexColors(0);
-		else if (world.getTimeOfDay() == 2)
+		else if (timeCycle.getTimeOfDay() == 2)
 			op->drawable.setVertexColors(1);
 	}
+*/
 
 	// if the instance is too far away, try the LOD version
 	if (ai < 0) {
@@ -578,7 +550,7 @@ void Instance::draw(void)
 	}
 
 	// check for time
-	if (op->isTimed && !op->isVisibleAtTime(world.getHour()))
+	if (op->isTimed && !op->isVisibleAtTime(timeCycle.getHour()))
 		return;
 
 	transform();
@@ -594,9 +566,11 @@ void Instance::draw(void)
 	else
 		op->drawable.drawAtomic(ai);
 
-	// the flag from the item definition isn't reliable
 	if (gl::wasTransparent)
-		world.addTransparent(this, d);
+		if (op->flags & 0x40)
+			world.addTransparent1(this, d);
+		else
+			world.addTransparent2(this, d);
 
 	gl::modelMat = save;
 	glm::mat4 modelView = gl::viewMat * gl::modelMat;
