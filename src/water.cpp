@@ -11,11 +11,9 @@ Water water;
 void Water::draw(void)
 {
 	Weather *w = timeCycle.getCurrentWeatherData();
-	color[0] = w->water.x;
-	color[1] = w->water.y;
-	color[2] = w->water.z;
-	color[3] = w->water.w;
-	glUniform4fv(u_MatColor, 1, color);
+	glm::vec4 matCol(w->water.x, w->water.y, w->water.z, w->water.w);
+	state.matColor = matCol;
+	state.updateMaterial();
 
 	glEnable(GL_BLEND);
 	glEnable(GL_ALPHA_TEST);

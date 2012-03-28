@@ -12,6 +12,7 @@
 #include "primitives.h"
 #include "gl.h"
 #include "timecycle.h"
+#include "pipeline.h"
 
 using namespace std;
 
@@ -566,19 +567,20 @@ void Instance::draw(void)
 	else
 		op->drawable.drawAtomic(ai);
 
-	if (gl::wasTransparent)
+	if (gl::wasTransparent) {
 		if (op->flags & 0x40)
 			world.addTransparent1(this, d);
 		else
 			world.addTransparent2(this, d);
+	}
 
 	gl::modelMat = save;
 	glm::mat4 modelView = gl::viewMat * gl::modelMat;
 	glm::mat3 normal = glm::inverseTranspose(glm::mat3(modelView));
-	glUniformMatrix4fv(gl::u_ModelView, 1, GL_FALSE,
-			   glm::value_ptr(modelView));
-	glUniformMatrix3fv(gl::u_NormalMat, 1, GL_FALSE,
-			   glm::value_ptr(normal));
+
+	gl::state.modelView = modelView;
+	gl::state.normalMat = normal;
+	gl::state.updateMatrices();
 }
 
 void Instance::justDraw(void)
@@ -603,10 +605,10 @@ void Instance::justDraw(void)
 	gl::modelMat = save;
 	glm::mat4 modelView = gl::viewMat * gl::modelMat;
 	glm::mat3 normal = glm::inverseTranspose(glm::mat3(modelView));
-	glUniformMatrix4fv(gl::u_ModelView, 1, GL_FALSE,
-			   glm::value_ptr(modelView));
-	glUniformMatrix3fv(gl::u_NormalMat, 1, GL_FALSE,
-			   glm::value_ptr(normal));
+
+	gl::state.modelView = modelView;
+	gl::state.normalMat = normal;
+	gl::state.updateMatrices();
 }
 
 bool Instance::isCulled(void)
@@ -632,10 +634,10 @@ void Instance::transform(void)
 	gl::modelMat *= glm::mat4_cast(q);
 	glm::mat4 modelView = gl::viewMat * gl::modelMat;
 	glm::mat3 normal = glm::inverseTranspose(glm::mat3(modelView));
-	glUniformMatrix4fv(gl::u_ModelView, 1, GL_FALSE,
-	                   glm::value_ptr(modelView));
-	glUniformMatrix3fv(gl::u_NormalMat, 1, GL_FALSE,
-	                   glm::value_ptr(normal));
+
+	gl::state.modelView = modelView;
+	gl::state.normalMat = normal;
+	gl::state.updateMatrices();
 }
 
 void Instance::setVisible(bool v)

@@ -7,22 +7,57 @@ using namespace std;
 
 namespace gl {
 
+State state;
+
 /* shader variables */
-/* vertex */
 GLint in_Vertex;
 GLint in_Normal;
 GLint in_Color;
 GLint in_TexCoord;
 
-GLint u_Projection;
-GLint u_ModelView;
-GLint u_NormalMat;
-GLint u_LightPos;
-GLint u_LightCol;
-GLint u_AmbientLight;
-GLint u_MatColor;
-/* fragment */
-GLint u_Texture;
+void State::updateMatrices(void)
+{
+	glUniformMatrix4fv(u_Projection, 1, GL_FALSE,
+	                   glm::value_ptr(projection));
+	glUniformMatrix4fv(u_ModelView, 1, GL_FALSE,
+	                   glm::value_ptr(modelView));
+	glUniformMatrix3fv(u_NormalMat, 1, GL_FALSE,
+	                   glm::value_ptr(normalMat));
+}
+
+void State::updateMaterial(void)
+{
+	glUniform4fv(u_MatColor, 1, glm::value_ptr(matColor));
+}
+
+void State::updateLight(void)
+{
+	glUniform4fv(u_LightPos, 1, glm::value_ptr(lightPos));
+	glUniform3fv(u_LightCol, 1, glm::value_ptr(lightCol));
+	glUniform3fv(u_AmbientLight, 1, glm::value_ptr(ambientLight));
+}
+
+void State::updateTexture(void)
+{
+	glUniform1i(u_Texture, texture);
+}
+
+void State::updateFog(void)
+{
+	glUniform4fv(u_FogColor, 1, glm::value_ptr(fogColor));
+	glUniform1f(u_FogDensity, fogDensity);
+	glUniform1f(u_FogStart, fogStart);
+	glUniform1f(u_FogEnd, fogEnd);
+}
+
+void State::updateAll(void)
+{
+	updateMatrices();
+	updateMaterial();
+	updateLight();
+	updateTexture();
+	updateFog();
+}
 
 void Pipeline::getVar(const char *name, GLint *var, GLint type)
 {
@@ -50,15 +85,19 @@ void Pipeline::use(void)
 	getVar("in_Color", &in_Color, 0);
 	getVar("in_TexCoord", &in_TexCoord, 0);
 
-	getVar("u_Projection", &u_Projection, 1);
-	getVar("u_ModelView", &u_ModelView, 1);
-	getVar("u_NormalMat", &u_NormalMat, 1);
-	getVar("u_LightPos", &u_LightPos, 1);
-	getVar("u_LightCol", &u_LightCol, 1);
-	getVar("u_AmbientLight", &u_AmbientLight, 1);
-	getVar("u_MatColor", &u_MatColor, 1);
+	getVar("u_Projection", &state.u_Projection, 1);
+	getVar("u_ModelView", &state.u_ModelView, 1);
+	getVar("u_NormalMat", &state.u_NormalMat, 1);
+	getVar("u_LightPos", &state.u_LightPos, 1);
+	getVar("u_LightCol", &state.u_LightCol, 1);
+	getVar("u_AmbientLight", &state.u_AmbientLight, 1);
+	getVar("u_MatColor", &state.u_MatColor, 1);
 
-	getVar("u_Texture", &u_Texture, 1);
+	getVar("u_Texture", &state.u_Texture, 1);
+	getVar("u_Fog.color", &state.u_FogColor, 1);
+	getVar("u_Fog.start", &state.u_FogStart, 1);
+	getVar("u_Fog.end", &state.u_FogEnd, 1);
+	getVar("u_Fog.density", &state.u_FogDensity, 1);
 }
 
 void Pipeline::load(const char *vertsrc, const char *fragsrc)

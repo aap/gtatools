@@ -501,10 +501,10 @@ void Drawable::drawFrame(int fi, bool recurse, bool transform)
 
 	glm::mat4 modelView = viewMat * modelMat;
 	glm::mat3 normal = glm::inverseTranspose(glm::mat3(modelView));
-	glUniformMatrix4fv(gl::u_ModelView, 1, GL_FALSE,
-	                   glm::value_ptr(modelView));
-	glUniformMatrix3fv(gl::u_NormalMat, 1, GL_FALSE,
-	                   glm::value_ptr(normal));
+
+	state.modelView = modelView;
+	state.normalMat = normal;
+	state.updateMatrices();
 
 	// this also hides the dam in liberty city
 //	if (!strstr(f->name.c_str(), "chassis_vlo") &&
@@ -520,10 +520,10 @@ void Drawable::drawFrame(int fi, bool recurse, bool transform)
 	modelMat = save;
 	modelView = viewMat * modelMat;
 	normal = glm::inverseTranspose(glm::mat3(modelView));
-	glUniformMatrix4fv(gl::u_ModelView, 1, GL_FALSE,
-	                   glm::value_ptr(modelView));
-	glUniformMatrix3fv(gl::u_NormalMat, 1, GL_FALSE,
-	                   glm::value_ptr(normal));
+
+	state.modelView = modelView;
+	state.normalMat = normal;
+	state.updateMatrices();
 
 	if (recurse)
 		for (uint i = 0; i < f->children.size(); i++)
@@ -603,20 +603,20 @@ void Drawable::drawGeometry(int gi)
 		}
 		if (g.materialList[matid].color[3] != 255)
 			isTransparent = true;
+
 		gl::wasTransparent |= isTransparent;
 		if (isTransparent != gl::drawTransparent) {
 			offset += s.indices.size();
 			continue;
 		}
 
-		glUniform1i(u_Texture, 0);
-
 		glm::vec4 matCol;
 		matCol.x = (float) g.materialList[matid].color[0] / 255.0f;
 		matCol.y = (float) g.materialList[matid].color[1] / 255.0f;
 		matCol.z = (float) g.materialList[matid].color[2] / 255.0f;
 		matCol.w = (float) g.materialList[matid].color[3] / 255.0f;
-		glUniform4fv(u_MatColor, 1, glm::value_ptr(matCol));
+		state.matColor = matCol;
+		state.updateMaterial();
 
 		if (isTransparent) {
 			glEnable(GL_BLEND);
@@ -648,7 +648,6 @@ void Drawable::drawGeometry(int gi)
 			offset += g.splits[j].indices.size();
 		}
 	}
-	glUniform1i(u_Texture, -1);
 
 	glDisableVertexAttribArray(in_Vertex);
 	glDisableVertexAttribArray(in_Color);

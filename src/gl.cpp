@@ -90,17 +90,14 @@ void renderScene(void)
 	glm::vec3 amb = glm::vec3(w->amb.x, w->amb.y, w->amb.z);
 
 	simplePipe.use();
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glUniformMatrix4fv(gl::u_Projection, 1, GL_FALSE,
-	                   glm::value_ptr(gl::projMat));
-	glUniformMatrix4fv(gl::u_ModelView, 1, GL_FALSE,
-	                   glm::value_ptr(modelView));
-	glUniformMatrix3fv(gl::u_NormalMat, 1, GL_FALSE,
-	                   glm::value_ptr(normal));
-	glUniform4fv(gl::u_LightPos, 1, glm::value_ptr(lightPos));
-	glUniform3fv(gl::u_LightCol, 1, glm::value_ptr(lightCol));
-	glUniform3fv(gl::u_AmbientLight, 1, glm::value_ptr(amb));
-	glUniform1i(u_Texture, 0);
+	state.projection = projMat;
+	state.modelView = modelView;
+	state.normalMat = normal;
+	state.lightPos = lightPos;
+	state.lightCol = lightCol;
+	state.ambientLight = amb;
+	state.texture = 0;
+	state.updateAll();
 	glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
 
 	glDisable(GL_DEPTH_TEST);
@@ -112,16 +109,14 @@ void renderScene(void)
 	drawAxes(glm::value_ptr(modelMat));
 
 	gtaPipe.use();
-	glUniformMatrix4fv(gl::u_Projection, 1, GL_FALSE,
-	                   glm::value_ptr(gl::projMat));
-	glUniformMatrix4fv(gl::u_ModelView, 1, GL_FALSE,
-	                   glm::value_ptr(modelView));
-	glUniformMatrix3fv(gl::u_NormalMat, 1, GL_FALSE,
-	                   glm::value_ptr(normal));
-	glUniform4fv(gl::u_LightPos, 1, glm::value_ptr(lightPos));
-	glUniform3fv(gl::u_LightCol, 1, glm::value_ptr(lightCol));
-	glUniform3fv(gl::u_AmbientLight, 1, glm::value_ptr(amb));
-	glUniform1i(u_Texture, 0);
+	state.fogColor.x = w->skyBot.x;
+	state.fogColor.y = w->skyBot.y;
+	state.fogColor.z = w->skyBot.z;
+	state.fogColor.w = w->skyBot.w;
+	state.fogDensity = 0.0f;	// 0.0025f for SA perhaps ?
+	state.fogStart = w->fogSt;
+	state.fogEnd = w->farClp;
+	state.updateAll();
 
 	drawWire = false;
 
@@ -141,10 +136,6 @@ void renderScene(void)
 	water.draw();
 	world.drawTransparent2();
 
-
-//	if (timeCycle.getTimeOfDay() % 2 == 0)
-//		timeCycle.setTimeOfDay(timeCycle.getTimeOfDay()+1);
-
 	// 2d overlay
 	glDisable(GL_DEPTH_TEST);
 	simplePipe.use();
@@ -152,10 +143,10 @@ void renderScene(void)
 	modelMat = glm::translate(glm::mat4(1.0f), glm::vec3(100, 100, 0));
 	modelView = viewMat * modelMat;
 	projMat = glm::ortho(0, width, 0, height, -1, 1);
-	glUniformMatrix4fv(gl::u_Projection, 1, GL_FALSE,
-	                   glm::value_ptr(gl::projMat));
-	glUniformMatrix4fv(gl::u_ModelView, 1, GL_FALSE,
-	                   glm::value_ptr(modelView));
+
+	state.projection = projMat;
+	state.modelView = modelView;
+	state.updateMatrices();
 
 //	glBindTexture(GL_TEXTURE_2D, whiteTex);
 	glBindTexture(GL_TEXTURE_2D, 0);
@@ -411,7 +402,7 @@ void init(char *model, char *texdict)
 
 	simplePipe.load("shader/simple.vert", "shader/simple.frag");
 	lambertPipe.load("shader/lambert.vert", "shader/simple.frag");
-	gtaPipe.load("shader/gtaPipe.vert", "shader/simple.frag");
+	gtaPipe.load("shader/gtaPipe.vert", "shader/gtaPipe.frag");
 
 	cam.setPitch(PI/8.0f-PI/2.0f);
 	cam.setDistance(0.0f);

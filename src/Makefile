@@ -1,5 +1,5 @@
 OBJDIR = ../obj
-_OBJ = gta.o directory.o world.o pipeline.o gl.o camera.o primitives.o \
+_OBJ = gta.o directory.o pipeline.o gl.o world.o camera.o primitives.o \
 drawable.o objects.o texman.o water.o timecycle.o sky.o
 OBJ = $(patsubst %,$(OBJDIR)/%,$(_OBJ))
 HEADER = gta.h camera.h directory.h gl.h pipeline.h quat.h world.h \

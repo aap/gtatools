@@ -57,8 +57,9 @@ void Sky::draw(void)
 	gl::modelMat = glm::rotate(gl::modelMat, cam.getYaw()/3.1415f*180.0f,
 	                           glm::vec3(0.0f, 0.0f, 1.0f));
 	glm::mat4 modelView = viewMat * modelMat;
-	glUniformMatrix4fv(gl::u_ModelView, 1, GL_FALSE,
-	                   glm::value_ptr(modelView));
+
+	state.modelView = modelView;
+	state.updateMatrices();
 
 	glGenBuffers(1, &vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -78,6 +79,7 @@ void Sky::draw(void)
 
 	modelMat = save;
 	modelView = viewMat * modelMat;
-	glUniformMatrix4fv(gl::u_ModelView, 1, GL_FALSE,
-	                   glm::value_ptr(modelView));
+
+	state.modelView = modelView;
+	state.updateMatrices();
 }

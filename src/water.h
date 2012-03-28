@@ -9,7 +9,6 @@ private:
 	GLuint vbo;
 	GLuint tex;
 	std::vector<GLfloat> vertices;
-	GLfloat color[4];
 public:
 	void loadWater(std::ifstream &f);
 	void loadWaterpro(std::ifstream &f);
