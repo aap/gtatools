@@ -23,6 +23,7 @@ using namespace rw;
 string gamePath;
 char *progname;
 int game;
+bool running;
 
 Drawable drawable;
 

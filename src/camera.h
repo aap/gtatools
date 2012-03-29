@@ -15,14 +15,11 @@ private:
 	quat planes[6];
 
 public:
-	void look(void);
-	Camera(void);
-	void PanLR(float d);
-	void PanUD(float d);
+	void panLR(float d);
+	void panUD(float d);
 	void turnLR(float phi);
 	void turnUD(float phi);
 	void moveInOut(float d);
-	float distanceTo(quat q);
 	void setPitch(float pitch);
 	void setYaw(float yaw);
 	void setDistance(float d);
@@ -35,13 +32,12 @@ public:
 	float getDistance(void);
 	quat getTarget(void);
 	quat getPosition(void);
-	void changePitch(float pitch);
-	void changeYaw(float yaw);
-	void changeDistance(float d);
-	void changeTarget(quat q);
+
+	void look(void);
 	bool isPointInFrustum(quat p);
 	bool isSphereInFrustum(quat s);
-	quat getCamPos(void);
+	float distanceTo(quat q);
+	Camera(void);
 };
 
 extern Camera cam;

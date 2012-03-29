@@ -13,6 +13,7 @@
 #include "gl.h"
 #include "timecycle.h"
 #include "pipeline.h"
+#include "objman.h"
 
 using namespace std;
 
@@ -554,12 +555,15 @@ void Instance::draw(void)
 	if (op->isTimed && !op->isVisibleAtTime(timeCycle.getHour()))
 		return;
 
+	if (!op->isLoaded) {
+//		objMan.request(op);
+		op->load();
+//		return;
+	}
+
 	transform();
 
 	glStencilFunc(GL_ALWAYS, (index>>gl::stencilShift)&0xFF, -1);
-
-	if (!op->isLoaded)
-		op->load();
 
 	gl::wasTransparent = false;
 	if (op->type == ANIM)
@@ -591,12 +595,17 @@ void Instance::justDraw(void)
 	float d = cam.distanceTo(position);
 	int ai = op->getCorrectAtomic(d);
 
+	if (!op->isLoaded) {
+//		objMan.request(op);
+		op->load();
+//		return;
+	}
+
 	glm::mat4 save = gl::modelMat;
 	transform();
 
 	glStencilFunc(GL_ALWAYS, (index>>gl::stencilShift)&0xFF, -1);
-	if (!op->isLoaded)
-		op->load();
+
 	if (op->type == ANIM)
 		op->drawable.draw();
 	else

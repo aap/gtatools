@@ -24,7 +24,7 @@ void Camera::look()
 	updateFrustum();
 }
 
-void Camera::PanLR(float d)
+void Camera::panLR(float d)
 {
 	updateCam();
 	quat cam(-sin(theta)*sin(phi), sin(theta)*cos(phi), cos(theta));
@@ -33,7 +33,7 @@ void Camera::PanLR(float d)
 	target += right*d;
 }
 
-void Camera::PanUD(float d)
+void Camera::panUD(float d)
 {
 	updateCam();
 	quat cam(-sin(theta)*sin(phi), sin(theta)*cos(phi), cos(theta));
@@ -232,26 +232,6 @@ quat Camera::getPosition(void)
 	return pos * r + target;
 }
 
-void Camera::changePitch(float pitch)
-{
-	theta += pitch;
-}
-
-void Camera::changeYaw(float yaw)
-{
-	phi += yaw;
-}
-
-void Camera::changeDistance(float d)
-{
-	r += d;
-}
-
-void Camera::changeTarget(quat q)
-{
-	target += q;
-}
-
 void Camera::setFov(float f)
 {
 	fov = f;
@@ -266,14 +246,6 @@ void Camera::setNearFar(float n, float f)
 {
 	this->n = n;
 	this->f = f;
-}
-
-quat Camera::getCamPos(void)
-{
-	quat cam(-sin(theta)*sin(phi), sin(theta)*cos(phi), cos(theta));
-	cam *= r;
-	cam += target;
-	return cam;
 }
 
 Camera::Camera()

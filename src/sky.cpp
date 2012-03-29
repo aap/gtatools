@@ -51,7 +51,7 @@ void Sky::draw(void)
 
 	glm::mat4 save = modelMat;
 
-	quat campos = cam.getCamPos();
+	quat campos = cam.getPosition();
 	gl::modelMat = glm::translate(gl::modelMat,
 	                              glm::vec3(campos.x, campos.y, campos.z));
 	gl::modelMat = glm::rotate(gl::modelMat, cam.getYaw()/3.1415f*180.0f,

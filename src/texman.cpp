@@ -109,7 +109,8 @@ uint TexManager::add(string fileName, bool load)
 	}
 
 	txdList.push_back(txd);
-	return txdList.size()-1;
+//	return txdList.size()-1;
+	return 0;
 }
 
 void TexManager::addParentInfo(std::string child, std::string parent)

@@ -28,6 +28,7 @@ typedef unsigned int uint;
 extern char *progname;
 extern std::string gamePath;
 extern int game;
+extern bool running;
 
 extern Drawable drawable;
 

@@ -194,7 +194,7 @@ Object *ObjectList::get(int i)
 
 void ObjectList::add(Object *o)
 {
-	if (o->id >= objectCount || o->id < 0) {
+	if (((uint) o->id) >= objectCount || o->id < 0) {
 		cout << "warning: id " << o->id << " out of range\n";
 		return;
 	}

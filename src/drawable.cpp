@@ -427,13 +427,6 @@ void Drawable::setVertexColors(void)
 
 		if (!rwg.hasNightColors)
 			continue;
-/*
-		if (c == 0)			// day colors
-			geo.vertexColors = rwg.vertexColors;
-		else if (rwg.hasNightColors)	// night colors
-			geo.vertexColors = rwg.nightColors;
-*/
-
 		// 0.0 is day, 1.0 is night
 		float a = timeCycle.getColorStep() / 5.0f;
 
@@ -447,17 +440,6 @@ void Drawable::setVertexColors(void)
 		glBufferSubData(GL_ARRAY_BUFFER, offset,
 				numVertices*4*sizeof(GLubyte),
 				&geo.vertexColors[0]);
-/*
-		if (c == 0) {				// day colors
-			glBufferSubData(GL_ARRAY_BUFFER, offset,
-					numVertices*4*sizeof(GLubyte),
-					&rwg.vertexColors[0]);
-		} else if (rwg.hasNightColors) {	// night colors
-			glBufferSubData(GL_ARRAY_BUFFER, offset,
-					numVertices*4*sizeof(GLubyte),
-					&rwg.nightColors[0]);
-		}
-*/
 	}
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	currentColorStep = timeCycle.getColorStep();
@@ -538,7 +520,7 @@ void Drawable::drawGeometry(int gi)
 
 	rw::Geometry &g = clump.geometryList[gi];
 
-	if (geoList[gi].vbo == 0|| geoList[gi].ibo == 0)
+	if (geoList[gi].vbo == 0 || geoList[gi].ibo == 0)
 		return;
 
 	// sensible defaults
@@ -577,6 +559,7 @@ void Drawable::drawGeometry(int gi)
 	GLenum mode = (g.faceType == rw::FACETYPE_STRIP) ?
 		      GL_TRIANGLE_STRIP : GL_TRIANGLES;
 	offset = 0;
+
 	for (uint j = 0; j < g.splits.size(); j++) {
 		rw::Split s = g.splits[j];
 		bool isTransparent = false;

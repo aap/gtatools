@@ -1,8 +1,10 @@
 #include <typeinfo>
 #include <cstdio>
-#include <cstdio>
+
+#include <pthread.h>
 
 #include "gta.h"
+#include "lua.h"
 
 #include <GL/glut.h>
 
@@ -16,12 +18,15 @@
 #include "water.h"
 #include "timecycle.h"
 #include "sky.h"
+#include "objman.h"
 
 using namespace std;
 
 static int ox, oy, mx, my;
 static int isLDown, isMDown, isRDown;
 static int isShiftDown, isCtrlDown, isAltDown;
+
+pthread_mutex_t worldMutex = PTHREAD_MUTEX_INITIALIZER;
 
 namespace gl {
 
@@ -66,6 +71,10 @@ void dumpmat(glm::mat4 &m)
 
 void renderScene(void)
 {
+	if (!running) {
+		cout << endl;
+		exit(0);
+	}
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
 	        GL_STENCIL_BUFFER_BIT);
 
@@ -184,13 +193,13 @@ void keypress(uchar key, int x, int y)
 		cam.moveInOut(dist);
 		break;
 	case 'w':
-		cam.changeDistance(-dist);
+		cam.setDistance(cam.getDistance()-dist);
 		break;
 	case 'S':
 		cam.moveInOut(-dist);
 		break;
 	case 's':
-		cam.changeDistance(dist);
+		cam.setDistance(cam.getDistance()-dist);
 		break;
 	case 'd':
 		op = (WorldObject*)objectList.get(
@@ -266,7 +275,7 @@ void keypress(uchar key, int x, int y)
 		break;
 	case 'q':
 	case 27:
-		exit(0);
+		running = false;
 		break;
 	default:
 		break;
@@ -352,15 +361,15 @@ void mouseMotion(int x, int y)
 	dy = ((float)(oy - my) / height);
 	if (!isShiftDown) {
 		if (isLDown) {
-			cam.changeYaw(dx*2.0f);
-			cam.changePitch(-dy*2.0f);
+			cam.setYaw(cam.getYaw()+dx*2.0f);
+			cam.setPitch(cam.getPitch()-dy*2.0f);
 		}
 		if (isMDown) {
-			cam.PanLR(-dx*8.0f);
-			cam.PanUD(-dy*8.0f);
+			cam.panLR(-dx*8.0f);
+			cam.panUD(-dy*8.0f);
 		}
 		if (isRDown) {
-			cam.changeDistance(dx*12.0f);
+			cam.setDistance(cam.getDistance()+dx*12.0f);
 		}
 	} else if (isShiftDown) {
 		if (isLDown) {
@@ -405,8 +414,8 @@ void init(char *model, char *texdict)
 	gtaPipe.load("shader/gtaPipe.vert", "shader/gtaPipe.frag");
 
 	cam.setPitch(PI/8.0f-PI/2.0f);
-	cam.setDistance(0.0f);
-//	cam.setDistance(20.0f);
+//	cam.setDistance(0.0f);
+	cam.setDistance(20.0f);
 //	cam.setDistance(5.0f);
 	cam.setAspectRatio((GLfloat) width / height);
 	cam.setTarget(quat(335.5654907, -159.0345306, 17.85120964));
@@ -519,6 +528,10 @@ void init(char *model, char *texdict)
 #endif
 }
 
+void *opengl(void *args);
+void *loader(void *args);
+void *lua(void *args);
+
 void start(int *argc, char *argv[])
 {
 	width = 644;
@@ -540,7 +553,35 @@ void start(int *argc, char *argv[])
 
 	init(argv[2], argv[3]);
 
+	running = true;
+
+	pthread_t thread1, thread2, thread3;
+	pthread_create(&thread1, NULL, opengl, NULL);
+	pthread_create(&thread2, NULL, loader, NULL);
+	pthread_create(&thread3, NULL, lua, NULL);
+
+	// this will never happen
+	pthread_join(thread1, NULL);
+	pthread_join(thread2, NULL);
+	pthread_join(thread3, NULL);
+}
+
+void *opengl(void *args)
+{
 	glutMainLoop();
+	return NULL;
+}
+
+void *loader(void *args)
+{
+//	objMan.loaderLoop();
+	return NULL;
+}
+
+void *lua(void *args)
+{
+	LuaInterpreter();
+	return NULL;
 }
 
 }
