@@ -37,8 +37,8 @@ function Camera:setDistance(d)
 	__cameraSetDistance(d)
 end
 
-function Camera:setTarget(d)
-	__cameraSetTarget(d)
+function Camera:setTarget(x, y, z)
+	__cameraSetTarget(x, y, z)
 end
 
 function Camera:setFov(fov)
