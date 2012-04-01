@@ -1,3 +1,7 @@
+#include "gta.h"
+#include <glm/gtc/quaternion.hpp>
+#include "gl.h"
+#include "primitives.h"
 #include "objects.h"
 #include "world.h"
 #include "texman.h"
@@ -69,6 +73,7 @@ void ObjectList::readIde(ifstream &in)
 			newObj = new WorldObject;
 			newObj->type = blockType;
 			newObj->id = atoi(fields[i++].c_str());
+			newObj->col = 0;
 			newObj->modelName = fields[i++];
 			newObj->textureName = fields[i++];
 			stringToLower(newObj->modelName);
@@ -106,6 +111,7 @@ void ObjectList::readIde(ifstream &in)
 			newObj = new Ped;
 			newObj->type = blockType;
 			newObj->id = atoi(fields[i++].c_str());
+			newObj->col = 0;
 			newObj->modelName = fields[i++];
 			newObj->textureName = fields[i++];
 			newObj->defaultPedType = fields[i++];
@@ -140,6 +146,7 @@ void ObjectList::readIde(ifstream &in)
 			newObj = new Car;
 			newObj->type = blockType;
 			newObj->id = atoi(fields[i++].c_str());
+			newObj->col = 0;
 			newObj->modelName = fields[i++];
 			newObj->textureName = fields[i++];
 			newObj->vehicleType = fields[i++];
@@ -185,14 +192,65 @@ void ObjectList::readIde(ifstream &in)
 	} while(!in.eof());
 }
 
-Object *ObjectList::get(int i)
+void ObjectList::readCol(ifstream &in, int island)
+{
+	CollisionModel *col;
+	while (!in.eof()) {
+		col = new CollisionModel;
+		if (col->read(in) == 0) {
+			delete col;
+			break;
+		}
+		col->island = island;
+		cols.push_back(col);
+	}
+}
+
+void ObjectList::associateCols(void)
+{
+	Model *mp;
+	for (uint i = 0; i < cols.size(); i++) {
+		mp = get(cols[i]->name);
+		if (mp == 0) {
+			cout << "no model found for col "<<cols[i]->name<<endl;
+		} else {
+			mp->col = cols[i];
+		}
+	}
+}
+
+void ObjectList::dumpCols(void)
+{
+	for (uint i = 0; i < cols.size(); i++)
+		cout << cols[i]->name << endl;
+}
+
+void ObjectList::dump(void)
+{
+	for (int i = 0; i < objectCount; i++)
+		if (objects[i]) {
+			cout << objects[i]->modelName << endl;
+			if (objects[i]->col)
+				cout << "col " << objects[i]->col->name << endl;
+		}
+}
+
+Model *ObjectList::get(int i)
 {
 	if (i < objectCount && i >= 0)
 		return objects[i];
 	return 0;
 }
 
-void ObjectList::add(Object *o)
+Model *ObjectList::get(string name)
+{
+	for (int i = 0; i < objectCount; i++)
+		if (objects[i] && objects[i]->modelName == name)
+			return objects[i];
+	return 0;
+}
+
+void ObjectList::add(Model *o)
 {
 	if (((uint) o->id) >= objectCount || o->id < 0) {
 		cout << "warning: id " << o->id << " out of range\n";
@@ -208,7 +266,7 @@ int ObjectList::getObjectCount(void)
 
 void ObjectList::init(int objs)
 {
-	objects = new Object*[objs];
+	objects = new Model*[objs];
 	for (int i = 0; i < objs; i++)
 		objects[i] = 0;
 	objectCount = objs;
@@ -281,6 +339,100 @@ WorldObject::WorldObject(void)
 /*
  * Model
  */
+
+void Model::drawCol(void)
+{
+/*
+	glm::mat4 save = gl::modelMat;
+
+	gl::modelMat = glm::translate(gl::modelMat,
+	                      glm::vec3(col->boundingSphere.x,
+	                                col->boundingSphere.y,
+	                                col->boundingSphere.z));
+	glm::mat4 modelView = gl::viewMat * gl::modelMat;
+	glm::mat3 normal = glm::inverseTranspose(glm::mat3(modelView));
+
+	gl::state.modelView = modelView;
+	gl::state.normalMat = normal;
+//	gl::state.updateMatrices();
+*/
+
+
+	// draw faces
+	glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
+	glVertexAttrib4f(gl::in_Color, 1.0f, 1.0f, 1.0f, 1.0f);
+
+	vector<GLfloat> verts;
+	GLuint vbo;
+	for (uint i = 0; i < col->faces.size(); i++) {
+		verts.push_back(col->vertices[col->faces[i].a*3+0]);
+		verts.push_back(col->vertices[col->faces[i].a*3+1]);
+		verts.push_back(col->vertices[col->faces[i].a*3+2]);
+		verts.push_back(col->vertices[col->faces[i].b*3+0]);
+		verts.push_back(col->vertices[col->faces[i].b*3+1]);
+		verts.push_back(col->vertices[col->faces[i].b*3+2]);
+		verts.push_back(col->vertices[col->faces[i].c*3+0]);
+		verts.push_back(col->vertices[col->faces[i].c*3+1]);
+		verts.push_back(col->vertices[col->faces[i].c*3+2]);
+	}
+	glGenBuffers(1, &vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferData(GL_ARRAY_BUFFER, verts.size()*sizeof(GLfloat),
+	             &verts[0], GL_STATIC_DRAW);
+	glEnableVertexAttribArray(gl::in_Vertex);
+	glVertexAttribPointer(gl::in_Vertex, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+	glm::vec4 color(0.8f, 0.8f, 0.8f, 1.0f);
+
+	if (col->island == 0)
+		color = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f);
+	else if (col->island == 1)
+		color = glm::vec4(0.8f, 0.0f, 0.0f, 1.0f);
+	else if (col->island == 2)
+		color = glm::vec4(0.0f, 0.8f, 0.0f, 1.0f);
+	else if (col->island == 3)
+		color = glm::vec4(0.0f, 0.0f, 0.8f, 1.0f);
+	gl::state.matColor = color;
+	gl::state.updateMaterial();
+	glDrawArrays(GL_TRIANGLES, 0, verts.size()/3);
+
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	gl::state.matColor = glm::vec4(0.27f, 0.27f, 0.27f, 1.0f);
+	gl::state.updateMaterial();
+	glLineWidth(2);
+	glDrawArrays(GL_TRIANGLES, 0, verts.size()/3);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	glLineWidth(1);
+
+	glDisableVertexAttribArray(gl::in_Vertex);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glDeleteBuffers(1, &vbo);
+
+	// draw boxes
+	for (uint i = 0; i < col->boxes.size(); i++) {
+		gl::state.matColor = color;
+		gl::state.updateMaterial();
+		gl::drawCube2(col->boxes[i].min, col->boxes[i].max);
+
+		glLineWidth(2);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		gl::state.matColor = glm::vec4(0.27f, 0.27f, 0.27f, 1.0f);
+		gl::state.updateMaterial();
+		gl::drawCube2(col->boxes[i].min, col->boxes[i].max);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		glLineWidth(1);
+	}
+
+/*
+	gl::modelMat = save;
+	modelView = gl::viewMat * gl::modelMat;
+	normal = glm::inverseTranspose(glm::mat3(modelView));
+
+	gl::state.modelView = modelView;
+	gl::state.normalMat = normal;
+//	gl::state.updateMatrices();
+*/
+}
 
 void Model::load(void)
 {

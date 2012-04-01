@@ -22,52 +22,36 @@
 
 using namespace std;
 
+namespace gl {
+
 static int ox, oy, mx, my;
 static int isLDown, isMDown, isRDown;
 static int isShiftDown, isCtrlDown, isAltDown;
+static Pipeline simplePipe, lambertPipe, gtaPipe;
+static uint lastSelected;
+static string statusLine;
+static GLuint axes_vbo;
 
-pthread_mutex_t worldMutex = PTHREAD_MUTEX_INITIALIZER;
-
-namespace gl {
 
 int stencilShift;
 int width;
 int height;
-Pipeline simplePipe, lambertPipe, gtaPipe;
 Pipeline *currentPipe;
 
 GLuint whiteTex;
 bool drawWire;
 bool drawTransparent;
 bool wasTransparent;
-uint lastSelected;
-string statusLine;
 
 glm::mat4 modelMat;
 glm::mat4 viewMat;
 glm::mat4 projMat;
 
-GLuint axes_vbo;
-
-void dumpmat(glm::mat3 &m)
-{
-	for (int i = 0; i < 3; i++) {
-		for (int j = 0; j < 3; j++)
-			cout << m[j][i] << " ";
-		cout << endl;
-	}
-	cout << endl;
-}
-
-void dumpmat(glm::mat4 &m)
-{
-	for (int i = 0; i < 4; i++) {
-		for (int j = 0; j < 4; j++)
-			cout << m[j][i] << " ";
-		cout << endl;
-	}
-	cout << endl;
-}
+bool doZones;
+bool doTextures;
+bool doFog;
+bool doVertexColors;
+bool doCol;
 
 void renderScene(void)
 {
@@ -98,7 +82,9 @@ void renderScene(void)
 //	glm::vec3 amb = glm::vec3(0.49f, 0.47f, 0.33f);
 	glm::vec3 amb = glm::vec3(w->amb.x, w->amb.y, w->amb.z);
 
+
 	simplePipe.use();
+
 	state.projection = projMat;
 	state.modelView = modelView;
 	state.normalMat = normal;
@@ -110,40 +96,39 @@ void renderScene(void)
 	glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
 
 	glDisable(GL_DEPTH_TEST);
-
 	sky.draw();
-
 	glEnable(GL_DEPTH_TEST);
-
 	drawAxes(glm::value_ptr(modelMat));
 
+
 	gtaPipe.use();
+
 	state.fogColor.x = w->skyBot.x;
 	state.fogColor.y = w->skyBot.y;
 	state.fogColor.z = w->skyBot.z;
 	state.fogColor.w = w->skyBot.w;
 	state.fogDensity = 0.0f;	// 0.0025f for SA perhaps ?
+	if (!doFog)
+		state.fogDensity = -1.0f;
 	state.fogStart = w->fogSt;
 	state.fogEnd = w->farClp;
 	state.updateAll();
 
 	drawWire = false;
 
-/*
 	drawTransparent = false;
 	drawable.draw();
 	drawTransparent = true;
 	drawable.draw();
-*/
+
 
 	world.drawOpaque();
-
 	glDepthMask(GL_FALSE);
 	world.drawTransparent1();
 	glDepthMask(GL_TRUE);
-
 	water.draw();
 	world.drawTransparent2();
+
 
 	// 2d overlay
 	glDisable(GL_DEPTH_TEST);
@@ -199,7 +184,7 @@ void keypress(uchar key, int x, int y)
 		cam.moveInOut(-dist);
 		break;
 	case 's':
-		cam.setDistance(cam.getDistance()-dist);
+		cam.setDistance(cam.getDistance()+dist);
 		break;
 	case 'd':
 		op = (WorldObject*)objectList.get(
@@ -216,14 +201,6 @@ void keypress(uchar key, int x, int y)
 		break;
 	case 'X':
 		dist *= 2.0f;
-		break;
-	case 'i':
-		world.setInterior(world.getInterior()+1);
-		cout << "Interior: " << world.getInterior() << endl;
-		break;
-	case 'I':
-		world.setInterior(world.getInterior()-1);
-		cout << "Interior: " << world.getInterior() << endl;
 		break;
 	case 'm':
 		timeCycle.setMinute(timeCycle.getMinute()+1);
@@ -254,24 +231,6 @@ void keypress(uchar key, int x, int y)
 		break;
 	case 'V':
 		world.getInstance(lastSelected)->setVisible(true);
-		break;
-	case 'p':
-		campos = cam.getTarget();
-		cout << campos << endl;
-		break;
-	case 'P':
-		cout << "enter new camara coords: " << endl;
-		float x, y, z;
-		cin >> x >> y >> z;
-		cam.setTarget(quat(x, y, z));
-		break;
-	case 'c':
-		timeCycle.setColorStep(timeCycle.getColorStep()+1);
-		cout << timeCycle.getColorStep() << endl;
-		break;
-	case 'C':
-		timeCycle.setColorStep(timeCycle.getColorStep()-1);
-		cout << timeCycle.getColorStep() << endl;
 		break;
 	case 'q':
 	case 27:
@@ -399,6 +358,14 @@ void init(char *model, char *texdict)
 	glEnable(GL_STENCIL_TEST);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
+	glDisable(GL_CULL_FACE);
+
+	doZones = false;
+	doTextures = true;
+	doFog = true;
+	doVertexColors = true;
+	doCol = false;
+
 	int white = 0xFFFFFFFF;
 	glGenTextures(1, &whiteTex);
 	glBindTexture(GL_TEXTURE_2D, whiteTex);
@@ -414,9 +381,7 @@ void init(char *model, char *texdict)
 	gtaPipe.load("shader/gtaPipe.vert", "shader/gtaPipe.frag");
 
 	cam.setPitch(PI/8.0f-PI/2.0f);
-//	cam.setDistance(0.0f);
 	cam.setDistance(20.0f);
-//	cam.setDistance(5.0f);
 	cam.setAspectRatio((GLfloat) width / height);
 	cam.setTarget(quat(335.5654907, -159.0345306, 17.85120964));
 //	cam.setTarget(quat(-1158.1, 412.282, 33.6813));	// dam
@@ -443,9 +408,14 @@ void init(char *model, char *texdict)
 	glBufferData(GL_ARRAY_BUFFER, sizeof(axes), axes, GL_STATIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
+	cout << "associating lods\n";
 	world.associateLods();
 
+	cout << "associating cols\n";
+	objectList.associateCols();
+
 	// load water
+	cout << "loading water\n";
 	if (game == GTA3 || game == GTAVC) {
 		string fileName = getPath("data/waterpro.dat");
 		ifstream f(fileName.c_str(), ios::binary);
@@ -467,6 +437,7 @@ void init(char *model, char *texdict)
 	}
 
 	// load timecycle
+	cout << "loading timecycle\n";
 	string fileName = getPath("data/timecyc.dat");
 	ifstream f(fileName.c_str());
 	if (f.fail()) {
@@ -476,7 +447,6 @@ void init(char *model, char *texdict)
 		f.close();
 	}
 
-#if 0
 	string txd = texdict;
 	string dff = model;
 	if (txd == "search") {
@@ -502,9 +472,9 @@ void init(char *model, char *texdict)
 	if (drawable.load(dff, txd) == -1)
 		exit(1);
 
-	rw::AnimPackage anpk;
-	string fileName = getPath("anim/ped.ifp");
-	ifstream f(fileName.c_str(), ios::binary);
+	AnimPackage anpk;
+	fileName = getPath("anim/ped.ifp");
+	f.open(fileName.c_str(), ios::binary);
 	anpk.read(f);
 	f.close();
 
@@ -525,7 +495,6 @@ void init(char *model, char *texdict)
 			break;
 		}
 	}
-#endif
 }
 
 void *opengl(void *args);

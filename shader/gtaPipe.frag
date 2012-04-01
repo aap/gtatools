@@ -17,7 +17,7 @@ uniform sampler2D u_Texture;
 void main(void) {
 	const float LOG2 = 1.442695;
 	float z = gl_FragCoord.z / gl_FragCoord.w;
-	float fogFactor = 0.0;
+	float fogFactor = 1.0;
 	if (u_Fog.density == 0.0) {
 		fogFactor = (u_Fog.end - z)/(u_Fog.end - u_Fog.start);
 	} else if (u_Fog.density > 0.0) {

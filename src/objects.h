@@ -2,6 +2,7 @@
 #define OBJECTS_H
 #include "gta.h"
 #include "drawable.h"
+#include "col.h"
 
 enum ideSections {
 	OBJS = 1,
@@ -37,9 +38,12 @@ public:
 	bool isLoaded;
 	Drawable drawable;
 
+	CollisionModel *col;
+
 	std::vector<quat> boundingSpheres;
 
 	void load(void);
+	void drawCol(void);
 	Model(void);
 };
 
@@ -108,15 +112,22 @@ public:
 class ObjectList
 {
 private:
-	Object **objects;
+	Model **objects;
 	int objectCount;
+	std::vector<CollisionModel *> cols;
 public:
-	Object *get(int i);
-	void add(Object *o);
+	Model *get(int i);
+	Model *get(std::string name);
+	void add(Model *o);
 	int getObjectCount(void);
+
+	void dumpCols(void);
+	void dump(void);
+	void associateCols(void);
 
 	void init(int objs);
 	void readIde(std::ifstream &in);
+	void readCol(std::ifstream &in, int island = -1);
 	ObjectList(void);
 	~ObjectList(void);
 };

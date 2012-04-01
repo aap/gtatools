@@ -22,8 +22,9 @@ void main(void)
 
 //	if (in_Normal == vec3(0.0, 0.0, 0.0)) {
 //		v_Color = (vec4(u_AmbientLight,0.0) + u_MatColor*in_Color) *
-		v_Color = (vec4(u_AmbientLight,0.0) + in_Color) *
-		          u_MatColor;
+//		          u_MatColor;
+		v_Color = clamp(vec4(u_AmbientLight,0.0) + in_Color, 0.0, 1.0);
+		v_Color *= u_MatColor;
 //	} else {
 //		vec3 N = normalize(u_NormalMat * in_Normal);
 //		float L = max(0.0, dot(N, normalize(u_LightPos.xyz - V.xyz)));

@@ -11,12 +11,7 @@
 #include "gta.h"
 #include "pipeline.h"
 
-extern pthread_mutex_t worldMutex;
-
 namespace gl {
-	void dumpmat(glm::mat3 &m);
-	void dumpmat(glm::mat4 &m);
-
 	void renderScene(void);
 	void reshape(int w, int h);
 	void keypress(uchar key, int x, int y);
@@ -29,17 +24,22 @@ namespace gl {
 	extern int stencilShift;
 	extern int width;
 	extern int height;
-	extern Pipeline simplePipe;
 	extern Pipeline *currentPipe;
 
 	extern GLuint whiteTex;
-	extern bool drawWire;
-	extern bool drawTransparent;
 	extern bool wasTransparent;
+	extern bool drawTransparent;
+	extern bool drawWire;
 
 	extern glm::mat4 modelMat;
 	extern glm::mat4 viewMat;
 	extern glm::mat4 projMat;
+
+	extern bool doZones;
+	extern bool doTextures;
+	extern bool doFog;
+	extern bool doVertexColors;
+	extern bool doCol;
 }
 
 #endif

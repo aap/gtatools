@@ -11,6 +11,7 @@
 #include "gta.h"
 #include "texman.h"
 #include "math.h"
+#include "ifp.h"
 
 struct Frame {
 	std::string name;
@@ -56,7 +57,7 @@ private:
 	TexDictionary *texDict;
 	std::vector<int> atomicList;
 
-	rw::Animation anim;
+	Animation anim;
 	Frame *animRoot;
 	std::vector<uint> boneToFrame;
 	int frame;
@@ -75,7 +76,7 @@ public:
 	void unload(void);
 	void attachClump(rw::Clump &c);	// better use a pointer
 	void attachTexDict(rw::TextureDictionary &t);	// better use a pointer
-	void attachAnim(rw::Animation &a);
+	void attachAnim(Animation &a);
 	void nextFrame(void);
 	void setVertexColors(void);
 	void draw(void);

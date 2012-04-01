@@ -224,7 +224,7 @@ void Drawable::attachClump(rw::Clump &c)
 	// atomics
 	//
 	// reorder so number of object according to item definition matches
-	// number of atomic (based on suffix '_L[012]' in frame name
+	// number of atomic (based on suffix '_L[012]' in frame name)
 	vector<int> tmpList;
 	for (uint i = 0; i < clump.atomicList.size(); i++) {
 		rw::Atomic &atm = clump.atomicList[i];
@@ -252,7 +252,7 @@ void Drawable::attachClump(rw::Clump &c)
 	updateGeometries();
 }
 
-void Drawable::attachAnim(rw::Animation &a)
+void Drawable::attachAnim(Animation &a)
 {
 	anim = a;
 	endFrame = 0;
@@ -321,19 +321,19 @@ void Drawable::applyAnim(Frame *f)
 			break;
 
 	if (oi < anim.objList.size()) {
-		rw::AnimObj &ao = anim.objList[oi];
-		rw::KeyFrame &kf = ao.frmList[frame];
+		AnimObj &ao = anim.objList[oi];
+		KeyFrame &kf = ao.frmList[frame];
 
 		glm::quat q;
-		q.x = -kf.rot[0];
-		q.y = -kf.rot[1];
-		q.z = -kf.rot[2];
-		q.w = kf.rot[3];
+		q.x = -kf.rot.x;
+		q.y = -kf.rot.y;
+		q.z = -kf.rot.z;
+		q.w = kf.rot.w;
 
-		if (kf.type == rw::KRT0 || kf.type == rw::KRTS) {
-			f->pos.x = kf.pos[0];
-			f->pos.y = kf.pos[1];
-			f->pos.z = kf.pos[2];
+		if (kf.type == KRT0 || kf.type == KRTS) {
+			f->pos.x = kf.pos.x;
+			f->pos.y = kf.pos.y;
+			f->pos.z = kf.pos.z;
 		}
 		// no scaling yet
 
@@ -535,9 +535,11 @@ void Drawable::drawGeometry(int gi)
 			      (GLvoid*) offset);
 	offset += numVertices*3*sizeof(GLfloat);
 	if (g.flags & rw::FLAGS_PRELIT) {
-		glEnableVertexAttribArray(in_Color);
-		glVertexAttribPointer(in_Color, 4, GL_UNSIGNED_BYTE,
-				      GL_TRUE, 0, (GLvoid*) offset);
+		if (gl::doVertexColors) {
+			glEnableVertexAttribArray(in_Color);
+			glVertexAttribPointer(in_Color, 4, GL_UNSIGNED_BYTE,
+					      GL_TRUE, 0, (GLvoid*) offset);
+		}
 		offset += numVertices*4*sizeof(GLubyte);
 	}
 	if (g.flags & rw::FLAGS_NORMALS) {
@@ -572,7 +574,7 @@ void Drawable::drawGeometry(int gi)
 			texname = g.materialList[matid].texture.name;
 			Texture *t = texDict->get(texname);
 
-			if (t != 0 && t->tex != 0) {
+			if (t != 0 && t->tex != 0 && gl::doTextures) {
 				if (t->hasAlpha)
 					isTransparent = true;
 				glBindTexture(GL_TEXTURE_2D,

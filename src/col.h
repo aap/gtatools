@@ -1,0 +1,47 @@
+#ifndef _COL_H
+#define _COL_H
+#include "math.h"
+
+struct ColSurface {
+	int material;
+	int flag;
+	int brightness;
+	int light;
+};
+
+struct ColSphere {
+	quat sphere;
+	ColSurface surf;
+};
+
+struct ColBox {
+	quat min;
+	quat max;
+	ColSurface surf;
+};
+
+struct ColFace {
+	int a, b, c;
+	ColSurface surf;
+};
+
+class CollisionModel
+{
+public:
+	std::string name;
+	quat boundingSphere;
+	quat min;
+	quat max;
+
+	std::vector<ColSphere> spheres;
+	std::vector<ColBox> boxes;
+	std::vector<float> vertices;
+	std::vector<ColFace> faces;
+
+	int island;
+
+	/* functions */
+	int read(std::ifstream &col);
+};
+
+#endif

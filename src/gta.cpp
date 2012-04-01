@@ -33,7 +33,7 @@ void parseDat(ifstream &f)
 	string fileName;
 	string line;
 	vector<string> fields;
-//	int colType;
+	int island;
 	ifstream inFile;
 
 
@@ -82,6 +82,14 @@ void parseDat(ifstream &f)
 			directory.addFromFile(inFile, fileName);
 			inFile.close();
 		} else if (type == "COLFILE") {
+			island = atoi(fields[1].c_str());
+			inFile.open(fileName.c_str());
+			if (inFile.fail()) {
+				cerr << "couldn't open col " <<fileName<<endl;
+				exit(1);
+			}
+			objectList.readCol(inFile, island);
+			inFile.close();
 		} else if (type == "SPLASH") {
 		}
 	}
@@ -90,8 +98,8 @@ void parseDat(ifstream &f)
 int main(int argc, char *argv[])
 {
 	progname = argv[0];
-//	if (argc < 4) {
-	if (argc < 2) {
+	if (argc < 4) {
+//	if (argc < 2) {
 		cerr << "too few arguments\n";
 		return 1;
 	}
@@ -144,6 +152,15 @@ int main(int argc, char *argv[])
 	// load gta_int.img and player.img
 	if (game == GTASA) {
 		imgPath = getPath("models/gta_int.img");
+		dirFile.open(imgPath.c_str(), ios::binary);
+		if (dirFile.fail()) {
+			cerr << "can't open img/dir file\n";
+			return 1;
+		}
+		directory.addFromFile(dirFile, imgPath);
+		dirFile.close();
+
+		imgPath = getPath("models/player.img");
 		dirFile.open(imgPath.c_str(), ios::binary);
 		if (dirFile.fail()) {
 			cerr << "can't open img/dir file\n";
@@ -224,20 +241,26 @@ void getFields(string &s, string sep, vector<string> &v)
 	if (s[s.size()-1] == 0x0d)
 		s = s.substr(0, s.size()-1);
 
-	// check if the line was empty
-	string::size_type j = s.find_last_of(" \t");
-	if (j == s.size()-1)
-		return;
+	// remove trailing whitespace
+	size_t j = s.find_last_not_of(" \t");
+	if (j != string::npos) {
+		s.resize(j+1);
+	} else {
+		if (s[s.size()-1] == ' ' || s[s.size()-1] == '\t')
+			return;
+			
+	}
 
 	if (s.size() == 0)
 		return;
 
-	size_t i = 0;
 	j = s.find_first_of(sep);
 	if (j == string::npos) {
 		v.push_back(s);
 		return;
 	}
+
+	size_t i = 0;
 	while (j != string::npos) {
 		v.push_back(s.substr(i, j-i));
 		i = ++j;
@@ -253,17 +276,10 @@ void getFields(string &s, string sep, vector<string> &v)
 		}
 	}
 
-//	// remove trailing whitespace
+	// remove trailing whitespace
 	for (i = 0; i < v.size(); i++) {
 		j = v[i].find_first_of(" \t");
 		v[i] = v[i].substr(0, j);
-// old
-//		j = v[i].find_first_not_of(" \t");
-//		if (j != string::npos)
-//			v[i] = v[i].substr(j);
-//		size_t k = v[i].find_last_of(" \t");
-//		if (k != string::npos)
-//			v[i] = v[i].substr(j, k-j);
 	}
 }
 
@@ -312,15 +328,6 @@ void correctFileName(string &fileName)
 	for (uint i = 0; i < fileName.length(); i++) {
 		if (fileName[i] == '/' || fileName[i] == '\\')
 			fileName[i] = PSEP_C;
-/*
-#ifdef _WIN32
-		if (fileName[i] == '/')
-			fileName[i] = '\\';
-#else
-		if (fileName[i] == '\\')
-			fileName[i] = '/';
-#endif
-*/
 	}
 #ifndef _WIN32
 	correctPathCase(fileName);

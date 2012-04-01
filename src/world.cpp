@@ -14,6 +14,7 @@
 #include "timecycle.h"
 #include "pipeline.h"
 #include "objman.h"
+#include "col.h"
 
 using namespace std;
 
@@ -58,6 +59,10 @@ void World::drawTransparent2(void)
 	gl::drawTransparent = true;
 	for (uint i = 0; i < transpInstances2.size(); i++)
 		transpInstances2[i]->justDraw();
+
+	if (gl::doZones)
+		for (uint i = 0; i < islands.size(); i++)
+			islands[i].drawZones();
 }
 
 static int ind;
@@ -409,8 +414,15 @@ void World::addTransparent2(Instance *ip, float dist)
 	transpInstances2.push_back(ip);
 }
 
-void World::setInterior(int i) { interior = i; }
-int World::getInterior(void) { return interior; }
+void World::setInterior(int i)
+{
+	interior = i;
+}
+
+int World::getInterior(void)
+{
+	return interior;
+}
 
 World::World(void)
 {
@@ -502,8 +514,6 @@ void Instance::draw(void)
 {
 	WorldObject *op = (WorldObject*)objectList.get(id);
 
-	glm::mat4 save = gl::modelMat;
-
 	// check draw distance
 	float d = cam.distanceTo(position);
 	int ai = op->getCorrectAtomic(d);
@@ -512,15 +522,6 @@ void Instance::draw(void)
 	if (op->isLoaded)
 		if (isCulled())
 			return;
-
-/*
-	if (op->isLoaded) {
-		if (timeCycle.getTimeOfDay() == 0)
-			op->drawable.setVertexColors(0);
-		else if (timeCycle.getTimeOfDay() == 2)
-			op->drawable.setVertexColors(1);
-	}
-*/
 
 	// if the instance is too far away, try the LOD version
 	if (ai < 0) {
@@ -557,19 +558,30 @@ void Instance::draw(void)
 
 	if (!op->isLoaded) {
 //		objMan.request(op);
-		op->load();
 //		return;
+
+		op->load();
 	}
+
+	glm::mat4 save = gl::modelMat;
 
 	transform();
 
 	glStencilFunc(GL_ALWAYS, (index>>gl::stencilShift)&0xFF, -1);
 
-	gl::wasTransparent = false;
-	if (op->type == ANIM)
-		op->drawable.draw();
-	else
-		op->drawable.drawAtomic(ai);
+	if (gl::doCol) {
+		if (op->col)
+			op->drawCol();
+	} else {
+//		if (op->flags & 128)
+//			glEnable(GL_CULL_FACE);
+		gl::wasTransparent = false;
+		if (op->type == ANIM)
+			op->drawable.draw();
+		else
+			op->drawable.drawAtomic(ai);
+//		glDisable(GL_CULL_FACE);
+	}
 
 	if (gl::wasTransparent) {
 		if (op->flags & 0x40)
@@ -606,10 +618,15 @@ void Instance::justDraw(void)
 
 	glStencilFunc(GL_ALWAYS, (index>>gl::stencilShift)&0xFF, -1);
 
-	if (op->type == ANIM)
-		op->drawable.draw();
-	else
-		op->drawable.drawAtomic(ai);
+	if (!gl::doCol) {
+//		if (op->flags & 128)
+//			glEnable(GL_CULL_FACE);
+		if (op->type == ANIM)
+			op->drawable.draw();
+		else
+			op->drawable.drawAtomic(ai);
+//		glDisable(GL_CULL_FACE);
+	}
 
 	gl::modelMat = save;
 	glm::mat4 modelView = gl::viewMat * gl::modelMat;

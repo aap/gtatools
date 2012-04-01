@@ -20,17 +20,22 @@ public:
 	void turnLR(float phi);
 	void turnUD(float phi);
 	void moveInOut(float d);
+
 	void setPitch(float pitch);
 	void setYaw(float yaw);
 	void setDistance(float d);
 	void setTarget(quat q);
 	void setFov(float f);
+
 	void setAspectRatio(float r);
 	void setNearFar(float n, float f);
+
 	float getPitch(void);
 	float getYaw(void);
 	float getDistance(void);
 	quat getTarget(void);
+	float getFov(void);
+
 	quat getPosition(void);
 
 	void look(void);

@@ -225,6 +225,11 @@ quat Camera::getTarget(void)
 	return target;
 }
 
+float Camera::getFov(void)
+{
+	return fov;
+}
+
 quat Camera::getPosition(void)
 {
 	updateCam();

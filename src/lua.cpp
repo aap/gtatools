@@ -1,5 +1,11 @@
+#include <cstdio>
+#include <readline/readline.h>
+#include <readline/history.h>
+
 #include "gta.h"
+#include "gl.h"
 #include "camera.h"
+#include "world.h"
 
 #include "lua.h"
 
@@ -7,6 +13,8 @@ using namespace std;
 
 int gettop(lua_State *L);
 void registerCamera(lua_State *L);
+void registerWorld(lua_State *L);
+void registerGl(lua_State *L);
 
 void LuaInterpreter(void)
 {
@@ -18,10 +26,26 @@ void LuaInterpreter(void)
 
 	lua_register(L, "gettop", gettop);
 	registerCamera(L);
+	registerWorld(L);
+	registerGl(L);
 
 	luaL_dofile(L, "rc.lua");
 
 	while (running) {
+		char *s = readline(prompt.c_str());
+		if (!s) {
+			if (prompt == ">> ") {
+				statement = "";
+				prompt = "gta> ";
+				cout << endl;
+			} else {
+				running = false;
+			}
+			continue;
+		}
+		add_history(s);
+		line = s;
+/*
 		cout << prompt;
 		getline(cin, line);
 
@@ -36,6 +60,7 @@ void LuaInterpreter(void)
 			}
 			continue;
 		}
+*/
 
 		statement += " " + line;
 
@@ -174,6 +199,12 @@ int cameraGetTarget(lua_State *L)
 	return 3;
 }
 
+int cameraGetFov(lua_State *L)
+{
+	lua_pushnumber(L, cam.getFov());
+	return 1;
+}
+
 int cameraGetPosition(lua_State *L)
 {
 	quat position = cam.getPosition();
@@ -199,5 +230,112 @@ void registerCamera(lua_State *L)
 	lua_register(L, "__cameraGetYaw", cameraGetYaw);
 	lua_register(L, "__cameraGetDistance", cameraGetDistance);
 	lua_register(L, "__cameraGetTarget", cameraGetTarget);
+	lua_register(L, "__cameraGetFov", cameraGetFov);
 	lua_register(L, "__cameraGetPosition", cameraGetPosition);
+}
+
+/*
+ * World
+ */
+
+int worldSetInterior(lua_State *L)
+{
+	int i = luaL_checkinteger(L, 1);
+	world.setInterior(i);
+	return 0;
+}
+
+int worldGetInterior(lua_State *L)
+{
+	lua_pushinteger(L, world.getInterior());
+	return 1;
+}
+
+void registerWorld(lua_State *L)
+{
+	lua_register(L, "__worldSetInterior", worldSetInterior);
+	lua_register(L, "__worldGetInterior", worldGetInterior);
+}
+
+/*
+ * Gl
+ */
+
+int glSetDoTextures(lua_State *L)
+{
+	int i = luaL_checkinteger(L, 1);
+	gl::doTextures = i;
+	return 0;
+}
+
+int glGetDoTextures(lua_State *L)
+{
+	lua_pushinteger(L, gl::doTextures);
+	return 1;
+}
+
+int glSetDoZones(lua_State *L)
+{
+	int i = luaL_checkinteger(L, 1);
+	gl::doZones = i;
+	return 0;
+}
+
+int glGetDoZones(lua_State *L)
+{
+	lua_pushinteger(L, gl::doZones);
+	return 1;
+}
+
+int glSetDoFog(lua_State *L)
+{
+	int i = luaL_checkinteger(L, 1);
+	gl::doFog = i;
+	return 0;
+}
+
+int glGetDoFog(lua_State *L)
+{
+	lua_pushinteger(L, gl::doFog);
+	return 1;
+}
+
+int glSetDoVertexColors(lua_State *L)
+{
+	int i = luaL_checkinteger(L, 1);
+	gl::doVertexColors = i;
+	return 0;
+}
+
+int glGetDoVertexColors(lua_State *L)
+{
+	lua_pushinteger(L, gl::doVertexColors);
+	return 1;
+}
+
+int glSetDoCol(lua_State *L)
+{
+	int i = luaL_checkinteger(L, 1);
+	gl::doCol = i;
+	return 0;
+}
+
+int glGetDoCol(lua_State *L)
+{
+	lua_pushinteger(L, gl::doCol);
+	return 1;
+}
+
+void registerGl(lua_State *L)
+{
+	lua_register(L, "__glSetDoTextures", glSetDoTextures);
+	lua_register(L, "__glGetDoTextures", glGetDoTextures);
+	lua_register(L, "__glSetDoZones", glSetDoZones);
+	lua_register(L, "__glGetDoZones", glGetDoZones);
+	lua_register(L, "__glSetDoFog", glSetDoFog);
+	lua_register(L, "__glGetDoFog", glGetDoFog);
+	lua_register(L, "__glSetDoVertexColors", glSetDoVertexColors);
+	lua_register(L, "__glGetDoVertexColors", glGetDoVertexColors);
+	lua_register(L, "__glSetDoCol", glSetDoCol);
+	lua_register(L, "__glGetDoCol", glGetDoCol);
 }
