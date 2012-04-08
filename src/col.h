@@ -20,6 +20,12 @@ struct ColBox {
 	ColSurface surf;
 };
 
+struct ColFaceGroup {
+	quat min;
+	quat max;
+	int start, end;
+};
+
 struct ColFace {
 	int a, b, c;
 	ColSurface surf;
@@ -36,7 +42,11 @@ public:
 	std::vector<ColSphere> spheres;
 	std::vector<ColBox> boxes;
 	std::vector<float> vertices;
+	std::vector<ColFaceGroup> faceGroups;
 	std::vector<ColFace> faces;
+
+	std::vector<float> shadVertices;
+	std::vector<ColFace> shadFaces;
 
 	int island;
 

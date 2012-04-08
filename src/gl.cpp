@@ -52,6 +52,9 @@ bool doTextures;
 bool doFog;
 bool doVertexColors;
 bool doCol;
+bool doTrails;
+bool doBFC;
+float lodMult;
 
 void renderScene(void)
 {
@@ -80,8 +83,11 @@ void renderScene(void)
 	glm::vec3 lightCol = glm::vec3(1.0f, 1.0f, 1.0f);
 
 //	glm::vec3 amb = glm::vec3(0.49f, 0.47f, 0.33f);
-	glm::vec3 amb = glm::vec3(w->amb.x, w->amb.y, w->amb.z);
-
+	glm::vec3 amb;
+	if (doTrails)
+		amb = glm::vec3(w->ambBl.x, w->ambBl.y, w->ambBl.z);
+	else
+		amb = glm::vec3(w->amb.x, w->amb.y, w->amb.z);
 
 	simplePipe.use();
 
@@ -116,19 +122,25 @@ void renderScene(void)
 
 	drawWire = false;
 
+/*
 	drawTransparent = false;
 	drawable.draw();
 	drawTransparent = true;
 	drawable.draw();
+*/
 
-
+	if (doBFC)
+		glEnable(GL_CULL_FACE);
 	world.drawOpaque();
 	glDepthMask(GL_FALSE);
 	world.drawTransparent1();
 	glDepthMask(GL_TRUE);
+	glDisable(GL_CULL_FACE);
 	water.draw();
+	if (doBFC)
+		glEnable(GL_CULL_FACE);
 	world.drawTransparent2();
-
+	glDisable(GL_CULL_FACE);
 
 	// 2d overlay
 	glDisable(GL_DEPTH_TEST);
@@ -227,10 +239,33 @@ void keypress(uchar key, int x, int y)
 		statusLine = buf;
 		break;
 	case 'v':
+		if (lastSelected == 0)
+			break;
 		world.getInstance(lastSelected)->setVisible(false);
 		break;
 	case 'V':
+		if (lastSelected == 0)
+			break;
 		world.getInstance(lastSelected)->setVisible(true);
+		break;
+	case 'b':
+		if (lastSelected == 0)
+			break;
+		op = (WorldObject*)objectList.get(
+			world.getInstance(lastSelected)->id);
+		op->BSvisible = true;
+		break;
+	case 'B':
+		if (lastSelected == 0)
+			break;
+		op = (WorldObject*)objectList.get(
+			world.getInstance(lastSelected)->id);
+		op->BSvisible = false;
+		break;
+	case 'i':
+		if (lastSelected == 0)
+			break;
+		world.getInstance(lastSelected)->printInfo();
 		break;
 	case 'q':
 	case 27:
@@ -292,7 +327,6 @@ void mouseButton(int button, int state, int x, int y)
 				             GL_STENCIL_INDEX,
 				             GL_UNSIGNED_INT, stencil+3);
 				lastSelected = *((uint *) stencil);
-				world.getInstance(lastSelected)->printInfo();
 			}
 		}
 		if (button == GLUT_MIDDLE_BUTTON)
@@ -358,13 +392,14 @@ void init(char *model, char *texdict)
 	glEnable(GL_STENCIL_TEST);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
-	glDisable(GL_CULL_FACE);
-
 	doZones = false;
 	doTextures = true;
 	doFog = true;
 	doVertexColors = true;
 	doCol = false;
+	doTrails = false;
+	doBFC = false;
+	lodMult = 1.0f;
 
 	int white = 0xFFFFFFFF;
 	glGenTextures(1, &whiteTex);
@@ -447,6 +482,7 @@ void init(char *model, char *texdict)
 		f.close();
 	}
 
+#if 0
 	string txd = texdict;
 	string dff = model;
 	if (txd == "search") {
@@ -495,6 +531,7 @@ void init(char *model, char *texdict)
 			break;
 		}
 	}
+#endif
 }
 
 void *opengl(void *args);
@@ -503,8 +540,10 @@ void *lua(void *args);
 
 void start(int *argc, char *argv[])
 {
-	width = 644;
-	height = 340;
+//	width = 644;
+//	height = 340;
+	width = 640;
+	height = 480;
 
 	glutInit(argc, argv);
 	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE |

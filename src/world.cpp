@@ -516,11 +516,11 @@ void Instance::draw(void)
 
 	// check draw distance
 	float d = cam.distanceTo(position);
-	int ai = op->getCorrectAtomic(d);
+	int ai = op->getCorrectAtomic(d/gl::lodMult);
 
 	// frustum cull
 	if (op->isLoaded)
-		if (isCulled())
+		if (isCulled() && !(op->flags & 128))
 			return;
 
 	// if the instance is too far away, try the LOD version
@@ -539,7 +539,7 @@ void Instance::draw(void)
 
 	// check for interior (if intr < 0 everything is drawn)
 	int intr = world.getInterior();
-	if (interior != intr && intr >= 0) {
+	if (interior != intr && intr >= 0 && !gl::doCol) {
 		if (game == GTAVC) {
 			if (interior != 13)
 				return;
@@ -553,15 +553,12 @@ void Instance::draw(void)
 	}
 
 	// check for time
-	if (op->isTimed && !op->isVisibleAtTime(timeCycle.getHour()))
+	if (op->isTimed && !op->isVisibleAtTime(timeCycle.getHour()) &&
+	    !gl::doCol)
 		return;
 
-	if (!op->isLoaded) {
-//		objMan.request(op);
-//		return;
-
+	if (!op->isLoaded)
 		op->load();
-	}
 
 	glm::mat4 save = gl::modelMat;
 
@@ -569,11 +566,14 @@ void Instance::draw(void)
 
 	glStencilFunc(GL_ALWAYS, (index>>gl::stencilShift)&0xFF, -1);
 
+	if (op->BSvisible)
+		op->drawBoundingSphere();
+
 	if (gl::doCol) {
 		if (op->col)
 			op->drawCol();
 	} else {
-//		if (op->flags & 128)
+//		if (op->flags & 128 && gl::doBFC)
 //			glEnable(GL_CULL_FACE);
 		gl::wasTransparent = false;
 		if (op->type == ANIM)
@@ -607,11 +607,8 @@ void Instance::justDraw(void)
 	float d = cam.distanceTo(position);
 	int ai = op->getCorrectAtomic(d);
 
-	if (!op->isLoaded) {
-//		objMan.request(op);
+	if (!op->isLoaded)
 		op->load();
-//		return;
-	}
 
 	glm::mat4 save = gl::modelMat;
 	transform();
@@ -619,7 +616,7 @@ void Instance::justDraw(void)
 	glStencilFunc(GL_ALWAYS, (index>>gl::stencilShift)&0xFF, -1);
 
 	if (!gl::doCol) {
-//		if (op->flags & 128)
+//		if (op->flags & 128 && gl::doBFC)
 //			glEnable(GL_CULL_FACE);
 		if (op->type == ANIM)
 			op->drawable.draw();

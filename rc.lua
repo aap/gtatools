@@ -40,6 +40,12 @@ function gl.setDoVertexColors(i) __glSetDoVertexColors(i) end
 function gl.getDoVertexColors() return __glGetDoVertexColors() end
 function gl.setDoCol(i) __glSetDoCol(i) end
 function gl.getDoCol() return __glGetDoCol() end
+function gl.setDoTrails(i) __glSetDoTrails(i) end
+function gl.getDoTrails() return __glGetDoTrails() end
+function gl.setDoBFC(i) __glSetDoBFC(i) end
+function gl.getDoBFC() return __glGetDoBFC() end
+function gl.setLodMult(f) __glSetLodMult(f) end
+function gl.getLodMult() return __glGetLodMult() end
 
 
 dofile("init.lua")

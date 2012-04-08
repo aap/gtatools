@@ -1,6 +1,7 @@
 #include "gta.h"
 #include <glm/gtc/quaternion.hpp>
 #include "gl.h"
+#include "directory.h"
 #include "primitives.h"
 #include "objects.h"
 #include "world.h"
@@ -74,6 +75,7 @@ void ObjectList::readIde(ifstream &in)
 			newObj->type = blockType;
 			newObj->id = atoi(fields[i++].c_str());
 			newObj->col = 0;
+			newObj->BSvisible = false;
 			newObj->modelName = fields[i++];
 			newObj->textureName = fields[i++];
 			stringToLower(newObj->modelName);
@@ -112,6 +114,7 @@ void ObjectList::readIde(ifstream &in)
 			newObj->type = blockType;
 			newObj->id = atoi(fields[i++].c_str());
 			newObj->col = 0;
+			newObj->BSvisible = false;
 			newObj->modelName = fields[i++];
 			newObj->textureName = fields[i++];
 			newObj->defaultPedType = fields[i++];
@@ -147,6 +150,7 @@ void ObjectList::readIde(ifstream &in)
 			newObj->type = blockType;
 			newObj->id = atoi(fields[i++].c_str());
 			newObj->col = 0;
+			newObj->BSvisible = false;
 			newObj->modelName = fields[i++];
 			newObj->textureName = fields[i++];
 			newObj->vehicleType = fields[i++];
@@ -190,6 +194,44 @@ void ObjectList::readIde(ifstream &in)
 			texMan.addParentInfo(child, parent);
 		}
 	} while(!in.eof());
+}
+
+void ObjectList::findAndReadCol(string fileName)
+{
+	stringToLower(fileName);
+	fileName = fileName.substr(0, fileName.size()-4);
+
+	ifstream f;
+	if (directory.openFile(f, fileName+".col") == -1) {
+		string fileName2;
+		char num[4];
+		int i = 1;
+		sprintf(num, "_%d", i);
+		fileName2 = fileName + num + ".col";
+		while (directory.openFile(f, fileName2) == 0) {
+//			cout << "reading " << fileName2 << endl;
+			readCol(f);
+			f.close();
+			i++;
+			sprintf(num, "_%d", i);
+			fileName2 = fileName + num + ".col";
+		}
+		i = 1;
+		sprintf(num, "%d", i);
+		fileName2 = fileName + num + ".col";
+		while (directory.openFile(f, fileName2) == 0) {
+//			cout << "reading " << fileName2 << endl;
+			readCol(f);
+			f.close();
+			i++;
+			sprintf(num, "%d", i);
+			fileName2 = fileName + num + ".col";
+		}
+	} else {
+//		cout << "reading " << fileName+".col" << endl;
+		readCol(f);
+		f.close();
+	}
 }
 
 void ObjectList::readCol(ifstream &in, int island)
@@ -252,7 +294,7 @@ Model *ObjectList::get(string name)
 
 void ObjectList::add(Model *o)
 {
-	if (((uint) o->id) >= objectCount || o->id < 0) {
+	if ((int)o->id >= objectCount || o->id < 0) {
 		cout << "warning: id " << o->id << " out of range\n";
 		return;
 	}
@@ -329,6 +371,7 @@ void WorldObject::printInfo(void)
 		     << timeOff << ", ";
 	}
 	cout << endl;
+	cout << "hasCol: " << (col ? 1 : 0) << endl;
 }
 
 WorldObject::WorldObject(void)
@@ -339,6 +382,49 @@ WorldObject::WorldObject(void)
 /*
  * Model
  */
+
+void Model::drawBoundingSphere(void)
+{
+	glm::mat4 save = gl::modelMat;
+
+	gl::modelMat = glm::translate(gl::modelMat,
+	                      glm::vec3(col->boundingSphere.x,
+	                                col->boundingSphere.y,
+	                                col->boundingSphere.z));
+	glm::mat4 modelView = gl::viewMat * gl::modelMat;
+	glm::mat3 normal = glm::inverseTranspose(glm::mat3(modelView));
+
+	gl::state.modelView = modelView;
+	gl::state.normalMat = normal;
+	gl::state.updateMatrices();
+
+	glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
+	glVertexAttrib4f(gl::in_Color, 1.0f, 1.0f, 1.0f, 1.0f);
+	glm::vec4 color(0.8f, 0.8f, 0.8f, 1.0f);
+	if (col->island == 0)
+		color = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f);
+	else if (col->island == 1)
+		color = glm::vec4(0.8f, 0.0f, 0.0f, 1.0f);
+	else if (col->island == 2)
+		color = glm::vec4(0.0f, 0.8f, 0.0f, 1.0f);
+	else if (col->island == 3)
+		color = glm::vec4(0.0f, 0.0f, 0.8f, 1.0f);
+	else
+		color = glm::vec4(0.4f, 0.4f, 0.4f, 1.0f);
+	gl::state.matColor = color;
+	gl::state.updateMaterial();
+
+	gl::drawSphere(col->boundingSphere.w, 8, 8);
+
+
+	gl::modelMat = save;
+	modelView = gl::viewMat * gl::modelMat;
+	normal = glm::inverseTranspose(glm::mat3(modelView));
+
+	gl::state.modelView = modelView;
+	gl::state.normalMat = normal;
+	gl::state.updateMatrices();
+}
 
 void Model::drawCol(void)
 {
@@ -392,6 +478,8 @@ void Model::drawCol(void)
 		color = glm::vec4(0.0f, 0.8f, 0.0f, 1.0f);
 	else if (col->island == 3)
 		color = glm::vec4(0.0f, 0.0f, 0.8f, 1.0f);
+	else
+		color = glm::vec4(0.4f, 0.4f, 0.4f, 1.0f);
 	gl::state.matColor = color;
 	gl::state.updateMaterial();
 	glDrawArrays(GL_TRIANGLES, 0, verts.size()/3);

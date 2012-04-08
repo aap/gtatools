@@ -40,6 +40,9 @@ namespace gl {
 	extern bool doFog;
 	extern bool doVertexColors;
 	extern bool doCol;
+	extern bool doTrails;
+	extern bool doBFC;
+	extern float lodMult;
 }
 
 #endif

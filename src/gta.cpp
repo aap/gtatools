@@ -59,6 +59,9 @@ void parseDat(ifstream &f)
 			}
 			objectList.readIde(inFile);
 			inFile.close();
+
+			size_t i = fileName.find_last_of(PSEP_C);
+			objectList.findAndReadCol(fileName.substr(i+1));
 		} else if (type == "IPL" || type == "MAPZONE") {
 			inFile.open(fileName.c_str());
 			if (inFile.fail()) {
@@ -98,8 +101,8 @@ void parseDat(ifstream &f)
 int main(int argc, char *argv[])
 {
 	progname = argv[0];
-	if (argc < 4) {
-//	if (argc < 2) {
+//	if (argc < 4) {
+	if (argc < 2) {
 		cerr << "too few arguments\n";
 		return 1;
 	}

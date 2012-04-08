@@ -168,15 +168,15 @@ void Water::loadWaterpro(std::ifstream &f)
 				vertices.push_back(y0+patchSize);
 				vertices.push_back(z);
 
-				vertices.push_back(x0+patchSize);
-				vertices.push_back(y0);
-				vertices.push_back(z);
-
 				vertices.push_back(x0);
 				vertices.push_back(y0+patchSize);
 				vertices.push_back(z);
 
 				vertices.push_back(x0+patchSize);
+				vertices.push_back(y0);
+				vertices.push_back(z);
+
+				vertices.push_back(x0+patchSize);
 				vertices.push_back(y0+patchSize);
 				vertices.push_back(z);
 
@@ -189,11 +189,11 @@ void Water::loadWaterpro(std::ifstream &f)
 				texCoords.push_back(0.0f);
 				texCoords.push_back(1.0f);
 
-				texCoords.push_back(1.0f);
 				texCoords.push_back(0.0f);
+				texCoords.push_back(1.0f);
 
-				texCoords.push_back(0.0f);
 				texCoords.push_back(1.0f);
+				texCoords.push_back(0.0f);
 
 				texCoords.push_back(1.0f);
 				texCoords.push_back(1.0f);
@@ -222,17 +222,17 @@ void Water::loadWaterpro(std::ifstream &f)
 	texCoords.push_back((base[0]-2048)/patchSize);
 	texCoords.push_back((base[1]+4096+2048)/patchSize);
 
-	vertices.push_back(base[0]);
-	vertices.push_back(base[1]-2048);
-	vertices.push_back(z);
-	texCoords.push_back((base[0])/patchSize);
-	texCoords.push_back((base[1]-2048)/patchSize);
-
 	vertices.push_back(base[0]-2048);
 	vertices.push_back(base[1]+4096+2048);
 	vertices.push_back(z);
 	texCoords.push_back((base[0]-2048)/patchSize);
 	texCoords.push_back((base[1]+4096+2048)/patchSize);
+
+	vertices.push_back(base[0]);
+	vertices.push_back(base[1]-2048);
+	vertices.push_back(z);
+	texCoords.push_back((base[0])/patchSize);
+	texCoords.push_back((base[1]-2048)/patchSize);
 
 	vertices.push_back(base[0]);
 	vertices.push_back(base[1]+4096+2048);
@@ -259,17 +259,17 @@ void Water::loadWaterpro(std::ifstream &f)
 	texCoords.push_back((base[0]+4096)/patchSize);
 	texCoords.push_back((base[1]+4096+2048)/patchSize);
 
-	vertices.push_back(base[0]+4096+2048);
-	vertices.push_back(base[1]-2048);
-	vertices.push_back(z);
-	texCoords.push_back((base[0]+4096+2048)/patchSize);
-	texCoords.push_back((base[1]-2048)/patchSize);
-
 	vertices.push_back(base[0]+4096);
 	vertices.push_back(base[1]+4096+2048);
 	vertices.push_back(z);
 	texCoords.push_back((base[0]+4096)/patchSize);
 	texCoords.push_back((base[1]+4096+2048)/patchSize);
+
+	vertices.push_back(base[0]+4096+2048);
+	vertices.push_back(base[1]-2048);
+	vertices.push_back(z);
+	texCoords.push_back((base[0]+4096+2048)/patchSize);
+	texCoords.push_back((base[1]-2048)/patchSize);
 
 	vertices.push_back(base[0]+4096+2048);
 	vertices.push_back(base[1]+4096+2048);
@@ -296,17 +296,17 @@ void Water::loadWaterpro(std::ifstream &f)
 	texCoords.push_back((base[0])/patchSize);
 	texCoords.push_back((base[1])/patchSize);
 
-	vertices.push_back(base[0]+4096);
-	vertices.push_back(base[1]-2048);
-	vertices.push_back(z);
-	texCoords.push_back((base[0]+4096)/patchSize);
-	texCoords.push_back((base[1]-2048)/patchSize);
-
 	vertices.push_back(base[0]);
 	vertices.push_back(base[1]);
 	vertices.push_back(z);
 	texCoords.push_back((base[0])/patchSize);
 	texCoords.push_back((base[1])/patchSize);
+
+	vertices.push_back(base[0]+4096);
+	vertices.push_back(base[1]-2048);
+	vertices.push_back(z);
+	texCoords.push_back((base[0]+4096)/patchSize);
+	texCoords.push_back((base[1]-2048)/patchSize);
 
 	vertices.push_back(base[0]+4096);
 	vertices.push_back(base[1]);
@@ -333,17 +333,17 @@ void Water::loadWaterpro(std::ifstream &f)
 	texCoords.push_back((base[0])/patchSize);
 	texCoords.push_back((base[1]+4096+2048)/patchSize);
 
-	vertices.push_back(base[0]+4096);
-	vertices.push_back(base[1]+4096);
-	vertices.push_back(z);
-	texCoords.push_back((base[0]+4096)/patchSize);
-	texCoords.push_back((base[1]+4096)/patchSize);
-
 	vertices.push_back(base[0]);
 	vertices.push_back(base[1]+4096+2048);
 	vertices.push_back(z);
 	texCoords.push_back((base[0])/patchSize);
 	texCoords.push_back((base[1]+4096+2048)/patchSize);
+
+	vertices.push_back(base[0]+4096);
+	vertices.push_back(base[1]+4096);
+	vertices.push_back(z);
+	texCoords.push_back((base[0]+4096)/patchSize);
+	texCoords.push_back((base[1]+4096)/patchSize);
 
 	vertices.push_back(base[0]+4096);
 	vertices.push_back(base[1]+4096+2048);

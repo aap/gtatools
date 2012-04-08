@@ -38,12 +38,14 @@ public:
 	bool isLoaded;
 	Drawable drawable;
 
+	bool BSvisible;
 	CollisionModel *col;
 
 	std::vector<quat> boundingSpheres;
 
 	void load(void);
 	void drawCol(void);
+	void drawBoundingSphere(void);
 	Model(void);
 };
 
@@ -127,6 +129,7 @@ public:
 
 	void init(int objs);
 	void readIde(std::ifstream &in);
+	void findAndReadCol(std::string fileName);
 	void readCol(std::ifstream &in, int island = -1);
 	ObjectList(void);
 	~ObjectList(void);

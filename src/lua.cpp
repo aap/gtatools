@@ -326,6 +326,45 @@ int glGetDoCol(lua_State *L)
 	return 1;
 }
 
+int glSetDoTrails(lua_State *L)
+{
+	int i = luaL_checkinteger(L, 1);
+	gl::doTrails = i;
+	return 0;
+}
+
+int glGetDoTrails(lua_State *L)
+{
+	lua_pushinteger(L, gl::doTrails);
+	return 1;
+}
+
+int glSetDoBFC(lua_State *L)
+{
+	int i = luaL_checkinteger(L, 1);
+	gl::doBFC = i;
+	return 0;
+}
+
+int glGetDoBFC(lua_State *L)
+{
+	lua_pushinteger(L, gl::doBFC);
+	return 1;
+}
+
+int glSetLodMult(lua_State *L)
+{
+	float f = luaL_checknumber(L, 1);
+	gl::lodMult = f;
+	return 0;
+}
+
+int glGetLodMult(lua_State *L)
+{
+	lua_pushnumber(L, gl::lodMult);
+	return 1;
+}
+
 void registerGl(lua_State *L)
 {
 	lua_register(L, "__glSetDoTextures", glSetDoTextures);
@@ -338,4 +377,10 @@ void registerGl(lua_State *L)
 	lua_register(L, "__glGetDoVertexColors", glGetDoVertexColors);
 	lua_register(L, "__glSetDoCol", glSetDoCol);
 	lua_register(L, "__glGetDoCol", glGetDoCol);
+	lua_register(L, "__glSetDoTrails", glSetDoTrails);
+	lua_register(L, "__glGetDoTrails", glGetDoTrails);
+	lua_register(L, "__glSetDoBFC", glSetDoBFC);
+	lua_register(L, "__glGetDoBFC", glGetDoBFC);
+	lua_register(L, "__glSetLodMult", glSetLodMult);
+	lua_register(L, "__glGetLodMult", glGetLodMult);
 }
