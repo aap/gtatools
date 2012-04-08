@@ -31,18 +31,7 @@ namespace gl {
 	extern bool drawTransparent;
 	extern bool drawWire;
 
-	extern glm::mat4 modelMat;
-	extern glm::mat4 viewMat;
-	extern glm::mat4 projMat;
-
-	extern bool doZones;
-	extern bool doTextures;
-	extern bool doFog;
-	extern bool doVertexColors;
-	extern bool doCol;
-	extern bool doTrails;
-	extern bool doBFC;
-	extern float lodMult;
+	extern Pipeline simplePipe, lambertPipe, gtaPipe;
 }
 
 #endif

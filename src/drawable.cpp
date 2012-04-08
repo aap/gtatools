@@ -13,6 +13,7 @@
 #include "directory.h"
 #include "world.h"
 #include "timecycle.h"
+#include "renderer.h"
 
 using namespace std;
 using namespace gl;
@@ -281,7 +282,7 @@ int Drawable::load(string model, string texdict)
 
 	texDict = texMan.get(texdict);
 
-	// catch (uv anim dicts)
+	// catch uv anim dicts
 	if (c.atomicList.size() == 0)
 		return 0;
 
@@ -476,17 +477,14 @@ void Drawable::drawFrame(int fi, bool recurse, bool transform)
 	if (!f)
 		return;
 
-	glm::mat4 save = modelMat;
+	glm::mat4 mvSave = gl::state.modelView;
+	glm::mat3 nrmSave = gl::state.normalMat;
 
 	if (transform)
-		modelMat *= f->ltm;
+		gl::state.modelView *= f->ltm;
 
-	glm::mat4 modelView = viewMat * modelMat;
-	glm::mat3 normal = glm::inverseTranspose(glm::mat3(modelView));
-
-	state.modelView = modelView;
-	state.normalMat = normal;
-	state.updateMatrices();
+	gl::state.calculateNormalMat();
+	gl::state.updateMatrices();
 
 	// this also hides the dam in liberty city
 //	if (!strstr(f->name.c_str(), "chassis_vlo") &&
@@ -499,13 +497,9 @@ void Drawable::drawFrame(int fi, bool recurse, bool transform)
 		}
 //	}
 
-	modelMat = save;
-	modelView = viewMat * modelMat;
-	normal = glm::inverseTranspose(glm::mat3(modelView));
-
-	state.modelView = modelView;
-	state.normalMat = normal;
-	state.updateMatrices();
+	gl::state.modelView = mvSave;
+	gl::state.normalMat = nrmSave;
+	gl::state.updateMatrices();
 
 	if (recurse)
 		for (uint i = 0; i < f->children.size(); i++)
@@ -535,7 +529,7 @@ void Drawable::drawGeometry(int gi)
 			      (GLvoid*) offset);
 	offset += numVertices*3*sizeof(GLfloat);
 	if (g.flags & rw::FLAGS_PRELIT) {
-		if (gl::doVertexColors) {
+		if (renderer.doVertexColors) {
 			glEnableVertexAttribArray(in_Color);
 			glVertexAttribPointer(in_Color, 4, GL_UNSIGNED_BYTE,
 					      GL_TRUE, 0, (GLvoid*) offset);
@@ -574,7 +568,7 @@ void Drawable::drawGeometry(int gi)
 			texname = g.materialList[matid].texture.name;
 			Texture *t = texDict->get(texname);
 
-			if (t != 0 && t->tex != 0 && gl::doTextures) {
+			if (t != 0 && t->tex != 0 && renderer.doTextures) {
 				if (t->hasAlpha)
 					isTransparent = true;
 				glBindTexture(GL_TEXTURE_2D,

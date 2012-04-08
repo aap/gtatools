@@ -15,6 +15,11 @@ GLint in_Normal;
 GLint in_Color;
 GLint in_TexCoord;
 
+void State::calculateNormalMat(void)
+{
+	normalMat = glm::inverseTranspose(glm::mat3(modelView));
+}
+
 void State::updateMatrices(void)
 {
 	glUniformMatrix4fv(u_Projection, 1, GL_FALSE,

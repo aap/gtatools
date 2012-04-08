@@ -11,15 +11,17 @@ void Camera::look()
 {
 	updateCam();
 
-	gl::projMat = glm::perspective(fov, aspectRatio, n, f);
-	gl::viewMat = glm::mat4(1.0f);
-
-	gl::viewMat = glm::translate(gl::viewMat, glm::vec3(0.0f, 0.0f, -r));
-	gl::viewMat = glm::rotate(gl::viewMat, theta/3.1415f*180.0f,
-	                          glm::vec3(1.0f,0.0f,0.0f));
-	gl::viewMat = glm::rotate(gl::viewMat, -phi/3.1415f*180.0f,
-	                          glm::vec3(0.0f,0.0f,1.0f));
-	gl::viewMat = glm::translate(gl::viewMat,
+	gl::state.projection = glm::perspective(fov, aspectRatio, n, f);
+	gl::state.modelView = glm::mat4(1.0f);
+	gl::state.modelView = glm::translate(gl::state.modelView,
+	                                     glm::vec3(0.0f, 0.0f, -r));
+	gl::state.modelView = glm::rotate(gl::state.modelView,
+	                                  theta/3.1415f*180.0f,
+	                                  glm::vec3(1.0f,0.0f,0.0f));
+	gl::state.modelView = glm::rotate(gl::state.modelView,
+	                                  -phi/3.1415f*180.0f,
+	                                  glm::vec3(0.0f,0.0f,1.0f));
+	gl::state.modelView = glm::translate(gl::state.modelView,
 	                             glm::vec3(-target.x,-target.y, -target.z));
 	updateFrustum();
 }
@@ -78,7 +80,7 @@ void Camera::moveInOut(float d)
 
 void Camera::updateFrustum(void)
 {
-	glm::mat4 m = gl::projMat * gl::viewMat;
+	glm::mat4 m = gl::state.projection * gl::state.modelView;
 
 	float l;
 

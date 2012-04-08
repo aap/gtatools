@@ -27,25 +27,25 @@ function world.setInterior(i) __worldSetInterior(i) end
 function world.getInterior() return __worldGetInterior() end
 
 --
--- Gl
+-- Renderer
 --
-gl = {}
-function gl.setDoTextures(i) __glSetDoTextures(i) end
-function gl.getDoTextures() return __glGetDoTextures() end
-function gl.setDoZones(i) __glSetDoZones(i) end
-function gl.getDoZones() return __glGetDoZones() end
-function gl.setDoFog(i) __glSetDoFog(i) end
-function gl.getDoFog() return __glGetDoFog() end
-function gl.setDoVertexColors(i) __glSetDoVertexColors(i) end
-function gl.getDoVertexColors() return __glGetDoVertexColors() end
-function gl.setDoCol(i) __glSetDoCol(i) end
-function gl.getDoCol() return __glGetDoCol() end
-function gl.setDoTrails(i) __glSetDoTrails(i) end
-function gl.getDoTrails() return __glGetDoTrails() end
-function gl.setDoBFC(i) __glSetDoBFC(i) end
-function gl.getDoBFC() return __glGetDoBFC() end
-function gl.setLodMult(f) __glSetLodMult(f) end
-function gl.getLodMult() return __glGetLodMult() end
+renderer = {}
+function renderer.setDoTextures(i) __rendererSetDoTextures(i) end
+function renderer.getDoTextures() return __rendererGetDoTextures() end
+function renderer.setDoZones(i) __rendererSetDoZones(i) end
+function renderer.getDoZones() return __rendererGetDoZones() end
+function renderer.setDoFog(i) __rendererSetDoFog(i) end
+function renderer.getDoFog() return __rendererGetDoFog() end
+function renderer.setDoVertexColors(i) __rendererSetDoVertexColors(i) end
+function renderer.getDoVertexColors() return __rendererGetDoVertexColors() end
+function renderer.setDoCol(i) __rendererSetDoCol(i) end
+function renderer.getDoCol() return __rendererGetDoCol() end
+function renderer.setDoTrails(i) __rendererSetDoTrails(i) end
+function renderer.getDoTrails() return __rendererGetDoTrails() end
+function renderer.setDoBFC(i) __rendererSetDoBFC(i) end
+function renderer.getDoBFC() return __rendererGetDoBFC() end
+function renderer.setLodMult(f) __rendererSetLodMult(f) end
+function renderer.getLodMult() return __rendererGetLodMult() end
 
 
 dofile("init.lua")

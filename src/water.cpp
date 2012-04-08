@@ -2,6 +2,7 @@
 #include "gl.h"
 #include "water.h"
 #include "timecycle.h"
+#include "renderer.h"
 
 using namespace std;
 using namespace gl;
@@ -20,7 +21,7 @@ void Water::draw(void)
 
 	glVertexAttrib4f(in_Color, 1.0f, 1.0f, 1.0f, 1.0f);
 	glVertexAttrib3f(in_Normal, 0.0f, 0.0f, 0.0f);
-	if (gl::doTextures)
+	if (renderer.doTextures)
 		glBindTexture(GL_TEXTURE_2D, tex);
 	else
 		glBindTexture(GL_TEXTURE_2D, gl::whiteTex);

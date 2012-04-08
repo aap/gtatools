@@ -103,7 +103,7 @@ void Animation::read_3(ifstream &ifp)
 	ifp.read(buf, 24);
 	name = buf;
 	uint32 numObjs = readUInt32(ifp);
-	uint32 frameSize = readUInt32(ifp);
+	ifp.seekg(4, ios::cur);	// frameSize
 	ifp.seekg(4, ios::cur);
 
 	objList.resize(numObjs);
@@ -151,7 +151,7 @@ void AnimObj::read_3(std::ifstream &ifp)
 	name = buf;
 	uint32 frmType = readUInt32(ifp);
 	frames = readUInt32(ifp);
-	uint32 boneId = readUInt32(ifp);
+	ifp.seekg(4, ios::cur); // boneId
 
 	frmList.resize(frames);
 	for (int32 i = 0; i < frames; i++)

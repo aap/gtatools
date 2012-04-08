@@ -6,6 +6,7 @@
 #include "gl.h"
 #include "camera.h"
 #include "world.h"
+#include "renderer.h"
 
 #include "lua.h"
 
@@ -45,22 +46,6 @@ void LuaInterpreter(void)
 		}
 		add_history(s);
 		line = s;
-/*
-		cout << prompt;
-		getline(cin, line);
-
-		if (cin.eof()) {
-			if (prompt == ">> ") {
-				statement = "";
-				prompt = "gta> ";
-				cin.clear();
-				cout << endl;
-			} else {
-				running = false;
-			}
-			continue;
-		}
-*/
 
 		statement += " " + line;
 
@@ -258,129 +243,129 @@ void registerWorld(lua_State *L)
 }
 
 /*
- * Gl
+ * Renderer
  */
 
-int glSetDoTextures(lua_State *L)
+int rendererSetDoTextures(lua_State *L)
 {
 	int i = luaL_checkinteger(L, 1);
-	gl::doTextures = i;
+	renderer.doTextures = i;
 	return 0;
 }
 
-int glGetDoTextures(lua_State *L)
+int rendererGetDoTextures(lua_State *L)
 {
-	lua_pushinteger(L, gl::doTextures);
+	lua_pushinteger(L, renderer.doTextures);
 	return 1;
 }
 
-int glSetDoZones(lua_State *L)
+int rendererSetDoZones(lua_State *L)
 {
 	int i = luaL_checkinteger(L, 1);
-	gl::doZones = i;
+	renderer.doZones = i;
 	return 0;
 }
 
-int glGetDoZones(lua_State *L)
+int rendererGetDoZones(lua_State *L)
 {
-	lua_pushinteger(L, gl::doZones);
+	lua_pushinteger(L, renderer.doZones);
 	return 1;
 }
 
-int glSetDoFog(lua_State *L)
+int rendererSetDoFog(lua_State *L)
 {
 	int i = luaL_checkinteger(L, 1);
-	gl::doFog = i;
+	renderer.doFog = i;
 	return 0;
 }
 
-int glGetDoFog(lua_State *L)
+int rendererGetDoFog(lua_State *L)
 {
-	lua_pushinteger(L, gl::doFog);
+	lua_pushinteger(L, renderer.doFog);
 	return 1;
 }
 
-int glSetDoVertexColors(lua_State *L)
+int rendererSetDoVertexColors(lua_State *L)
 {
 	int i = luaL_checkinteger(L, 1);
-	gl::doVertexColors = i;
+	renderer.doVertexColors = i;
 	return 0;
 }
 
-int glGetDoVertexColors(lua_State *L)
+int rendererGetDoVertexColors(lua_State *L)
 {
-	lua_pushinteger(L, gl::doVertexColors);
+	lua_pushinteger(L, renderer.doVertexColors);
 	return 1;
 }
 
-int glSetDoCol(lua_State *L)
+int rendererSetDoCol(lua_State *L)
 {
 	int i = luaL_checkinteger(L, 1);
-	gl::doCol = i;
+	renderer.doCol = i;
 	return 0;
 }
 
-int glGetDoCol(lua_State *L)
+int rendererGetDoCol(lua_State *L)
 {
-	lua_pushinteger(L, gl::doCol);
+	lua_pushinteger(L, renderer.doCol);
 	return 1;
 }
 
-int glSetDoTrails(lua_State *L)
+int rendererSetDoTrails(lua_State *L)
 {
 	int i = luaL_checkinteger(L, 1);
-	gl::doTrails = i;
+	renderer.doTrails = i;
 	return 0;
 }
 
-int glGetDoTrails(lua_State *L)
+int rendererGetDoTrails(lua_State *L)
 {
-	lua_pushinteger(L, gl::doTrails);
+	lua_pushinteger(L, renderer.doTrails);
 	return 1;
 }
 
-int glSetDoBFC(lua_State *L)
+int rendererSetDoBFC(lua_State *L)
 {
 	int i = luaL_checkinteger(L, 1);
-	gl::doBFC = i;
+	renderer.doBFC = i;
 	return 0;
 }
 
-int glGetDoBFC(lua_State *L)
+int rendererGetDoBFC(lua_State *L)
 {
-	lua_pushinteger(L, gl::doBFC);
+	lua_pushinteger(L, renderer.doBFC);
 	return 1;
 }
 
-int glSetLodMult(lua_State *L)
+int rendererSetLodMult(lua_State *L)
 {
 	float f = luaL_checknumber(L, 1);
-	gl::lodMult = f;
+	renderer.lodMult = f;
 	return 0;
 }
 
-int glGetLodMult(lua_State *L)
+int rendererGetLodMult(lua_State *L)
 {
-	lua_pushnumber(L, gl::lodMult);
+	lua_pushnumber(L, renderer.lodMult);
 	return 1;
 }
 
 void registerGl(lua_State *L)
 {
-	lua_register(L, "__glSetDoTextures", glSetDoTextures);
-	lua_register(L, "__glGetDoTextures", glGetDoTextures);
-	lua_register(L, "__glSetDoZones", glSetDoZones);
-	lua_register(L, "__glGetDoZones", glGetDoZones);
-	lua_register(L, "__glSetDoFog", glSetDoFog);
-	lua_register(L, "__glGetDoFog", glGetDoFog);
-	lua_register(L, "__glSetDoVertexColors", glSetDoVertexColors);
-	lua_register(L, "__glGetDoVertexColors", glGetDoVertexColors);
-	lua_register(L, "__glSetDoCol", glSetDoCol);
-	lua_register(L, "__glGetDoCol", glGetDoCol);
-	lua_register(L, "__glSetDoTrails", glSetDoTrails);
-	lua_register(L, "__glGetDoTrails", glGetDoTrails);
-	lua_register(L, "__glSetDoBFC", glSetDoBFC);
-	lua_register(L, "__glGetDoBFC", glGetDoBFC);
-	lua_register(L, "__glSetLodMult", glSetLodMult);
-	lua_register(L, "__glGetLodMult", glGetLodMult);
+	lua_register(L, "__rendererSetDoTextures", rendererSetDoTextures);
+	lua_register(L, "__rendererGetDoTextures", rendererGetDoTextures);
+	lua_register(L, "__rendererSetDoZones", rendererSetDoZones);
+	lua_register(L, "__rendererGetDoZones", rendererGetDoZones);
+	lua_register(L, "__rendererSetDoFog", rendererSetDoFog);
+	lua_register(L, "__rendererGetDoFog", rendererGetDoFog);
+	lua_register(L,"__rendererSetDoVertexColors",rendererSetDoVertexColors);
+	lua_register(L,"__rendererGetDoVertexColors",rendererGetDoVertexColors);
+	lua_register(L, "__rendererSetDoCol", rendererSetDoCol);
+	lua_register(L, "__rendererGetDoCol", rendererGetDoCol);
+	lua_register(L, "__rendererSetDoTrails", rendererSetDoTrails);
+	lua_register(L, "__rendererGetDoTrails", rendererGetDoTrails);
+	lua_register(L, "__rendererSetDoBFC", rendererSetDoBFC);
+	lua_register(L, "__rendererGetDoBFC", rendererGetDoBFC);
+	lua_register(L, "__rendererSetLodMult", rendererSetLodMult);
+	lua_register(L, "__rendererGetLodMult", rendererGetLodMult);
 }

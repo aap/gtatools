@@ -52,6 +52,7 @@ public:
 	GLint u_FogDensity;
 	GLfloat fogDensity;
 
+	void calculateNormalMat(void);
 	void updateMatrices(void);
 	void updateMaterial(void);
 	void updateLight(void);

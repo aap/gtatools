@@ -18,7 +18,7 @@
 #include "water.h"
 #include "timecycle.h"
 #include "sky.h"
-#include "objman.h"
+#include "renderer.h"
 
 using namespace std;
 
@@ -27,11 +27,11 @@ namespace gl {
 static int ox, oy, mx, my;
 static int isLDown, isMDown, isRDown;
 static int isShiftDown, isCtrlDown, isAltDown;
-static Pipeline simplePipe, lambertPipe, gtaPipe;
 static uint lastSelected;
 static string statusLine;
 static GLuint axes_vbo;
 
+Pipeline simplePipe, lambertPipe, gtaPipe;
 
 int stencilShift;
 int width;
@@ -43,115 +43,20 @@ bool drawWire;
 bool drawTransparent;
 bool wasTransparent;
 
-glm::mat4 modelMat;
-glm::mat4 viewMat;
-glm::mat4 projMat;
-
-bool doZones;
-bool doTextures;
-bool doFog;
-bool doVertexColors;
-bool doCol;
-bool doTrails;
-bool doBFC;
-float lodMult;
-
 void renderScene(void)
 {
 	if (!running) {
 		cout << endl;
 		exit(0);
 	}
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
-	        GL_STENCIL_BUFFER_BIT);
 
-	Weather *w = timeCycle.getCurrentWeatherData();
-
-	// 3d scene
-	timeCycle.calcCurrent(timeCycle.getHour(), timeCycle.getMinute());
-	cam.setNearFar(0.1f, w->farClp);
-	cam.look();
-
-	// set up modelview mat
-	modelMat = glm::mat4(1.0f);
-	glm::mat4 modelView = viewMat * modelMat;
-	glm::mat3 normal = glm::inverseTranspose(glm::mat3(modelView));
-
-	// not used at the moment
-	glm::vec4 lightPos = glm::vec4(5.0f, 5.0f, 3.0f, 1.0f);
-	lightPos = viewMat * lightPos;
-	glm::vec3 lightCol = glm::vec3(1.0f, 1.0f, 1.0f);
-
-//	glm::vec3 amb = glm::vec3(0.49f, 0.47f, 0.33f);
-	glm::vec3 amb;
-	if (doTrails)
-		amb = glm::vec3(w->ambBl.x, w->ambBl.y, w->ambBl.z);
-	else
-		amb = glm::vec3(w->amb.x, w->amb.y, w->amb.z);
-
-	simplePipe.use();
-
-	state.projection = projMat;
-	state.modelView = modelView;
-	state.normalMat = normal;
-	state.lightPos = lightPos;
-	state.lightCol = lightCol;
-	state.ambientLight = amb;
-	state.texture = 0;
-	state.updateAll();
-	glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
-
-	glDisable(GL_DEPTH_TEST);
-	sky.draw();
-	glEnable(GL_DEPTH_TEST);
-	drawAxes(glm::value_ptr(modelMat));
-
-
-	gtaPipe.use();
-
-	state.fogColor.x = w->skyBot.x;
-	state.fogColor.y = w->skyBot.y;
-	state.fogColor.z = w->skyBot.z;
-	state.fogColor.w = w->skyBot.w;
-	state.fogDensity = 0.0f;	// 0.0025f for SA perhaps ?
-	if (!doFog)
-		state.fogDensity = -1.0f;
-	state.fogStart = w->fogSt;
-	state.fogEnd = w->farClp;
-	state.updateAll();
-
-	drawWire = false;
-
-/*
-	drawTransparent = false;
-	drawable.draw();
-	drawTransparent = true;
-	drawable.draw();
-*/
-
-	if (doBFC)
-		glEnable(GL_CULL_FACE);
-	world.drawOpaque();
-	glDepthMask(GL_FALSE);
-	world.drawTransparent1();
-	glDepthMask(GL_TRUE);
-	glDisable(GL_CULL_FACE);
-	water.draw();
-	if (doBFC)
-		glEnable(GL_CULL_FACE);
-	world.drawTransparent2();
-	glDisable(GL_CULL_FACE);
+	renderer.renderScene();
 
 	// 2d overlay
 	glDisable(GL_DEPTH_TEST);
 	simplePipe.use();
-	viewMat = glm::mat4(1.0f);
-	modelMat = glm::translate(glm::mat4(1.0f), glm::vec3(100, 100, 0));
-	modelView = viewMat * modelMat;
-	projMat = glm::ortho(0, width, 0, height, -1, 1);
-
-	state.projection = projMat;
-	state.modelView = modelView;
+	state.projection = glm::ortho(0, width, 0, height, -1, 1);
+	state.modelView= glm::translate(glm::mat4(1.0f), glm::vec3(100,100,0));
 	state.updateMatrices();
 
 //	glBindTexture(GL_TEXTURE_2D, whiteTex);
@@ -392,14 +297,7 @@ void init(char *model, char *texdict)
 	glEnable(GL_STENCIL_TEST);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
-	doZones = false;
-	doTextures = true;
-	doFog = true;
-	doVertexColors = true;
-	doCol = false;
-	doTrails = false;
-	doBFC = false;
-	lodMult = 1.0f;
+	renderer.init();
 
 	int white = 0xFFFFFFFF;
 	glGenTextures(1, &whiteTex);
@@ -414,14 +312,6 @@ void init(char *model, char *texdict)
 	simplePipe.load("shader/simple.vert", "shader/simple.frag");
 	lambertPipe.load("shader/lambert.vert", "shader/simple.frag");
 	gtaPipe.load("shader/gtaPipe.vert", "shader/gtaPipe.frag");
-
-	cam.setPitch(PI/8.0f-PI/2.0f);
-	cam.setDistance(20.0f);
-	cam.setAspectRatio((GLfloat) width / height);
-	cam.setTarget(quat(335.5654907, -159.0345306, 17.85120964));
-//	cam.setTarget(quat(-1158.1, 412.282, 33.6813));	// dam
-//	cam.setTarget(quat(1176.17, -1154.5, 87.2194));	// la records
-
 
 	GLfloat axes[] = {
 		0.0f, 0.0f, 0.0f,
@@ -443,45 +333,7 @@ void init(char *model, char *texdict)
 	glBufferData(GL_ARRAY_BUFFER, sizeof(axes), axes, GL_STATIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-	cout << "associating lods\n";
-	world.associateLods();
-
-	cout << "associating cols\n";
-	objectList.associateCols();
-
-	// load water
-	cout << "loading water\n";
-	if (game == GTA3 || game == GTAVC) {
-		string fileName = getPath("data/waterpro.dat");
-		ifstream f(fileName.c_str(), ios::binary);
-		if (f.fail()) {
-			cerr << "couldn't open waterpro.dat\n";
-		} else {
-			water.loadWaterpro(f);
-			f.close();
-		}
-	} else {	// must be GTASA
-		string fileName = getPath("data/water.dat");
-		ifstream f(fileName.c_str());
-		if (f.fail()) {
-			cerr << "couldn't open water.dat\n";
-		} else {
-			water.loadWater(f);
-			f.close();
-		}
-	}
-
-	// load timecycle
-	cout << "loading timecycle\n";
-	string fileName = getPath("data/timecyc.dat");
-	ifstream f(fileName.c_str());
-	if (f.fail()) {
-		cerr << "couldn't open timecyc.dat\n";
-	} else {
-		timeCycle.load(f);
-		f.close();
-	}
-
+	gameInit();
 #if 0
 	string txd = texdict;
 	string dff = model;

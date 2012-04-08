@@ -15,6 +15,7 @@
 #include "pipeline.h"
 #include "objman.h"
 #include "col.h"
+#include "renderer.h"
 
 using namespace std;
 
@@ -24,7 +25,7 @@ World world;
  * World
  */
 
-void World::drawOpaque(void)
+void World::buildRenderList(void)
 {
 	quat camPos = cam.getPosition();
 
@@ -35,34 +36,18 @@ void World::drawOpaque(void)
 		}
 	}
 
-	gl::drawTransparent = false;
-	transpInstances1.clear();
-	transpInstances2.clear();
-	islands[0].draw();
-	islands[activeIsland].draw();
+	islands[0].addToRenderList();
+	islands[activeIsland].addToRenderList();
 	for (uint i = 0; i < islands.size(); i++) {
-		if (i != activeIsland) {
-			islands[i].drawLod();
-		}
+		if (i != activeIsland)
+			islands[i].addLodToRenderList();
 	}
 }
 
-void World::drawTransparent1(void)
+void World::drawZones(void)
 {
-	gl::drawTransparent = true;
-	for (uint i = 0; i < transpInstances1.size(); i++)
-		transpInstances1[i]->justDraw();
-}
-
-void World::drawTransparent2(void)
-{
-	gl::drawTransparent = true;
-	for (uint i = 0; i < transpInstances2.size(); i++)
-		transpInstances2[i]->justDraw();
-
-	if (gl::doZones)
-		for (uint i = 0; i < islands.size(); i++)
-			islands[i].drawZones();
+	for (uint i = 0; i < islands.size(); i++)
+		islands[i].drawZones();
 }
 
 static int ind;
@@ -403,17 +388,6 @@ Instance *World::getInstance(uint i)
 	return 0;
 }
 
-void World::addTransparent1(Instance *ip, float dist)
-{
-	transpInstances1.push_back(ip);
-}
-
-void World::addTransparent2(Instance *ip, float dist)
-{
-	// TODO: depth sort
-	transpInstances2.push_back(ip);
-}
-
 void World::setInterior(int i)
 {
 	interior = i;
@@ -433,16 +407,16 @@ World::World(void)
  * Island
  */
 
-void Island::draw(void)
+void Island::addToRenderList(void)
 {
 	for (uint i = 0; i < instances.size(); i++)
-		instances[i]->draw();
+		instances[i]->addToRenderList();
 }
 
-void Island::drawLod(void)
+void Island::addLodToRenderList(void)
 {
 	for (uint i = 0; i < islandLods.size(); i++)
-		islandLods[i]->draw();
+		islandLods[i]->addToRenderList();
 }
 
 void Island::drawZones(void)
@@ -510,13 +484,13 @@ bool Zone::pointInZone(quat p)
  * Instance
  */
 
-void Instance::draw(void)
+void Instance::addToRenderList(void)
 {
 	WorldObject *op = (WorldObject*)objectList.get(id);
 
 	// check draw distance
 	float d = cam.distanceTo(position);
-	int ai = op->getCorrectAtomic(d/gl::lodMult);
+	int ai = op->getCorrectAtomic(d/renderer.lodMult);
 
 	// frustum cull
 	if (op->isLoaded)
@@ -527,7 +501,7 @@ void Instance::draw(void)
 	if (ai < 0) {
 		Instance *ip = world.getInstance(lod);
 		if (ip != 0)
-			ip->draw();
+			ip->addToRenderList();
 		return;
 	}
 
@@ -539,7 +513,7 @@ void Instance::draw(void)
 
 	// check for interior (if intr < 0 everything is drawn)
 	int intr = world.getInterior();
-	if (interior != intr && intr >= 0 && !gl::doCol) {
+	if (interior != intr && intr >= 0 && !renderer.doCol) {
 		if (game == GTAVC) {
 			if (interior != 13)
 				return;
@@ -554,84 +528,17 @@ void Instance::draw(void)
 
 	// check for time
 	if (op->isTimed && !op->isVisibleAtTime(timeCycle.getHour()) &&
-	    !gl::doCol)
+	    !renderer.doCol)
 		return;
 
+	// TODO: implement an object request mechanism
 	if (!op->isLoaded)
 		op->load();
 
-	glm::mat4 save = gl::modelMat;
-
-	transform();
-
-	glStencilFunc(GL_ALWAYS, (index>>gl::stencilShift)&0xFF, -1);
-
-	if (op->BSvisible)
-		op->drawBoundingSphere();
-
-	if (gl::doCol) {
-		if (op->col)
-			op->drawCol();
-	} else {
-//		if (op->flags & 128 && gl::doBFC)
-//			glEnable(GL_CULL_FACE);
-		gl::wasTransparent = false;
-		if (op->type == ANIM)
-			op->drawable.draw();
-		else
-			op->drawable.drawAtomic(ai);
-//		glDisable(GL_CULL_FACE);
-	}
-
-	if (gl::wasTransparent) {
-		if (op->flags & 0x40)
-			world.addTransparent1(this, d);
-		else
-			world.addTransparent2(this, d);
-	}
-
-	gl::modelMat = save;
-	glm::mat4 modelView = gl::viewMat * gl::modelMat;
-	glm::mat3 normal = glm::inverseTranspose(glm::mat3(modelView));
-
-	gl::state.modelView = modelView;
-	gl::state.normalMat = normal;
-	gl::state.updateMatrices();
-}
-
-void Instance::justDraw(void)
-{
-	if (!isVisible)
-		return;
-	WorldObject *op = (WorldObject*)objectList.get(id);
-	float d = cam.distanceTo(position);
-	int ai = op->getCorrectAtomic(d);
-
-	if (!op->isLoaded)
-		op->load();
-
-	glm::mat4 save = gl::modelMat;
-	transform();
-
-	glStencilFunc(GL_ALWAYS, (index>>gl::stencilShift)&0xFF, -1);
-
-	if (!gl::doCol) {
-//		if (op->flags & 128 && gl::doBFC)
-//			glEnable(GL_CULL_FACE);
-		if (op->type == ANIM)
-			op->drawable.draw();
-		else
-			op->drawable.drawAtomic(ai);
-//		glDisable(GL_CULL_FACE);
-	}
-
-	gl::modelMat = save;
-	glm::mat4 modelView = gl::viewMat * gl::modelMat;
-	glm::mat3 normal = glm::inverseTranspose(glm::mat3(modelView));
-
-	gl::state.modelView = modelView;
-	gl::state.normalMat = normal;
-	gl::state.updateMatrices();
+	if (op->type == ANIM)
+		renderer.addOpaqueObject(this, -1);
+	else
+		renderer.addOpaqueObject(this, ai);
 }
 
 bool Instance::isCulled(void)
@@ -652,14 +559,11 @@ void Instance::transform(void)
 	q.x = -rotation.x;
 	q.y = -rotation.y;
 	q.z = -rotation.z;
-	gl::modelMat = glm::translate(gl::modelMat,
-	                      glm::vec3(position.x, position.y, position.z));
-	gl::modelMat *= glm::mat4_cast(q);
-	glm::mat4 modelView = gl::viewMat * gl::modelMat;
-	glm::mat3 normal = glm::inverseTranspose(glm::mat3(modelView));
 
-	gl::state.modelView = modelView;
-	gl::state.normalMat = normal;
+	gl::state.modelView = glm::translate(gl::state.modelView,
+	                         glm::vec3(position.x, position.y, position.z));
+	gl::state.modelView *= glm::mat4_cast(q);
+	gl::state.calculateNormalMat();
 	gl::state.updateMatrices();
 }
 

@@ -36,12 +36,11 @@ void main(void) {
 	}
 	fogFactor = clamp(fogFactor, 0.0, 1.0);
 
-	vec4 blur = vec4(0.21, 0.14, 0.06, 0.0);
+//	vec4 blur = vec4(0.21, 0.14, 0.06, 0.0);
 
 	vec4 fragCol = v_Color * texture2D(u_Texture, v_TexCoord);
+	float alpha = fragCol[3];
 	fragCol = mix(u_Fog.color, fragCol, fogFactor);
+	fragCol[3] = alpha;
 	gl_FragColor = fragCol;
-//	gl_FragColor = overlay(gl_FragColor, fragCol);
-//	blur = blur*blur;
-//	gl_FragColor += blur;
 }

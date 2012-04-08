@@ -49,16 +49,15 @@ void Sky::draw(void)
 		w->skyTop.x, w->skyTop.y, w->skyTop.z
 	};
 
-	glm::mat4 save = modelMat;
+	glm::mat4 mvSave = gl::state.modelView;
+	glm::mat3 nrmSave = gl::state.normalMat;
 
 	quat campos = cam.getPosition();
-	gl::modelMat = glm::translate(gl::modelMat,
-	                              glm::vec3(campos.x, campos.y, campos.z));
-	gl::modelMat = glm::rotate(gl::modelMat, cam.getYaw()/3.1415f*180.0f,
-	                           glm::vec3(0.0f, 0.0f, 1.0f));
-	glm::mat4 modelView = viewMat * modelMat;
-
-	state.modelView = modelView;
+	gl::state.modelView = glm::translate(gl::state.modelView,
+			glm::vec3(campos.x, campos.y, campos.z));
+	gl::state.modelView = glm::rotate(gl::state.modelView,
+	                                  cam.getYaw()/3.1415f*180.0f,
+	                                  glm::vec3(0.0f, 0.0f, 1.0f));
 	state.updateMatrices();
 
 	glGenBuffers(1, &vbo);
@@ -77,9 +76,7 @@ void Sky::draw(void)
 	glDeleteBuffers(1, &vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-	modelMat = save;
-	modelView = viewMat * modelMat;
-
-	state.modelView = modelView;
-	state.updateMatrices();
+	gl::state.modelView = mvSave;
+	gl::state.normalMat = nrmSave;
+	gl::state.updateMatrices();
 }

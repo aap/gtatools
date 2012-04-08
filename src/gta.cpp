@@ -12,6 +12,9 @@
 #include "world.h"
 #include "gl.h"
 #include "texman.h"
+#include "camera.h"
+#include "water.h"
+#include "timecycle.h"
 
 using namespace std;
 using namespace rw;
@@ -216,6 +219,55 @@ int main(int argc, char *argv[])
 	gl::start(&argc, argv);
 
 	return 0;
+}
+
+void gameInit(void)
+{
+	cam.setPitch(PI/8.0f-PI/2.0f);
+	cam.setDistance(20.0f);
+	cam.setAspectRatio((GLfloat) gl::width / gl::height);
+	cam.setTarget(quat(335.5654907, -159.0345306, 17.85120964));
+//	cam.setTarget(quat(-1158.1, 412.282, 33.6813));	// dam
+//	cam.setTarget(quat(1176.17, -1154.5, 87.2194));	// la records
+
+	cout << "associating lods\n";
+	world.associateLods();
+
+	cout << "associating cols\n";
+	objectList.associateCols();
+
+	// load water
+	cout << "loading water\n";
+	if (game == GTA3 || game == GTAVC) {
+		string fileName = getPath("data/waterpro.dat");
+		ifstream f(fileName.c_str(), ios::binary);
+		if (f.fail()) {
+			cerr << "couldn't open waterpro.dat\n";
+		} else {
+			water.loadWaterpro(f);
+			f.close();
+		}
+	} else {	// must be GTASA
+		string fileName = getPath("data/water.dat");
+		ifstream f(fileName.c_str());
+		if (f.fail()) {
+			cerr << "couldn't open water.dat\n";
+		} else {
+			water.loadWater(f);
+			f.close();
+		}
+	}
+
+	// load timecycle
+	cout << "loading timecycle\n";
+	string fileName = getPath("data/timecyc.dat");
+	ifstream f(fileName.c_str());
+	if (f.fail()) {
+		cerr << "couldn't open timecyc.dat\n";
+	} else {
+		timeCycle.load(f);
+		f.close();
+	}
 }
 
 /*

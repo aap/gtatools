@@ -35,8 +35,7 @@ public:
 
 	/* functions */
 	bool isCulled(void);
-	void draw(void);
-	void justDraw(void);
+	void addToRenderList(void);
 	void transform(void);
 	void printInfo(void);
 	void setVisible(bool v);
@@ -71,8 +70,8 @@ public:
 	/* functions */
 	bool pointInIsland(quat p);
 	bool sphereInIsland(quat p, float r);
-	void draw(void);
-	void drawLod(void);
+	void addToRenderList(void);
+	void addLodToRenderList(void);
 	void drawZones(void);
 };
 
@@ -85,9 +84,6 @@ private:
 	std::vector<Island> islands;
 	uint activeIsland;
 
-	std::vector<Instance *> transpInstances1;
-	std::vector<Instance *> transpInstances2;
-
 	int interior;
 
 	void addInstance(Instance *i);
@@ -98,11 +94,8 @@ public:
 	void readBinIpl(std::ifstream &);
 	void readTextIpl(std::ifstream &);
 	void associateLods(void);
-	void drawOpaque(void);
-	void drawTransparent1(void);
-	void drawTransparent2(void);
-	void addTransparent1(Instance *ip, float dist);
-	void addTransparent2(Instance *ip, float dist);
+	void buildRenderList(void);
+	void drawZones(void);
 
 	void setInterior(int i);
 	int getInterior(void);

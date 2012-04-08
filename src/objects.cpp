@@ -385,22 +385,20 @@ WorldObject::WorldObject(void)
 
 void Model::drawBoundingSphere(void)
 {
-	glm::mat4 save = gl::modelMat;
+	glm::mat4 mvSave = gl::state.modelView;
+	glm::mat3 nrmSave = gl::state.normalMat;
 
-	gl::modelMat = glm::translate(gl::modelMat,
-	                      glm::vec3(col->boundingSphere.x,
-	                                col->boundingSphere.y,
-	                                col->boundingSphere.z));
-	glm::mat4 modelView = gl::viewMat * gl::modelMat;
-	glm::mat3 normal = glm::inverseTranspose(glm::mat3(modelView));
-
-	gl::state.modelView = modelView;
-	gl::state.normalMat = normal;
+	gl::state.modelView = glm::translate(gl::state.modelView,
+	                                     glm::vec3(col->boundingSphere.x,
+	                                               col->boundingSphere.y,
+	                                               col->boundingSphere.z));
+	// don't need normal matrix
 	gl::state.updateMatrices();
+
 
 	glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
 	glVertexAttrib4f(gl::in_Color, 1.0f, 1.0f, 1.0f, 1.0f);
-	glm::vec4 color(0.8f, 0.8f, 0.8f, 1.0f);
+	glm::vec4 color;
 	if (col->island == 0)
 		color = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f);
 	else if (col->island == 1)
@@ -416,34 +414,13 @@ void Model::drawBoundingSphere(void)
 
 	gl::drawSphere(col->boundingSphere.w, 8, 8);
 
-
-	gl::modelMat = save;
-	modelView = gl::viewMat * gl::modelMat;
-	normal = glm::inverseTranspose(glm::mat3(modelView));
-
-	gl::state.modelView = modelView;
-	gl::state.normalMat = normal;
+	gl::state.modelView = mvSave;
+	gl::state.normalMat = nrmSave;
 	gl::state.updateMatrices();
 }
 
 void Model::drawCol(void)
 {
-/*
-	glm::mat4 save = gl::modelMat;
-
-	gl::modelMat = glm::translate(gl::modelMat,
-	                      glm::vec3(col->boundingSphere.x,
-	                                col->boundingSphere.y,
-	                                col->boundingSphere.z));
-	glm::mat4 modelView = gl::viewMat * gl::modelMat;
-	glm::mat3 normal = glm::inverseTranspose(glm::mat3(modelView));
-
-	gl::state.modelView = modelView;
-	gl::state.normalMat = normal;
-//	gl::state.updateMatrices();
-*/
-
-
 	// draw faces
 	glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
 	glVertexAttrib4f(gl::in_Color, 1.0f, 1.0f, 1.0f, 1.0f);
@@ -468,7 +445,7 @@ void Model::drawCol(void)
 	glEnableVertexAttribArray(gl::in_Vertex);
 	glVertexAttribPointer(gl::in_Vertex, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
-	glm::vec4 color(0.8f, 0.8f, 0.8f, 1.0f);
+	glm::vec4 color;
 
 	if (col->island == 0)
 		color = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f);
@@ -510,16 +487,6 @@ void Model::drawCol(void)
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		glLineWidth(1);
 	}
-
-/*
-	gl::modelMat = save;
-	modelView = gl::viewMat * gl::modelMat;
-	normal = glm::inverseTranspose(glm::mat3(modelView));
-
-	gl::state.modelView = modelView;
-	gl::state.normalMat = normal;
-//	gl::state.updateMatrices();
-*/
 }
 
 void Model::load(void)
