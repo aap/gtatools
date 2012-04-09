@@ -32,7 +32,7 @@ extern bool running;
 
 extern Drawable drawable;
 
-void gameInit(void);
+void initGame(void);
 std::string getPath(std::string relative);
 void stringToLower(std::string &);
 void getFields(std::string &s, std::string sep, std::vector<std::string> &v);

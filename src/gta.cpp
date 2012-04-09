@@ -40,6 +40,7 @@ void parseDat(ifstream &f)
 	ifstream inFile;
 
 
+	bool colsInitialized = false;
 	while (!f.eof()) {
 		getline(f, line);
 		getFields(line, " \t", fields);
@@ -66,6 +67,13 @@ void parseDat(ifstream &f)
 			size_t i = fileName.find_last_of(PSEP_C);
 			objectList.findAndReadCol(fileName.substr(i+1));
 		} else if (type == "IPL" || type == "MAPZONE") {
+			if (!colsInitialized) {
+				cout << "associating cols\n";
+				objectList.associateCols();
+				colsInitialized = true;
+				cout << "continue with main dat\n";
+			}
+
 			inFile.open(fileName.c_str());
 			if (inFile.fail()) {
 				cerr << "couldn't open ipl " <<fileName<<endl;
@@ -104,9 +112,8 @@ void parseDat(ifstream &f)
 int main(int argc, char *argv[])
 {
 	progname = argv[0];
-//	if (argc < 4) {
 	if (argc < 2) {
-		cerr << "too few arguments\n";
+		cerr << "usage: " << argv[0] << " game_path\n";
 		return 1;
 	}
 	gamePath = argv[1];
@@ -132,7 +139,6 @@ int main(int argc, char *argv[])
 		game = GTASA;
 		objectList.init(19000);
 	}
-
 	f.close();
 
 	cout << "game path: " << gamePath << endl;
@@ -182,19 +188,19 @@ int main(int argc, char *argv[])
 	// try to open .dir, if it fails open (v2) .img
 	dirFile.open(dirPath.c_str(), ios::binary);
 	if (!dirFile.fail()) {
-		cout << "found txd file\n";
+		cout << "found txd archive, loading\n";
 		directory.addFromFile(dirFile, imgPath);
 		dirFile.close();
 	} else {
 		dirFile.open(imgPath.c_str(), ios::binary);
 		if (!dirFile.fail()) {
-			cout << "found txd file\n";
+			cout << "found txd archive, loading\n";
 			directory.addFromFile(dirFile, imgPath);
 			dirFile.close();
 		}
 	}
 
-	// TODO: load other files
+	// load other files
 	directory.addFile(getPath("models/particle.txd"));
 
 	// load default dat file
@@ -221,20 +227,18 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
-void gameInit(void)
+void initGame(void)
 {
 	cam.setPitch(PI/8.0f-PI/2.0f);
 	cam.setDistance(20.0f);
 	cam.setAspectRatio((GLfloat) gl::width / gl::height);
 	cam.setTarget(quat(335.5654907, -159.0345306, 17.85120964));
-//	cam.setTarget(quat(-1158.1, 412.282, 33.6813));	// dam
-//	cam.setTarget(quat(1176.17, -1154.5, 87.2194));	// la records
 
 	cout << "associating lods\n";
 	world.associateLods();
 
-	cout << "associating cols\n";
-	objectList.associateCols();
+	cout << "populating islands\n";
+	world.populateIslands();
 
 	// load water
 	cout << "loading water\n";

@@ -2,6 +2,7 @@
 #include "camera.h"
 #include "world.h"
 #include "gl.h"
+#include "primitives.h"
 #include "timecycle.h"
 #include "sky.h"
 #include "water.h"
@@ -150,9 +151,9 @@ void Renderer::renderScene(void)
 
 	gl::state.calculateNormalMat();
 
-	// not used at the moment
-	glm::vec4 lightPos = glm::vec4(5.0f, 5.0f, 3.0f, 1.0f);
-	lightPos = gl::state.modelView * lightPos;
+//	not used at the moment
+//	glm::vec4 lightPos = glm::vec4(5.0f, 5.0f, 3.0f, 1.0f);
+//	lightPos = gl::state.modelView * lightPos;
 	glm::vec3 lightCol = glm::vec3(1.0f, 1.0f, 1.0f);
 
 	glm::vec3 amb;
@@ -163,7 +164,7 @@ void Renderer::renderScene(void)
 
 	gl::simplePipe.use();
 
-	gl::state.lightPos = lightPos;
+//	gl::state.lightPos = lightPos;
 	gl::state.lightCol = lightCol;
 	gl::state.ambientLight = amb;
 	gl::state.texture = 0;
@@ -173,7 +174,7 @@ void Renderer::renderScene(void)
 	glDisable(GL_DEPTH_TEST);
 	sky.draw();
 	glEnable(GL_DEPTH_TEST);
-//	drawAxes(glm::value_ptr(modelMat));
+	gl::drawAxes(glm::value_ptr(gl::state.modelView));
 
 
 	gl::gtaPipe.use();
@@ -190,13 +191,13 @@ void Renderer::renderScene(void)
 
 	gl::drawWire = false;
 
-/*
-	drawTransparent = false;
+	// the test object
+	gl::drawTransparent = false;
 	drawable.draw();
-	drawTransparent = true;
+	gl::drawTransparent = true;
 	drawable.draw();
-*/
 
+	// the world
 	opaqueRenderList.clear();
 	transp1RenderList.clear();
 	transp2RenderList.clear();
@@ -205,7 +206,7 @@ void Renderer::renderScene(void)
 
 	if (doBFC)
 		glEnable(GL_CULL_FACE);
-	renderOpaque();
+	renderOpaque();	// this constructs the transp1/2 render lists
 	glDepthMask(GL_FALSE);
 	renderTransp1();
 	glDepthMask(GL_TRUE);

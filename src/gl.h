@@ -18,7 +18,7 @@ namespace gl {
 	void keypressSpecial(int key, int x, int y);
 	void mouseButton(int button, int state, int x, int y);
 	void mouseMotion(int x, int y);
-	void init(void);
+	void initGl(void);
 	void start(int *argc, char *argv[]);
 
 	extern int stencilShift;

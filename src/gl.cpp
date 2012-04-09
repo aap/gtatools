@@ -281,7 +281,7 @@ void mouseMotion(int x, int y)
 	}
 }
 
-void init(char *model, char *texdict)
+void initGl(void)
 {
 	if (glewInit() != GLEW_OK) {
 		cerr << "couldn't init glew\n";
@@ -332,11 +332,41 @@ void init(char *model, char *texdict)
 	glBindBuffer(GL_ARRAY_BUFFER, axes_vbo);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(axes), axes, GL_STATIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
 
-	gameInit();
-#if 0
-	string txd = texdict;
-	string dff = model;
+void *opengl(void *args);
+void *loader(void *args);
+void *lua(void *args);
+
+void start(int *argc, char *argv[])
+{
+	width = 644;
+	height = 340;
+//	width = 640;
+//	height = 480;
+
+	glutInit(argc, argv);
+	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE |
+	                    GLUT_ALPHA | GLUT_DEPTH | GLUT_STENCIL);
+	glutInitWindowSize(width, height);
+	glutCreateWindow(progname);
+
+	glutDisplayFunc(renderScene);
+	glutReshapeFunc(reshape);
+	glutKeyboardFunc(keypress);
+	glutMouseFunc(mouseButton);
+	glutMotionFunc(mouseMotion);
+	glutSpecialFunc(keypressSpecial);
+	glutIdleFunc(renderScene);
+
+	initGl();
+
+	initGame();
+
+
+if (*argc >= 4) {
+	string txd = argv[2];
+	string dff = argv[3];
 	if (txd == "search") {
 		cout << "searching " << dff << endl;
 		for (int i = 0; i < objectList.getObjectCount(); i++) {
@@ -361,8 +391,8 @@ void init(char *model, char *texdict)
 		exit(1);
 
 	AnimPackage anpk;
-	fileName = getPath("anim/ped.ifp");
-	f.open(fileName.c_str(), ios::binary);
+	string fileName = getPath("anim/ped.ifp");
+	ifstream f(fileName.c_str(), ios::binary);
 	anpk.read(f);
 	f.close();
 
@@ -383,35 +413,7 @@ void init(char *model, char *texdict)
 			break;
 		}
 	}
-#endif
 }
-
-void *opengl(void *args);
-void *loader(void *args);
-void *lua(void *args);
-
-void start(int *argc, char *argv[])
-{
-//	width = 644;
-//	height = 340;
-	width = 640;
-	height = 480;
-
-	glutInit(argc, argv);
-	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE |
-	                    GLUT_ALPHA | GLUT_DEPTH | GLUT_STENCIL);
-	glutInitWindowSize(width, height);
-	glutCreateWindow(progname);
-
-	glutDisplayFunc(renderScene);
-	glutReshapeFunc(reshape);
-	glutKeyboardFunc(keypress);
-	glutMouseFunc(mouseButton);
-	glutMotionFunc(mouseMotion);
-	glutSpecialFunc(keypressSpecial);
-	glutIdleFunc(renderScene);
-
-	init(argv[2], argv[3]);
 
 	running = true;
 

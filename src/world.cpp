@@ -78,17 +78,38 @@ void World::readIpl(ifstream &in, string iplName)
 
 void World::addInstance(Instance *i)
 {
+	i->isIslandLod = i->isLod = false;
+	if (i->name.substr(0,3) == "lod")
+		i->isLod = true;
+	else if (i->name.substr(0,9) == "islandlod")
+		i->isIslandLod = true;
+	// assume only non-lods for San Andreas, the flag is later corrected
+	if (game == GTASA)
+		i->isIslandLod = i->isLod = false;
+	// LODDUMMY
+	if (i->name.substr(0,3) == "xxx")
+		i->isIslandLod = i->isLod = false;
+
 	i->isVisible = true;
 
 	instances.push_back(i);
 	uint k = instances.size()-1;
 	instances[k]->index = k;
 	indices.push_back(ind++);
+}
 
+void World::populateIslands(void)
+{
+	for (uint i = 0; i < instances.size(); i++)
+		addInstanceToIsland(instances[i]);
+}
+
+void World::addInstanceToIsland(Instance *i)
+{
 	if (i->isLod)
 		return;
 
-	// TODO: tune this value
+	// TODO: this is probably false
 	float dist = 120.0f;
 	if (game == GTASA)
 		dist = 500.0f;
@@ -137,16 +158,6 @@ void World::readBinIpl(ifstream &in)
 		ip->scale = quat(1.0f, 1.0f, 1.0f);
 
 		ip->name = ((WorldObject*)objectList.get(ip->id))->modelName;
-
-		ip->isIslandLod = ip->isLod = false;
-		if (ip->name.substr(0,3) == "lod")
-			ip->isLod = true;
-		else if (ip->name.substr(0,9) == "islandlod")
-			ip->isIslandLod = true;
-		if (game == GTASA && ip->name.size() > 3) {
-			if (ip->name.substr(ip->name.size()-3, 3) == "lod")
-				ip->isLod = true;
-		}
 
 		addInstance(ip);
 	}
@@ -206,16 +217,6 @@ void World::readTextIpl(ifstream &in)
 
 			ip->name = fields[i++];
 			stringToLower(ip->name);
-
-			ip->isIslandLod = ip->isLod = false;
-			if (ip->name.substr(0,3) == "lod")
-				ip->isLod = true;
-			else if (ip->name.substr(0,9) == "islandlod")
-				ip->isIslandLod = true;
-			if (game == GTASA && ip->name.size() > 3)
-				if (ip->name.substr(ip->name.size()-3, 3)
-				    == "lod")
-					ip->isLod = true;
 
 			if (hasInterior)
 				ip->interior = atoi(fields[i++].c_str());
@@ -293,6 +294,7 @@ void World::associateLods(void)
 			if (ip->lod != -1) {
 				ip->lod = base + ip->lod;
 				instances[ip->lod]->hires.push_back(i);
+				instances[ip->lod]->isLod = true;
 			}
 		} else {
 			ip->lod = getLod(ip);
@@ -301,9 +303,7 @@ void World::associateLods(void)
 		}
 	}
 
-	/* Some LODs don't have hires instances, add dummies */
-	// TODO: find out how the game handles these
-
+	// Some LODs in 3/VC don't have hires instances, add dummies
 	WorldObject *dummyObj;
 	dummyObj = new WorldObject;
 	dummyObj->type = OBJS;
@@ -311,9 +311,11 @@ void World::associateLods(void)
 	dummyObj->modelName = "LODDUMMY";
 	dummyObj->textureName = "LODDUMMY";
 	dummyObj->objectCount = 1;
-	// not sure about that one
-	dummyObj->drawDistances.push_back(100);
-//	dummyObj->drawDistances.push_back(0);
+	if (game == GTA3)
+		// not sure about that one
+		dummyObj->drawDistances.push_back(200);
+	else
+		dummyObj->drawDistances.push_back(0);
 	dummyObj->flags = 0;
 	objectList.add(dummyObj);
 
@@ -351,13 +353,10 @@ int World::getLod(Instance *ip)
 	lodName1[0] = 'l'; lodName1[1] = 'o'; lodName1[2] = 'd';
 	// some objects have LODs without '_dy' and '_nt' suffix
 	string lodName2 = lodName1;
-	size_t pos;
-	pos = lodName2.find("_nt");
-	if (pos != string::npos) {
-		lodName2.resize(lodName2.size()-3);
-	} else {
-		pos = lodName2.find("_dy");
-		if (pos != string::npos)
+	if (lodName2.size() >= 3) {
+		if (lodName2.substr(lodName2.size()-3, 3) == "_nt")
+			lodName2.resize(lodName2.size()-3);
+		else if (lodName2.substr(lodName2.size()-3, 3) == "_dy")
 			lodName2.resize(lodName2.size()-3);
 	}
 

@@ -11,9 +11,15 @@
 --cam.setYaw(2.885)
 --cam.setPitch(4.7874)
 
-cam.setFov(50);
-cam.setTarget(201.83615112305, -1307.6668701172, 10.273765563965)
-cam.setDistance(7.26)
-cam.setYaw(1.5758)
-cam.setPitch(4.875)
+-- ocean drive street
+--cam.setFov(50);
+--cam.setTarget(201.83615112305, -1307.6668701172, 10.273765563965)
+--cam.setDistance(7.26)
+--cam.setYaw(1.5758)
+--cam.setPitch(4.875)
 
+-- la records
+cam.setFov(50);
+cam.setDistance(20.0)
+cam.setPitch(3.14/8.0-3.14/2.0);
+cam.setTarget(1176.17, -1154.5, 87.2194);

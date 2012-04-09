@@ -518,7 +518,7 @@ void Drawable::drawGeometry(int gi)
 		return;
 
 	// sensible defaults
-	glVertexAttrib4f(in_Color, 1.0f, 1.0f, 1.0f, 1.0f);
+	glVertexAttrib4f(in_Color, 0.0f, 0.0f, 0.0f, 1.0f);
 	glVertexAttrib3f(in_Normal, 0.0f, 0.0f, 0.0f);
 
 	uint numVertices = g.vertices.size() / 3;

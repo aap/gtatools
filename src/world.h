@@ -87,12 +87,14 @@ private:
 	int interior;
 
 	void addInstance(Instance *i);
+	void addInstanceToIsland(Instance *i);
 public:
 	int getLod(Instance *);
 	Instance *getInstance(uint i);
 	void readIpl(std::ifstream &, std::string fileName);
 	void readBinIpl(std::ifstream &);
 	void readTextIpl(std::ifstream &);
+	void populateIslands(void);
 	void associateLods(void);
 	void buildRenderList(void);
 	void drawZones(void);
