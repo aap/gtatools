@@ -21,12 +21,79 @@ using namespace std;
 
 World world;
 
+static int instCounter = 0;
+
+/*
+ * WorldSector
+ */
+
+enum Intersection WorldSector::intersectBox(quat bmin, quat bmax)
+{
+	bmin.z = 0.0f;
+	bmax.z = 0.0f;
+	quat tmin = min;
+	quat tmax = max;
+	tmin.z = 0.0f;
+	tmax.z = 0.0f;
+	if (isPointInBox(bmin,tmin,tmax) && isPointInBox(bmax,tmin,tmax))
+		return INSIDE;
+	if (isPointInBox(bmin,tmin,tmax) && !isPointInBox(bmax,tmin,tmax))
+		return INTERSECT;
+	if (!isPointInBox(bmin,tmin,tmax) && isPointInBox(bmax,tmin,tmax))
+		return INTERSECT;
+	if (isPointInBox(min, bmin, bmax) && isPointInBox(max, bmin, bmax))
+		return INTERSECT;
+	return OUTSIDE;
+}
+
+bool WorldSector::isPointInside(quat p)
+{
+	return isPointInBox(p, min, max);
+}
+
+void WorldSector::addInstance(Instance *ip)
+{
+	instances.push_back(ip);
+}
+
+void WorldSector::setBounds(quat c1, quat c2)
+{
+	min = c1;
+	max = c2;
+}
+
+quat WorldSector::getMinCorner(void)
+{
+	return min;
+}
+
+quat WorldSector::getMaxCorner(void)
+{
+	return max;
+}
+
+void WorldSector::addToRenderList(void)
+{
+	for (uint i = 0; i < instances.size(); i++)
+		instances[i]->addToRenderList();
+}
+
+void WorldSector::draw(void)
+{
+	glDisable(GL_BLEND);
+	glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
+
+	glVertexAttrib4f(gl::in_Color, 0.8f, 0.8f, 0.8f, 1.0f);
+	gl::drawCube2(min, max);
+}
+
 /*
  * World
  */
 
 void World::buildRenderList(void)
 {
+/*
 	quat camPos = cam.getPosition();
 
 	for (uint i = 0; i < islands.size(); i++) {
@@ -42,6 +109,27 @@ void World::buildRenderList(void)
 		if (i != activeIsland)
 			islands[i].addLodToRenderList();
 	}
+*/
+
+	sectors[0].addToRenderList();
+	for (uint i = 1; i < sectors.size(); i++) {
+//		if ((i-1)%12 == 0)
+//			cout << endl;
+		if (sectors[i].isVisible &&
+		    cam.isBoxInFrustum(sectors[i].getMinCorner(),
+		                       sectors[i].getMaxCorner())) {
+			sectors[i].addToRenderList();
+
+//			cout << "1 ";
+//		} else {
+//			cout << "0 ";
+		}
+	}
+
+//	cout << endl;
+//	cout << dec << instCounter << endl;
+
+	instCounter = 0;
 }
 
 void World::drawZones(void)
@@ -92,6 +180,8 @@ void World::addInstance(Instance *i)
 
 	i->isVisible = true;
 
+	i->wasAdded = false;
+
 	instances.push_back(i);
 	uint k = instances.size()-1;
 	instances[k]->index = k;
@@ -100,8 +190,40 @@ void World::addInstance(Instance *i)
 
 void World::populateIslands(void)
 {
-	for (uint i = 0; i < instances.size(); i++)
+	for (uint i = 0; i < instances.size(); i++) {
 		addInstanceToIsland(instances[i]);
+		addInstanceToSectors(instances[i]);
+	}
+}
+
+void World::addInstanceToSectors(Instance *ip)
+{
+	if (ip->isLod || ip->isIslandLod)
+		return;
+
+	bool added = false;
+	CollisionModel *col = objectList.get(ip->id)->col;
+	if (col == 0) {
+		cout << ip->name << " has no col\n";
+		sectors[0].addInstance(ip);
+		return;
+	}
+	// Lets hope rotation and scale don't mess this up.
+	quat p1 = col->min + ip->position;
+	quat p2 = col->max + ip->position;
+	// Add an instance to a sector if it's inside or intersecting.
+	for (uint i = 1; i < sectors.size(); i++) {
+		if (sectors[i].intersectBox(p1, p2) != OUTSIDE) {
+			sectors[i].addInstance(ip);
+			added = true;
+		}
+	}
+	if (!added) {
+		sectors[0].addInstance(ip);
+		cout << ip->name << " doesn't lie in any sector\n";
+		cout << ip->position << endl;
+		cout << col->min << " " << col->max << endl;
+	}
 }
 
 void World::addInstanceToIsland(Instance *i)
@@ -345,6 +467,44 @@ void World::associateLods(void)
 	indices.resize(0);
 }
 
+void World::initSectors(quat start, quat end, int count)
+{
+	start.z = -10000.0f;
+	quat stepx((end.x - start.x)/count, 0.0f, 0.0f);
+	quat stepy(0.0f, (end.y - start.y)/count, 0.0f);
+	quat step(stepx.x, stepy.y, 20000.0f);
+
+	sectors.resize(count*count+1);
+	sectors[0].setBounds(quat(-10000.0f, -10000.0f, -10000.0f),
+	                     quat(10000.0f, 10000.0f, 10000.0f));
+	sectors[0].isVisible = true;
+#define S(i,j) sectors[i*count+j+1]
+	for (int i = 0; i < count; i++) {
+		quat base = start + stepx*i;
+		for (int j = 0; j < count; j++) {
+			S(i,j).isVisible = true;
+			S(i,j).setBounds(base, base+step);
+			base += stepy;
+		}
+	}
+#undef S
+}
+
+void World::drawSectors(void)
+{
+	for (uint i = 1; i < sectors.size(); i++)
+		sectors[i].draw();
+}
+
+void World::setSectorVisible(bool v)
+{
+	quat camPos = cam.getPosition();
+
+	for (uint i = 0; i < sectors.size(); i++)
+		if (sectors[i].isPointInside(camPos))
+			sectors[i].isVisible = v;
+}
+
 /* finds LOD instance for 3/VC LOD system and returns index */
 int World::getLod(Instance *ip)
 {
@@ -461,22 +621,13 @@ bool Island::pointInIsland(quat p)
 
 bool Zone::sphereInZone(quat p, float r)
 {
-	if (p.x - r >= corner1.x && p.x + r <= corner2.x &&
-	    p.y - r >= corner1.y && p.y + r <= corner2.y &&
-	    p.z - r >= corner1.z && p.z + r <= corner2.z) {
-		return true;
-	}
-	return false;
+	p.w = r;
+	return isSphereInBox(p, corner1, corner2);
 }
 
 bool Zone::pointInZone(quat p)
 {
-	if (p.x >= corner1.x && p.x <= corner2.x &&
-	    p.y >= corner1.y && p.y <= corner2.y &&
-	    p.z >= corner1.z && p.z <= corner2.z) {
-		return true;
-	}
-	return false;
+	return isPointInBox(p, corner1, corner2);
 }
 
 /*
@@ -485,6 +636,11 @@ bool Zone::pointInZone(quat p)
 
 void Instance::addToRenderList(void)
 {
+	if (wasAdded)
+		return;
+
+	instCounter++;
+
 	WorldObject *op = (WorldObject*)objectList.get(id);
 
 	// check draw distance

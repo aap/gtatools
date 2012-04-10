@@ -7,12 +7,13 @@ class Camera
 private:
 	void updateFrustum(void);
 	void updateCam(void);
-	float theta, phi, r;
+	float theta, phi, dist;
 	float fov, aspectRatio;
 	float n, f;
 	quat up;
 	quat target;
 	quat planes[6];
+	quat frustumSphere;
 
 public:
 	void panLR(float d);
@@ -41,6 +42,8 @@ public:
 	void look(void);
 	bool isPointInFrustum(quat p);
 	bool isSphereInFrustum(quat s);
+	bool isBoxInFrustum(quat min, quat max);
+	bool isBoxInFrustumSphere(quat min, quat max);
 	float distanceTo(quat q);
 	Camera(void);
 };

@@ -1,3 +1,7 @@
+cam.setFov(50)
+cam.setDistance(20.0)
+cam.setPitch(3.14/8.0-3.14/2.0)
+
 --cam.setTarget(-67.353, -1546.43, 10.4012)
 
 --cam.setTarget(0,0,0)
@@ -12,14 +16,16 @@
 --cam.setPitch(4.7874)
 
 -- ocean drive street
---cam.setFov(50);
---cam.setTarget(201.83615112305, -1307.6668701172, 10.273765563965)
---cam.setDistance(7.26)
---cam.setYaw(1.5758)
---cam.setPitch(4.875)
+cam.setTarget(201.83615112305, -1307.6668701172, 10.273765563965)
+cam.setDistance(7.26)
+cam.setYaw(1.5758)
+cam.setPitch(4.875)
 
 -- la records
-cam.setFov(50);
-cam.setDistance(20.0)
-cam.setPitch(3.14/8.0-3.14/2.0);
-cam.setTarget(1176.17, -1154.5, 87.2194);
+--cam.setTarget(1176.17, -1154.5, 87.2194)
+
+--casinoblock41
+--cam.setTarget(2143.6335449219, 2144.6479492188, 28.93208694458)
+
+-- blueberry
+cam.setTarget(335.5654907, -159.0345306, 17.85120964); 

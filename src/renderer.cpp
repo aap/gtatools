@@ -42,6 +42,8 @@ void Renderer::renderOpaque(void)
 				op->drawable.drawAtomic(ai);
 		}
 
+		ip->wasAdded = false;
+
 		if (gl::wasTransparent) {
 			if (op->flags & 0x40)
 				addTransp1Object(ip, ai);
@@ -53,6 +55,7 @@ void Renderer::renderOpaque(void)
 		gl::state.normalMat = nrmSave;
 		gl::state.updateMatrices();
 	}
+//	cout << dec << opaqueRenderList.size() << " insts drawn\n";
 }
 
 void Renderer::renderTransp1(void)
@@ -107,13 +110,15 @@ void Renderer::renderTransp2(void)
 	}
 
 	if (doZones)
-		world.drawZones();
+//		world.drawZones();
+		world.drawSectors();
 }
 
 void Renderer::addOpaqueObject(Instance *ip, int a)
 {
 	RenderListObject o;
 
+	ip->wasAdded = true;
 	o.inst = ip;
 	o.atomic = a;
 	opaqueRenderList.push_back(o);

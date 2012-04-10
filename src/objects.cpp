@@ -209,7 +209,6 @@ void ObjectList::findAndReadCol(string fileName)
 		sprintf(num, "_%d", i);
 		fileName2 = fileName + num + ".col";
 		while (directory.openFile(f, fileName2) == 0) {
-//			cout << "reading " << fileName2 << endl;
 			readCol(f);
 			f.close();
 			i++;
@@ -220,7 +219,6 @@ void ObjectList::findAndReadCol(string fileName)
 		sprintf(num, "%d", i);
 		fileName2 = fileName + num + ".col";
 		while (directory.openFile(f, fileName2) == 0) {
-//			cout << "reading " << fileName2 << endl;
 			readCol(f);
 			f.close();
 			i++;
@@ -228,7 +226,6 @@ void ObjectList::findAndReadCol(string fileName)
 			fileName2 = fileName + num + ".col";
 		}
 	} else {
-//		cout << "reading " << fileName+".col" << endl;
 		readCol(f);
 		f.close();
 	}
@@ -254,7 +251,7 @@ void ObjectList::associateCols(void)
 	for (uint i = 0; i < cols.size(); i++) {
 		mp = get(cols[i]->name);
 		if (mp == 0) {
-			cout << "no model found for col "<<cols[i]->name<<endl;
+//			cout << "no model found for col "<<cols[i]->name<<endl;
 		} else {
 			mp->col = cols[i];
 		}

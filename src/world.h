@@ -6,12 +6,18 @@
 #include "math.h"
 
 #define END 0
-enum iplSections {
+enum IplSections {
 	INST = 1,
 	CULL,
 	ZONE,
 	PICK,
 	PATH_IPL
+};
+
+enum Intersection {
+	OUTSIDE = 0,
+	INTERSECT,
+	INSIDE
 };
 
 class Instance
@@ -32,6 +38,8 @@ public:
 	int lod;
 
 	bool isVisible;
+
+	bool wasAdded;
 
 	/* functions */
 	bool isCulled(void);
@@ -75,6 +83,26 @@ public:
 	void drawZones(void);
 };
 
+class WorldSector
+{
+private:
+	quat min;
+	quat max;
+	std::vector<Instance *> instances;
+
+public:
+	bool isVisible;
+	/* functions */
+	enum Intersection intersectBox(quat bmin, quat bmax);
+	bool isPointInside(quat p);
+	void addInstance(Instance *i);
+	void setBounds(quat c1, quat c2);
+	quat getMinCorner(void);
+	quat getMaxCorner(void);
+	void addToRenderList(void);
+	void draw(void);
+};
+
 class World
 {
 private:
@@ -84,10 +112,13 @@ private:
 	std::vector<Island> islands;
 	uint activeIsland;
 
+	std::vector<WorldSector> sectors;
+
 	int interior;
 
 	void addInstance(Instance *i);
 	void addInstanceToIsland(Instance *i);
+	void addInstanceToSectors(Instance *i);
 public:
 	int getLod(Instance *);
 	Instance *getInstance(uint i);
@@ -98,6 +129,11 @@ public:
 	void associateLods(void);
 	void buildRenderList(void);
 	void drawZones(void);
+
+	void setSectorVisible(bool v);
+
+	void initSectors(quat start, quat end, int count);
+	void drawSectors(void);
 
 	void setInterior(int i);
 	int getInterior(void);

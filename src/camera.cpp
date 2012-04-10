@@ -14,7 +14,7 @@ void Camera::look()
 	gl::state.projection = glm::perspective(fov, aspectRatio, n, f);
 	gl::state.modelView = glm::mat4(1.0f);
 	gl::state.modelView = glm::translate(gl::state.modelView,
-	                                     glm::vec3(0.0f, 0.0f, -r));
+	                                     glm::vec3(0.0f, 0.0f, -dist));
 	gl::state.modelView = glm::rotate(gl::state.modelView,
 	                                  theta/3.1415f*180.0f,
 	                                  glm::vec3(1.0f,0.0f,0.0f));
@@ -50,12 +50,12 @@ void Camera::turnLR(float ang)
 	updateCam();
 	// calculate cam position, subtract new cam vector
 	quat pos(-sin(theta)*sin(phi), sin(theta)*cos(phi), cos(theta));
-	pos = pos * r + target;
+	pos = pos * dist + target;
 
 	phi += ang;
 	quat newcam(-sin(theta)*sin(phi), sin(theta)*cos(phi), cos(theta));
 
-	target =  pos - newcam * r;
+	target =  pos - newcam * dist;
 }
 
 void Camera::turnUD(float ang)
@@ -63,12 +63,12 @@ void Camera::turnUD(float ang)
 	updateCam();
 	// calculate cam position, subtract new cam vector
 	quat cam(-sin(theta)*sin(phi), sin(theta)*cos(phi), cos(theta));
-	quat pos = cam * r + target;
+	quat pos = cam * dist + target;
 
 	theta += ang;
 	quat newcam(-sin(theta)*sin(phi), sin(theta)*cos(phi), cos(theta));
 
-	target =  pos - newcam * r;
+	target =  pos - newcam * dist;
 }
 
 void Camera::moveInOut(float d)
@@ -80,6 +80,7 @@ void Camera::moveInOut(float d)
 
 void Camera::updateFrustum(void)
 {
+	// frustum planes
 	glm::mat4 m = gl::state.projection * gl::state.modelView;
 
 	float l;
@@ -125,6 +126,19 @@ void Camera::updateFrustum(void)
 	l = planes[5].norm();
 	planes[5].w = -m[3][0] + m[3][3];
 	planes[5] /= l;
+
+	// frustum sphere
+	float len = f - n;
+	float height = f * tan(fov*0.5f);
+	float width = aspectRatio*height;
+	quat P(0.0f, 0.0f, n + len*0.5f);
+	quat Q(width, height, f);
+
+	quat cam(-sin(theta)*sin(phi), sin(theta)*cos(phi), cos(theta));
+	quat look = -cam;
+	cam = target + cam*dist;
+	frustumSphere = cam + look*(n + len*0.5f);
+	frustumSphere.w = (P - Q).norm();
 }
 
 bool Camera::isPointInFrustum(quat p)
@@ -133,7 +147,7 @@ bool Camera::isPointInFrustum(quat p)
 		quat n = planes[i];
 		n.w = 0;
 		float d = planes[i].w;
-		if (p.dot(n) + d <= -r)
+		if (p.dot(n) + d <= 0)
 			return false;
 	}
 	return true;
@@ -153,10 +167,47 @@ bool Camera::isSphereInFrustum(quat s)
 	return true;
 }
 
+bool Camera::isBoxInFrustum(quat min, quat max)
+{
+	if (!isBoxInFrustumSphere(min, max))
+		return false;
+
+	quat corners[8];
+	corners[0] = quat(min.x, min.y, min.z);
+	corners[1] = quat(min.x, min.y, max.z);
+	corners[2] = quat(min.x, max.y, min.z);
+	corners[3] = quat(max.x, min.y, min.z);
+	corners[4] = quat(max.x, max.y, max.z);
+	corners[5] = quat(max.x, max.y, min.z);
+	corners[6] = quat(max.x, min.y, max.z);
+	corners[7] = quat(min.x, max.y, max.z);
+
+	for (int j = 0; j < 6; j++) {
+		quat n = planes[j];
+		n.w = 0;
+		float d = planes[j].w;
+
+		int nBehind = 0;
+		for (int i = 0; i < 8; i++)
+			if (corners[i].dot(n) + d <= 0)
+				nBehind++;
+		if (nBehind == 8)
+			return false;
+		if (nBehind != 0)
+			return true;
+	}
+	return true;
+}
+
+bool Camera::isBoxInFrustumSphere(quat min, quat max)
+{
+	return !isSphereOutsideBox(frustumSphere, min, max);
+}
+
 void Camera::updateCam()
 {
-	if (r < 0.0f)
-		r = 0.0f;
+	if (dist < 0.0f)
+		dist = 0.0f;
 
 	if (phi < 0.0f)
 		phi += 2.0f*PI;
@@ -180,7 +231,7 @@ void Camera::updateCam()
 float Camera::distanceTo(quat q)
 {
 	quat cam(-sin(theta)*sin(phi), sin(theta)*cos(phi), cos(theta));
-	cam *= r;
+	cam *= dist;
 	cam += target;
 
 	cam -= q;
@@ -199,7 +250,7 @@ void Camera::setYaw(float yaw)
 
 void Camera::setDistance(float d)
 {
-	r = d;
+	dist = d;
 }
 
 void Camera::setTarget(quat q)
@@ -219,7 +270,7 @@ float Camera::getYaw(void)
 
 float Camera::getDistance(void)
 {
-	return r;
+	return dist;
 }
 
 quat Camera::getTarget(void)
@@ -236,7 +287,7 @@ quat Camera::getPosition(void)
 {
 	updateCam();
 	quat pos(-sin(theta)*sin(phi), sin(theta)*cos(phi), cos(theta));
-	return pos * r + target;
+	return pos * dist + target;
 }
 
 void Camera::setFov(float f)
@@ -258,7 +309,7 @@ void Camera::setNearFar(float n, float f)
 Camera::Camera()
 {
 	theta = phi = 0.0f;
-	r = 1.0f;
+	dist = 1.0f;
 	up = quat(0.0f, 0.0f, 1.0f);
 	target = quat(0.0f, 0.0f, 0.0f);
 	fov = 70.0f;

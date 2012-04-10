@@ -130,13 +130,19 @@ int main(int argc, char *argv[])
 				return 0;
 			}
 			game = GTA3;
+			world.initSectors(quat(-2048, -2048, 0),
+			                  quat(2048, 2048, 0), 10);
 			objectList.init(5000);
 		} else {
 			game = GTAVC;
+			world.initSectors(quat(-2448, -2048, 0),
+			                  quat(1648, 2048, 0), 10);
 			objectList.init(5000);
 		}
 	} else {
 		game = GTASA;
+		world.initSectors(quat(-3000, -3000, 0),
+		                  quat(3000, 3000, 0), 12);
 		objectList.init(19000);
 	}
 	f.close();
@@ -272,6 +278,36 @@ void initGame(void)
 		timeCycle.load(f);
 		f.close();
 	}
+}
+
+bool isPointInBox(quat p, quat corner1, quat corner2)
+{
+	if (p.x >= corner1.x && p.x <= corner2.x &&
+	    p.y >= corner1.y && p.y <= corner2.y &&
+	    p.z >= corner1.z && p.z <= corner2.z) {
+		return true;
+	}
+	return false;
+}
+
+bool isSphereInBox(quat s, quat corner1, quat corner2)
+{
+	if (s.x - s.w >= corner1.x && s.x + s.w <= corner2.x &&
+	    s.y - s.w >= corner1.y && s.y + s.w <= corner2.y &&
+	    s.z - s.w >= corner1.z && s.z + s.w <= corner2.z) {
+		return true;
+	}
+	return false;
+}
+
+bool isSphereOutsideBox(quat s, quat corner1, quat corner2)
+{
+	if (s.x + s.w < corner1.x || s.x - s.w > corner2.x ||
+	    s.y + s.w < corner1.y || s.y - s.w > corner2.y ||
+	    s.z + s.w < corner1.z || s.z - s.w > corner2.z) {
+		return true;
+	}
+	return false;
 }
 
 /*

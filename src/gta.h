@@ -33,6 +33,10 @@ extern bool running;
 extern Drawable drawable;
 
 void initGame(void);
+
+bool isPointInBox(quat p, quat corner1, quat corner2);
+bool isSphereInBox(quat p, quat corner1, quat corner2);
+bool isSphereOutsideBox(quat s, quat corner1, quat corner2);
 std::string getPath(std::string relative);
 void stringToLower(std::string &);
 void getFields(std::string &s, std::string sep, std::vector<std::string> &v);
