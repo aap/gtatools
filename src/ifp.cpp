@@ -158,6 +158,36 @@ void AnimObj::read_3(std::ifstream &ifp)
 		frmList[i].read_3(ifp, frmType);
 }
 
+void AnimObj::interpolate(float t, KeyFrame &key)
+{
+	if (t >= frmList[frmList.size()-1].timeKey) {
+		key = frmList[frmList.size()-1];
+		return;
+	}
+
+	uint i;
+	for (i = 0; i < frmList.size(); i++)
+		if (t < frmList[i].timeKey)
+			break;
+	KeyFrame &f1 = frmList[i-1];
+	KeyFrame &f2 = frmList[i];
+	key = f1;
+
+	float r = (f1.timeKey - t)/(f1.timeKey - f2.timeKey);
+
+	key.pos = f1.pos*(1.0f - r) + f2.pos*r;
+	key.scale = f1.scale*(1.0f - r) + f2.scale*r;
+
+	// slerp
+	quat q1 = f1.rot;
+	quat q2 = f2.rot;
+	float phi = acos(q1.dot4(q2));
+
+	key.rot = q1;
+	if (phi > 0.00001)
+		key.rot = q1*sin((1.0f-r)*phi)/sin(phi)+q2*sin(r*phi)/sin(phi);
+}
+
 void KeyFrame::read_1(uint32 fourcc, ifstream &ifp)
 {
 	float32 data[4];
@@ -165,15 +195,15 @@ void KeyFrame::read_1(uint32 fourcc, ifstream &ifp)
 	if (fourcc == KR00) {
 		ifp.read((char*)&data, 4*sizeof(float32));
 		rot.w = data[3];
-		rot.x = data[0];
-		rot.y = data[1];
-		rot.z = data[2];
+		rot.x = -data[0];
+		rot.y = -data[1];
+		rot.z = -data[2];
 	} else if (fourcc == KRT0) {
 		ifp.read((char*)&data, 4*sizeof(float32));
 		rot.w = data[3];
-		rot.x = data[0];
-		rot.y = data[1];
-		rot.z = data[2];
+		rot.x = -data[0];
+		rot.y = -data[1];
+		rot.z = -data[2];
 		ifp.read((char*)&data, 3*sizeof(float32));
 		pos.x = data[0];
 		pos.y = data[1];
@@ -181,9 +211,9 @@ void KeyFrame::read_1(uint32 fourcc, ifstream &ifp)
 	} else if (fourcc == KRTS) {
 		ifp.read((char*)&data, 4*sizeof(float32));
 		rot.w = data[3];
-		rot.x = data[0];
-		rot.y = data[1];
-		rot.z = data[2];
+		rot.x = -data[0];
+		rot.y = -data[1];
+		rot.z = -data[2];
 		ifp.read((char*)&data, 3*sizeof(float32));
 		pos.x = data[0];
 		pos.y = data[1];
@@ -201,18 +231,18 @@ void KeyFrame::read_3(ifstream &ifp, uint32 frmType)
 {
 	int16 data[5];
 	ifp.read((char*)&data, 5*sizeof(int16));
-	rot.x = -data[0]/4096.0f;
-	rot.y = -data[1]/4096.0f;
-	rot.z = -data[2]/4096.0f;
+	rot.x = data[0]/4096.0f;
+	rot.y = data[1]/4096.0f;
+	rot.z = data[2]/4096.0f;
 	rot.w = data[3]/4096.0f;
 	timeKey = data[4]/60.0f;
 	type = KR00;
 
 	if (frmType == 4) {
 		ifp.read((char*)&data, 3*sizeof(int16));
-		pos.x = data[0]/4096.0f;
-		pos.y = data[1]/4096.0f;
-		pos.z = data[2]/4096.0f;
+		pos.x = data[0]/1024.0f;
+		pos.y = data[1]/1024.0f;
+		pos.z = data[2]/1024.0f;
 		type = KRT0;
 	}
 }

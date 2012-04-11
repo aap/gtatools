@@ -18,6 +18,7 @@ struct quaternion
 	void normalize();
 	void invert();
 	N dot(const quaternion& rhs) const;
+	N dot4(const quaternion& rhs) const;
 	quaternion<N> wedge(const quaternion& rhs) const;
 	quaternion& operator= (const quaternion& rhs);
 	quaternion& operator+= (const N& rhs);
@@ -113,6 +114,12 @@ template <class N>
 N quaternion<N>::dot(const quaternion& rhs) const
 {
 	return x*rhs.x + y*rhs.y + z*rhs.z;
+}
+
+template <class N>
+N quaternion<N>::dot4(const quaternion& rhs) const
+{
+	return w*rhs.w + x*rhs.x + y*rhs.y + z*rhs.z;
 }
 
 template <class N>

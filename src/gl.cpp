@@ -88,8 +88,13 @@ void keypress(uchar key, int x, int y)
 	static float dist = 10.0f;
 
 	switch (key) {
-	case 'f':
-		drawable.nextFrame();
+	case 'y':
+		drawable.setTime(drawable.getTime()+0.033333);
+//		drawable.setTime(drawable.getTime()+0.003333);
+		break;
+	case 'Y':
+		drawable.setTime(drawable.getTime()-0.033333);
+//		drawable.setTime(drawable.getTime()-0.003333);
 		break;
 	case 'W':
 		cam.moveInOut(dist);
@@ -365,8 +370,8 @@ void start(int *argc, char *argv[])
 
 
 if (*argc >= 4) {
-	string txd = argv[2];
-	string dff = argv[3];
+	string dff = argv[2];
+	string txd = argv[3];
 	if (txd == "search") {
 		cout << "searching " << dff << endl;
 		for (int i = 0; i < objectList.getObjectCount(); i++) {
@@ -389,26 +394,28 @@ if (*argc >= 4) {
 	txd += ".txd";
 	if (drawable.load(dff, txd) == -1)
 		exit(1);
+/*
 
 	AnimPackage anpk;
 	string fileName = getPath("anim/ped.ifp");
 	ifstream f(fileName.c_str(), ios::binary);
 	anpk.read(f);
 	f.close();
+*/
 
-/*
-	rw::AnimPackage anpk;
+	AnimPackage anpk;
 	ifstream f;
-	if (directory.openFile(f, "sfw.ifp") == -1)
+//	if (directory.openFile(f, "sfw.ifp") == -1)
+	if (directory.openFile(f, "counxref.ifp") == -1)
 		cout << "whaa\n";
 	anpk.read(f);
 	f.close();
-*/
 
 	for (uint i = 0; i < anpk.animList.size(); i++) {
 		stringToLower(anpk.animList[i].name);
 //		if (anpk.animList[i].name == "sprasfw") {
-		if (anpk.animList[i].name == "walk_player") {
+		if (anpk.animList[i].name == "nt_noddonkbase") {
+//		if (anpk.animList[i].name == "walk_player") {
 			drawable.attachAnim(anpk.animList[i]);
 			break;
 		}

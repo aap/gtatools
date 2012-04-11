@@ -176,10 +176,11 @@ void Renderer::renderScene(void)
 	gl::state.updateAll();
 	glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
 
+	gl::drawAxes(glm::value_ptr(gl::state.modelView));
+
 	glDisable(GL_DEPTH_TEST);
 	sky.draw();
 	glEnable(GL_DEPTH_TEST);
-	gl::drawAxes(glm::value_ptr(gl::state.modelView));
 
 
 	gl::gtaPipe.use();

@@ -39,27 +39,24 @@ void Drawable::attachClump(rw::Clump &c)
 		if (i == 0)	// sensible default if there is no hanim
 			animRoot = f;
 
-		f->boneId = -1;
-		if (rwf.hasHAnim)
-			f->boneId = rwf.hAnimBoneId;
+		f->boneId = rwf.hasHAnim ? rwf.hAnimBoneId : -1;
 
-		glm::vec4 x, y, z, w;
-		#define M(i,j) rwf.rotationMatrix[(i)*3+(j)]
-		x.x = M(0,0); y.x = M(1,0); z.x = M(2,0); w.x = 0.0f;
-		x.y = M(0,1); y.y = M(1,1); z.y = M(2,1); w.y = 0.0f;
-		x.z = M(0,2); y.z = M(1,2); z.z = M(2,2); w.z = 0.0f;
-		x.w = 0.0f;   y.w = 0.0f;   z.w = 0.0f;   w.w = 1.0f;
-		#undef M
 		f->pos = glm::vec3(rwf.position[0],
 		                   rwf.position[1],
 		                   rwf.position[2]);
 
+		glm::vec4 x, y, z, w;
+		#define M(i,j) rwf.rotationMatrix[(i)*3+(j)]
+		x.x = M(0,0); y.x = M(1,0); z.x = M(2,0); w.x = f->pos.x;
+		x.y = M(0,1); y.y = M(1,1); z.y = M(2,1); w.y = f->pos.y;
+		x.z = M(0,2); y.z = M(1,2); z.z = M(2,2); w.z = f->pos.z;
+		x.w = 0.0f;   y.w = 0.0f;   z.w = 0.0f;   w.w = 1.0f;
+		#undef M
 		f->modelMat = glm::mat4(x, y, z, w);
+
 		f->boneMat = glm::mat4(1.0f);
 		f->boneInverseMat = glm::mat4(1.0f);
-		f->modelMat[3][0] = f->pos.x;
-		f->modelMat[3][1] = f->pos.y;
-		f->modelMat[3][2] = f->pos.z;
+
 		f->name = rwf.name;
 		stringToLower(f->name);
 		f->index = i;
@@ -256,16 +253,18 @@ void Drawable::attachClump(rw::Clump &c)
 void Drawable::attachAnim(Animation &a)
 {
 	anim = a;
-	endFrame = 0;
+	curTime = 0.0f;
+	endTime = 0.0f;
 	for (uint i = 0; i < anim.objList.size(); i++) {
-		if (endFrame < anim.objList[i].frames)
-			endFrame = anim.objList[i].frames;
+		AnimObj &ao = anim.objList[i];
+		if (endTime < ao.frmList[ao.frames-1].timeKey)
+			endTime = ao.frmList[ao.frames-1].timeKey;
 		stringToLower(anim.objList[i].name);
+
+		cout << anim.objList[i].name << endl;
 	}
-	endFrame-=1;
-	frame = -1;	// will be incremented to 0 upon updating
 	cout << "attached animation " << anim.name << endl;
-	cout << endFrame + 1 << " frames\n";
+	cout << endTime << " seconds\n";
 }
 
 int Drawable::load(string model, string texdict)
@@ -281,10 +280,6 @@ int Drawable::load(string model, string texdict)
 	dff.close();
 
 	texDict = texMan.get(texdict);
-
-	// catch uv anim dicts
-	if (c.atomicList.size() == 0)
-		return 0;
 
 	attachClump(c);
 
@@ -323,12 +318,14 @@ void Drawable::applyAnim(Frame *f)
 
 	if (oi < anim.objList.size()) {
 		AnimObj &ao = anim.objList[oi];
-		KeyFrame &kf = ao.frmList[frame];
+
+		KeyFrame kf;
+		ao.interpolate(curTime, kf);
 
 		glm::quat q;
-		q.x = -kf.rot.x;
-		q.y = -kf.rot.y;
-		q.z = -kf.rot.z;
+		q.x = kf.rot.x;
+		q.y = kf.rot.y;
+		q.z = kf.rot.z;
 		q.w = kf.rot.w;
 
 		if (kf.type == KRT0 || kf.type == KRTS) {
@@ -348,11 +345,18 @@ void Drawable::applyAnim(Frame *f)
 		applyAnim(f->children[i]);
 }
 
-void Drawable::nextFrame(void)
+float Drawable::getTime(void)
 {
-	frame++;
-	if (frame >= endFrame)
-		frame = 0;
+	return curTime;
+}
+
+void Drawable::setTime(float t)
+{
+	curTime = t;
+	while (curTime > endTime)
+		curTime -= endTime;
+	while (curTime < 0.0f)
+		curTime += endTime;
 	applyAnim(animRoot);
 	updateFrames(animRoot);
 	updateGeometries();
@@ -367,12 +371,12 @@ void Drawable::updateGeometries(void)
 		if (!g.isSkinned)
 			continue;
 
+		uint indices[4];
+		float weights[4];
 		for (uint j = 0; j < g.vertices.size()/3; j++) {
 			glm::vec4 v(rwg.vertices[j*3+0],
 			            rwg.vertices[j*3+1],
 			            rwg.vertices[j*3+2], 1.0f);
-			uint indices[4];
-			float weights[4];
 
 			indices[0] = rwg.vertexBoneIndices[j]&0xFF;
 			indices[1] = (rwg.vertexBoneIndices[j]&0xFF00)>>8;
@@ -414,8 +418,10 @@ void Drawable::updateFrames(Frame *f)
 		f->ltm = f->parent->ltm * f->modelMat;
 	else
 		f->ltm = f->modelMat;
+
 	if (f->boneId != -1)
 		f->boneMat = f->ltm * f->boneInverseMat;
+
 	for (uint i = 0; i < f->children.size(); i++)
 		updateFrames(f->children[i]);
 }

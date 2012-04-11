@@ -60,8 +60,8 @@ private:
 	Animation anim;
 	Frame *animRoot;
 	std::vector<uint> boneToFrame;
-	int frame;
-	int endFrame;
+	float endTime;
+	float curTime;
 
 	int currentColorStep;
 
@@ -77,7 +77,8 @@ public:
 	void attachClump(rw::Clump &c);	// better use a pointer
 	void attachTexDict(rw::TextureDictionary &t);	// better use a pointer
 	void attachAnim(Animation &a);
-	void nextFrame(void);
+	float getTime(void);
+	void setTime(float t);
 	void setVertexColors(void);
 	void draw(void);
 	void drawAtomic(uint a);

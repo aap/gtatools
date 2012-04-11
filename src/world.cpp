@@ -204,7 +204,7 @@ void World::addInstanceToSectors(Instance *ip)
 	bool added = false;
 	CollisionModel *col = objectList.get(ip->id)->col;
 	if (col == 0) {
-		cout << ip->name << " has no col\n";
+//		cout << ip->name << " has no col\n";
 		sectors[0].addInstance(ip);
 		return;
 	}

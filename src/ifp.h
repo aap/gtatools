@@ -34,6 +34,7 @@ struct AnimObj
 	/* functions */
 	void read_1(std::ifstream &ifp);
 	void read_3(std::ifstream &ifp);
+	void interpolate(float t, KeyFrame &key);
 };
 
 struct Animation
