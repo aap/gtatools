@@ -1,9 +1,11 @@
 #include <vector>
+
 #include <GL/glew.h>
+#include <glm/glm.hpp>
 
 #include "math.h"
-#include "gl.h"
 #include "primitives.h"
+#include "pipeline.h"
 
 using namespace std;
 

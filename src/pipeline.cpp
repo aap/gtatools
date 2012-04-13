@@ -1,7 +1,11 @@
-#include <cstdio>
-
-#include "gta.h"
+#include <iostream>
+#include <fstream>
+#include <GL/glew.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/matrix_inverse.hpp>
 #include "gl.h"
+#include "pipeline.h"
 
 using namespace std;
 

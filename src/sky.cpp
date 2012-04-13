@@ -1,11 +1,18 @@
+#include <GL/glew.h>
+
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 #include "gta.h"
+#include "math.h"
 #include "gl.h"
+#include "pipeline.h"
 #include "camera.h"
 #include "timecycle.h"
 #include "sky.h"
 
 using namespace std;
-using namespace gl;
+//using namespace gl;
 
 Sky sky;
 
@@ -58,21 +65,21 @@ void Sky::draw(void)
 	gl::state.modelView = glm::rotate(gl::state.modelView,
 	                                  cam.getYaw()/3.1415f*180.0f,
 	                                  glm::vec3(0.0f, 0.0f, 1.0f));
-	state.updateMatrices();
+	gl::state.updateMatrices();
 
 	glGenBuffers(1, &vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(box),
 		     box, GL_STATIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glEnableVertexAttribArray(in_Vertex);
-	glEnableVertexAttribArray(in_Color);
-	glVertexAttribPointer(in_Vertex, 3, GL_FLOAT, GL_FALSE, 0, 0);
-	glVertexAttribPointer(in_Color, 3, GL_FLOAT, GL_FALSE, 0,
+	glEnableVertexAttribArray(gl::in_Vertex);
+	glEnableVertexAttribArray(gl::in_Color);
+	glVertexAttribPointer(gl::in_Vertex, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	glVertexAttribPointer(gl::in_Color, 3, GL_FLOAT, GL_FALSE, 0,
 			     (GLvoid *) (14*3*sizeof(GLfloat)));
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 14);
-	glDisableVertexAttribArray(in_Vertex);
-	glDisableVertexAttribArray(in_Color);
+	glDisableVertexAttribArray(gl::in_Vertex);
+	glDisableVertexAttribArray(gl::in_Color);
 	glDeleteBuffers(1, &vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 

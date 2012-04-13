@@ -1,5 +1,5 @@
-#ifndef PRIMITIVES_H
-#define PRIMITIVES_H
+#ifndef GTA_PRIMITIVES_H
+#define GTA_PRIMITIVES_H
 
 #include <GL/glew.h>
 

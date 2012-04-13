@@ -1,24 +1,27 @@
-#include <typeinfo>
-#include <cstdio>
-
 #include <pthread.h>
 
-#include "gta.h"
-#include "lua.h"
+#include <iostream>
+#include <string>
 
+#include <GL/glew.h>
 #include <GL/glut.h>
 
-#include "world.h"
-#include "directory.h"
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
+#include "gta.h"
 #include "math.h"
-#include "camera.h"
 #include "pipeline.h"
-#include "gl.h"
-#include "primitives.h"
-#include "water.h"
-#include "timecycle.h"
-#include "sky.h"
 #include "renderer.h"
+#include "drawable.h"
+#include "camera.h"
+#include "objects.h"
+#include "world.h"
+#include "timecycle.h"
+#include "ifp.h"
+#include "lua.h"
+#include "gl.h"
 
 using namespace std;
 
@@ -47,7 +50,8 @@ void renderScene(void)
 {
 	if (!running) {
 		cout << endl;
-		exit(0);
+//		cout << "exiting opengl\n";
+		pthread_exit(0);
 	}
 
 	renderer.renderScene();
@@ -394,15 +398,14 @@ if (*argc >= 4) {
 	txd += ".txd";
 	if (drawable.load(dff, txd) == -1)
 		exit(1);
-/*
 
 	AnimPackage anpk;
 	string fileName = getPath("anim/ped.ifp");
 	ifstream f(fileName.c_str(), ios::binary);
 	anpk.read(f);
 	f.close();
-*/
 
+/*
 	AnimPackage anpk;
 	ifstream f;
 //	if (directory.openFile(f, "sfw.ifp") == -1)
@@ -410,12 +413,13 @@ if (*argc >= 4) {
 		cout << "whaa\n";
 	anpk.read(f);
 	f.close();
+*/
 
 	for (uint i = 0; i < anpk.animList.size(); i++) {
 		stringToLower(anpk.animList[i].name);
 //		if (anpk.animList[i].name == "sprasfw") {
-		if (anpk.animList[i].name == "nt_noddonkbase") {
-//		if (anpk.animList[i].name == "walk_player") {
+//		if (anpk.animList[i].name == "nt_noddonkbase") {
+		if (anpk.animList[i].name == "walk_player") {
 			drawable.attachAnim(anpk.animList[i]);
 			break;
 		}
@@ -424,26 +428,18 @@ if (*argc >= 4) {
 
 	running = true;
 
-	pthread_t thread1, thread2, thread3;
+	pthread_t thread1, thread2;
 	pthread_create(&thread1, NULL, opengl, NULL);
-	pthread_create(&thread2, NULL, loader, NULL);
-	pthread_create(&thread3, NULL, lua, NULL);
+	pthread_create(&thread2, NULL, lua, NULL);
 
 	// this will never happen
 	pthread_join(thread1, NULL);
 	pthread_join(thread2, NULL);
-	pthread_join(thread3, NULL);
 }
 
 void *opengl(void *args)
 {
 	glutMainLoop();
-	return NULL;
-}
-
-void *loader(void *args)
-{
-//	objMan.loaderLoop();
 	return NULL;
 }
 

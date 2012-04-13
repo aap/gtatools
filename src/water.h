@@ -1,7 +1,9 @@
-#ifndef WATER_H
-#define WATER_H
+#ifndef GTA_WATER_H
+#define GTA_WATER_H
 
-#include "gta.h"
+#include <vector>
+#include <fstream>
+#include <GL/glew.h>
 
 class Water
 {

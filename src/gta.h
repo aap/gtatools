@@ -1,5 +1,6 @@
-#ifndef GTA_H
-#define GTA_H
+#ifndef GTA_GTA_H
+#define GTA_GTA_H
+
 #ifdef _WIN32
   #include <windows.h>
   #undef ERROR // error in glm
@@ -9,9 +10,10 @@
   #define PSEP_C '/'
   #define PSEP_S "/"
 #endif
+
 #include <string>
 #include <vector>
-#include <GL/glew.h>
+#include "math.h"
 
 enum {
 	GTA3 = 1,
@@ -22,15 +24,10 @@ enum {
 typedef unsigned char uchar;
 typedef unsigned int uint;
 
-#include "drawable.h"
-#include "quat.h"
-
 extern char *progname;
 extern std::string gamePath;
 extern int game;
 extern bool running;
-
-extern Drawable drawable;
 
 void initGame(void);
 

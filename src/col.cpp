@@ -1,8 +1,14 @@
-#include "gta.h"
-#include "col.h"
+#include <iostream>
+#include <fstream>
+
 #include <renderware.h>
-using namespace std;
+
+#include "gta.h"
+#include "math.h"
+#include "col.h"
+
 using namespace rw;
+using namespace std;
 
 int CollisionModel::read(ifstream &in)
 {

@@ -1,8 +1,13 @@
+#include <GL/glew.h>
+
+#include <renderware.h>
+
 #include <iostream>
+#include <string>
 
 #include "gta.h"
-#include "texman.h"
 #include "directory.h"
+#include "texman.h"
 
 using namespace std;
 
@@ -113,7 +118,7 @@ uint TexManager::add(string fileName, bool load)
 	return 0;
 }
 
-void TexManager::addParentInfo(std::string child, std::string parent)
+void TexManager::addParentInfo(string child, string parent)
 {
 	TexDictionary *txd = get(child, false);
 	txd->parent = get(parent, false);

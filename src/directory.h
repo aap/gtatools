@@ -1,9 +1,9 @@
-#ifndef DIRECTORY_H
-#define DIRECTORY_H
+#ifndef GTA_DIRECTORY_H
+#define GTA_DIRECTORY_H
 #include <string>
-#include <vector>
 #include <deque>
-#include "gta.h"
+#include <fstream>
+#include <renderware.h>
 
 struct DirectoryFile
 {

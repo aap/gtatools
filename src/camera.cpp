@@ -1,8 +1,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-
 #include "gta.h"
-#include "gl.h"
+#include "math.h"
+#include "pipeline.h"
 #include "camera.h"
 
 Camera cam;

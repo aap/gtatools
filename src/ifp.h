@@ -1,5 +1,9 @@
-#ifndef _IFP_H
-#define _IFP_H
+#ifndef GTA_IFP_H
+#define GTA_IFP_H
+#include <string>
+#include <vector>
+#include <fstream>
+#include <renderware.h>
 #include "math.h"
 
 enum {

@@ -1,5 +1,11 @@
+#include <cstdlib>
+
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+
 #include "gta.h"
-#include "world.h"
 #include "timecycle.h"
 
 using namespace std;

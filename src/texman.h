@@ -1,9 +1,10 @@
-#ifndef TEXMAN_H
-#define TEXMAN_H
-#include "gta.h"
-#include <deque>
+#ifndef GTA_TEXMAN_H
+#define GTA_TEXMAN_H
 
-#include <renderware.h>
+#include <string>
+#include <deque>
+#include <GL/glew.h>
+#include "gta.h"
 
 struct Texture {
 	std::string name;

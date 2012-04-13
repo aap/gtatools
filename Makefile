@@ -1,7 +1,7 @@
 OBJDIR = obj
 _OBJ = gta.o directory.o world.o camera.o pipeline.o gl.o primitives.o \
 drawable.o objects.o texman.o water.o timecycle.o sky.o lua.o ifp.o col.o \
-renderer.o
+renderer.o objman.o
 OBJ = $(patsubst %,$(OBJDIR)/%,$(_OBJ))
 RWDIR=$(HOME)/rwtools
 CC = g++

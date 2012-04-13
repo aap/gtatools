@@ -1,11 +1,21 @@
+#include <cstdlib>
+
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+
+#include <GL/glew.h>
+
 #include "gta.h"
 #include "gl.h"
-#include "water.h"
-#include "timecycle.h"
+#include "pipeline.h"
 #include "renderer.h"
+#include "timecycle.h"
+#include "texman.h"
+#include "water.h"
 
 using namespace std;
-using namespace gl;
 
 Water water;
 
@@ -13,32 +23,32 @@ void Water::draw(void)
 {
 	Weather *w = timeCycle.getCurrentWeatherData();
 	glm::vec4 matCol(w->water.x, w->water.y, w->water.z, w->water.w);
-	state.matColor = matCol;
-	state.updateMaterial();
+	gl::state.matColor = matCol;
+	gl::state.updateMaterial();
 
 	glEnable(GL_BLEND);
 	glEnable(GL_ALPHA_TEST);
 
-	glVertexAttrib4f(in_Color, 1.0f, 1.0f, 1.0f, 1.0f);
-	glVertexAttrib3f(in_Normal, 0.0f, 0.0f, 0.0f);
+	glVertexAttrib4f(gl::in_Color, 1.0f, 1.0f, 1.0f, 1.0f);
+	glVertexAttrib3f(gl::in_Normal, 0.0f, 0.0f, 0.0f);
 	if (renderer.doTextures)
 		glBindTexture(GL_TEXTURE_2D, tex);
 	else
 		glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
 
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glEnableVertexAttribArray(in_Vertex);
-	glEnableVertexAttribArray(in_TexCoord);
-	glVertexAttribPointer(in_Vertex, 3, GL_FLOAT, GL_FALSE, 0, 0);
-	glVertexAttribPointer(in_TexCoord, 2, GL_FLOAT, GL_FALSE, 0,
+	glEnableVertexAttribArray(gl::in_Vertex);
+	glEnableVertexAttribArray(gl::in_TexCoord);
+	glVertexAttribPointer(gl::in_Vertex, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	glVertexAttribPointer(gl::in_TexCoord, 2, GL_FLOAT, GL_FALSE, 0,
 	                      (GLvoid *) (vertices.size()*3/5*sizeof(GLfloat)));
 	glDrawArrays(GL_TRIANGLES, 0, vertices.size()*3/5/3);
-	glDisableVertexAttribArray(in_Vertex);
-	glDisableVertexAttribArray(in_TexCoord);
+	glDisableVertexAttribArray(gl::in_Vertex);
+	glDisableVertexAttribArray(gl::in_TexCoord);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void Water::loadWater(std::ifstream &f)
+void Water::loadWater(ifstream &f)
 {
 	string line;
 	getline(f, line);

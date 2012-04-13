@@ -1,8 +1,11 @@
-#ifndef RENDERER_H
-#define RENDERER_H
+#ifndef GTA_RENDERER_H
+#define GTA_RENDERER_H
 
-#include "gta.h"
+#include <vector>
 #include "world.h"
+
+class Drawable;
+extern Drawable drawable;
 
 struct RenderListObject {
 	Instance *inst;
@@ -11,6 +14,7 @@ struct RenderListObject {
 
 class Renderer
 {
+private:
 	std::vector<RenderListObject> opaqueRenderList;
 	std::vector<RenderListObject> transp1RenderList;
 	std::vector<RenderListObject> transp2RenderList;

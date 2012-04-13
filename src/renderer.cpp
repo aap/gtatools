@@ -1,17 +1,36 @@
-#include "gta.h"
-#include "camera.h"
+#include <pthread.h>
+
+#include <iostream>
+
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 #include "world.h"
-#include "gl.h"
-#include "primitives.h"
+#include "drawable.h"
+#include "objects.h"
+#include "objman.h"
+#include "camera.h"
 #include "timecycle.h"
 #include "sky.h"
 #include "water.h"
+#include "gl.h"
 #include "pipeline.h"
+#include "primitives.h"
 #include "renderer.h"
-
 using namespace std;
 
 Renderer renderer;
+
+Drawable drawable;
+
+volatile bool threadFinished;
+
+static void *buildListThread(void *args)
+{
+	world.buildRenderList();
+	threadFinished = true;
+	return 0;
+}
 
 void Renderer::renderOpaque(void)
 {
@@ -159,7 +178,7 @@ void Renderer::renderScene(void)
 //	not used at the moment
 //	glm::vec4 lightPos = glm::vec4(5.0f, 5.0f, 3.0f, 1.0f);
 //	lightPos = gl::state.modelView * lightPos;
-	glm::vec3 lightCol = glm::vec3(1.0f, 1.0f, 1.0f);
+	gl::state.lightCol = glm::vec3(1.0f, 1.0f, 1.0f);
 
 	glm::vec3 amb;
 	if (doTrails)
@@ -169,8 +188,6 @@ void Renderer::renderScene(void)
 
 	gl::simplePipe.use();
 
-//	gl::state.lightPos = lightPos;
-	gl::state.lightCol = lightCol;
 	gl::state.ambientLight = amb;
 	gl::state.texture = 0;
 	gl::state.updateAll();
@@ -198,18 +215,33 @@ void Renderer::renderScene(void)
 	gl::drawWire = false;
 
 	// the test object
+
 	gl::drawTransparent = false;
 	drawable.draw();
 	gl::drawTransparent = true;
 	drawable.draw();
 
 	// the world
+
 	opaqueRenderList.clear();
 	transp1RenderList.clear();
 	transp2RenderList.clear();
 
-	world.buildRenderList();
+	// Start thread to build render list
+	pthread_t thr;
+	threadFinished = false;
+	if (pthread_create(&thr, NULL, buildListThread, NULL) != 0)
+		cout << "pthread failed\n";
 
+	// While we're waiting, load requested objects
+	while (!threadFinished)
+		objMan.loadSingleObject();
+
+	// This shouldn't really be necessary, but somehow pthread_create
+	// fails at some point when I don't put this line here.
+	pthread_join(thr, NULL);
+
+	// Everything is done now, draw!
 	if (doBFC)
 		glEnable(GL_CULL_FACE);
 	renderOpaque();	// this constructs the transp1/2 render lists

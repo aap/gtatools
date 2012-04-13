@@ -73,6 +73,7 @@ void LuaInterpreter(void)
 		}
 	}
 	lua_close(L);
+//	cout << "lua exiting\n";
 }
 
 int gettop(lua_State *L)

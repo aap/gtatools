@@ -1,5 +1,7 @@
-#include <fstream>
 #include <cstring>
+#include <fstream>
+#include <vector>
+#include <string>
 
 #include <renderware.h>
 
@@ -7,19 +9,18 @@
 #include "directory.h"
 
 using namespace std;
-using namespace rw;
 
 Directory directory;
 
 void Directory::addFromFile(ifstream &f, string container)
 {
 	char fourcc[5];
-	uint32 numEntries;
+	rw::uint32 numEntries;
 
 	memset(fourcc, 0, 5);
 	f.read(fourcc, 4*sizeof(char));
 	if (strcmp(fourcc, "VER2") == 0) {
-		numEntries = readUInt32(f);
+		numEntries = rw::readUInt32(f);
 	} else {
 		f.seekg(0, ios::end);
 		numEntries = f.tellg();
@@ -27,8 +28,8 @@ void Directory::addFromFile(ifstream &f, string container)
 		f.seekg(0, ios::beg);
 	}
 	for (uint i = 0; i < numEntries; i++) {
-		uint32 start = readUInt32(f)*2048;
-		uint32 length = readUInt32(f)*2048;
+		rw::uint32 start = rw::readUInt32(f)*2048;
+		rw::uint32 length = rw::readUInt32(f)*2048;
 		char fileName[25];
 		memset(fileName, 0, 25);
 		f.read(fileName, 24*sizeof(char));
@@ -87,7 +88,7 @@ void Directory::addFile(string path)
 	addFile(name, 0, size, path);
 }
 
-void Directory::addFile(string name, uint32 start, uint32 length,
+void Directory::addFile(string name, rw::uint32 start, rw::uint32 length,
                         string container)
 {
 	DirectoryFile *dirFile = new DirectoryFile;

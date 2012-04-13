@@ -1,7 +1,10 @@
-#ifndef TIMECYCLE_H
-#define TIMECYCLE_H
+#ifndef GTA_TIMECYCLE_H
+#define GTA_TIMECYCLE_H
 
-#include "gta.h"
+#include <string>
+#include <vector>
+#include <fstream>
+#include "math.h"
 
 struct Weather {
 public:

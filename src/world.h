@@ -1,8 +1,10 @@
-#ifndef WORLD_H
-#define WORLD_H
+#ifndef GTA_WORLD_H
+#define GTA_WORLD_H
+
 #include <string>
 #include <vector>
-#include "objects.h"
+#include <fstream>
+#include "gta.h"
 #include "math.h"
 
 #define END 0

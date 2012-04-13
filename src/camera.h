@@ -1,5 +1,5 @@
-#ifndef CAMERA_H
-#define CAMERA_H
+#ifndef GTA_CAMERA_H
+#define GTA_CAMERA_H
 #include "math.h"
 
 class Camera

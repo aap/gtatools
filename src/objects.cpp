@@ -1,11 +1,23 @@
+#include <cstdio>
+#include <cstdlib>
+
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+
+#include <GL/glew.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 #include "gta.h"
-#include <glm/gtc/quaternion.hpp>
+#include "math.h"
 #include "gl.h"
-#include "directory.h"
+#include "pipeline.h"
 #include "primitives.h"
+#include "directory.h"
+#include "col.h"
 #include "objects.h"
-#include "world.h"
-#include "texman.h"
 
 using namespace std;
 
@@ -113,8 +125,6 @@ void ObjectList::readIde(ifstream &in)
 			newObj = new Ped;
 			newObj->type = blockType;
 			newObj->id = atoi(fields[i++].c_str());
-			newObj->col = 0;
-			newObj->BSvisible = false;
 			newObj->modelName = fields[i++];
 			newObj->textureName = fields[i++];
 			newObj->defaultPedType = fields[i++];
@@ -149,8 +159,6 @@ void ObjectList::readIde(ifstream &in)
 			newObj = new Car;
 			newObj->type = blockType;
 			newObj->id = atoi(fields[i++].c_str());
-			newObj->col = 0;
-			newObj->BSvisible = false;
 			newObj->modelName = fields[i++];
 			newObj->textureName = fields[i++];
 			newObj->vehicleType = fields[i++];
@@ -497,6 +505,9 @@ void Model::load(void)
 
 Model::Model(void)
 {
-	isAnimated = false;
+	isRequested = false;
 	isLoaded = false;
+	BSvisible = false;
+	isAnimated = false;
+	col = 0;
 }

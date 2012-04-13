@@ -1,7 +1,5 @@
-#ifndef SKY_H
-#define SKY_H
-
-#include "gta.h"
+#ifndef GTA_SKY_H
+#define GTA_SKY_H
 
 class Sky
 {

@@ -1,13 +1,7 @@
-#ifndef GL_H
-#define GL_H
-#include <pthread.h>
+#ifndef GTA_GL_H
+#define GTA_GL_H
 
-#include "GL/glew.h"
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_inverse.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-
+#include <GL/glew.h>
 #include "gta.h"
 #include "pipeline.h"
 

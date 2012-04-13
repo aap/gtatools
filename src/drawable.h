@@ -1,16 +1,15 @@
-#ifndef DRAWABLE_H
-#define DRAWABLE_H
+#ifndef GTA_DRAWABLE_H
+#define GTA_DRAWABLE_H
 
-#include <vector>
 #include <string>
+#include <vector>
 #include <GL/glew.h>
 #include <glm/glm.hpp>
 
 #include <renderware.h>
 
-#include "gta.h"
-#include "texman.h"
 #include "math.h"
+#include "texman.h"
 #include "ifp.h"
 
 struct Frame {

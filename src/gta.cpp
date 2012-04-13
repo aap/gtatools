@@ -5,19 +5,18 @@
 
 #include <cstdlib>
 
-#include <renderware.h>
+#include <iostream>
+#include <fstream>
 
 #include "gta.h"
-#include "directory.h"
-#include "world.h"
 #include "gl.h"
-#include "texman.h"
+#include "objects.h"
+#include "world.h"
+#include "directory.h"
 #include "camera.h"
-#include "water.h"
 #include "timecycle.h"
-
+#include "water.h"
 using namespace std;
-using namespace rw;
 
 /*
  * The Game
@@ -28,7 +27,14 @@ char *progname;
 int game;
 bool running;
 
-Drawable drawable;
+static int gArgc;
+static char **gArgv;
+
+void *startGl(void *args)
+{
+	gl::start(&gArgc, gArgv);
+	return 0;
+}
 
 void parseDat(ifstream &f)
 {

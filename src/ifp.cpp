@@ -1,8 +1,16 @@
 #include <cstdlib>
+
+#include <iostream>
+#include <fstream>
+
 #include <renderware.h>
+
+#include "gta.h"
+#include "math.h"
 #include "ifp.h"
-using namespace std;
+
 using namespace rw;
+using namespace std;
 
 #ifdef DEBUG
 	#define READ_SECTION(x)\

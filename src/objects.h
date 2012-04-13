@@ -1,9 +1,17 @@
-#ifndef OBJECTS_H
-#define OBJECTS_H
+#ifndef GTA_OBJECTS_H
+#define GTA_OBJECTS_H
+#include <string>
+#include <vector>
+#include <fstream>
 #include "gta.h"
+#include "math.h"
 #include "drawable.h"
-#include "col.h"
 
+class CollisionModel;
+
+#ifndef END
+#define END 0
+#endif
 enum ideSections {
 	OBJS = 1,
 	TOBJ,
@@ -32,16 +40,16 @@ public:
 	std::string modelName;
 	std::string textureName;
 
+	bool isRequested;
+	bool isLoaded;
+	bool BSvisible;
 	bool isAnimated;
+
+	Drawable drawable;
+	CollisionModel *col;
 	std::string animationName;
 
-	bool isLoaded;
-	Drawable drawable;
-
-	bool BSvisible;
-	CollisionModel *col;
-
-	std::vector<quat> boundingSpheres;
+	std::vector<quat> boundingSpheres; // obsolete
 
 	void load(void);
 	void drawCol(void);
@@ -107,8 +115,8 @@ public:
 
 	bool isVisibleAtTime(int hour);
 	int getCorrectAtomic(float d);
-	WorldObject(void);
 	void printInfo(void);
+	WorldObject(void);
 };
 
 class ObjectList

@@ -1,5 +1,7 @@
-#ifndef _COL_H
-#define _COL_H
+#ifndef GTA_COL_H
+#define GTA_COL_H
+#include <string>
+#include <vector>
 #include "math.h"
 
 struct ColSurface {

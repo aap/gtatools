@@ -260,8 +260,6 @@ void Drawable::attachAnim(Animation &a)
 		if (endTime < ao.frmList[ao.frames-1].timeKey)
 			endTime = ao.frmList[ao.frames-1].timeKey;
 		stringToLower(anim.objList[i].name);
-
-		cout << anim.objList[i].name << endl;
 	}
 	cout << "attached animation " << anim.name << endl;
 	cout << endTime << " seconds\n";

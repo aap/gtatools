@@ -1,6 +1,8 @@
-#ifndef PIPELINE_H
-#define PIPELINE_H
+#ifndef GTA_PIPELINE_H
+#define GTA_PIPELINE_H
+
 #include <GL/glew.h>
+#include <glm/glm.hpp>
 
 namespace gl {
 

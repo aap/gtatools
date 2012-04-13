@@ -1,21 +1,26 @@
-#include "gta.h"
+#include <cstdio>
 
+#include <iostream>
 #include <fstream>
-#include <cstdlib>
 
-#include <renderware.h>
-
+#include <GL/glew.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include "camera.h"
-#include "directory.h"
-#include "world.h"
-#include "primitives.h"
+
+#include "gta.h"
+#include "math.h"
 #include "gl.h"
-#include "timecycle.h"
 #include "pipeline.h"
-#include "objman.h"
+#include "primitives.h"
 #include "col.h"
+#include "camera.h"
+#include "timecycle.h"
+#include "directory.h"
+#include "objman.h"
 #include "renderer.h"
+#include "objects.h"
+#include "world.h"
 
 using namespace std;
 
@@ -171,7 +176,7 @@ void World::addInstance(Instance *i)
 		i->isLod = true;
 	else if (i->name.substr(0,9) == "islandlod")
 		i->isIslandLod = true;
-	// assume only non-lods for San Andreas, the flag is later corrected
+	// Assume only non-lods for San Andreas, the flag is later corrected.
 	if (game == GTASA)
 		i->isIslandLod = i->isLod = false;
 	// LODDUMMY
@@ -428,6 +433,7 @@ void World::associateLods(void)
 	// Some LODs in 3/VC don't have hires instances, add dummies
 	WorldObject *dummyObj;
 	dummyObj = new WorldObject;
+	dummyObj->col = 0;
 	dummyObj->type = OBJS;
 	dummyObj->id = objectList.getObjectCount()-1;
 	dummyObj->modelName = "LODDUMMY";
@@ -687,8 +693,16 @@ void Instance::addToRenderList(void)
 		return;
 
 	// TODO: implement an object request mechanism
-	if (!op->isLoaded)
-		op->load();
+
+	if (!op->isLoaded) {
+//		op->load();
+		// Request model and try to draw LOD instead
+		objMan.request(op);
+		Instance *ip = world.getInstance(lod);
+		if (ip != 0)
+			ip->addToRenderList();
+		return;
+	}
 
 	if (op->type == ANIM)
 		renderer.addOpaqueObject(this, -1);
