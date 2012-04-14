@@ -584,7 +584,17 @@ void Drawable::drawGeometry(int gi)
 		} else {
 			glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
 		}
-		if (g.materialList[matid].color[3] != 255)
+		glm::vec4 matCol;
+		matCol.x = (float) g.materialList[matid].color[0] / 255.0f;
+		matCol.y = (float) g.materialList[matid].color[1] / 255.0f;
+		matCol.z = (float) g.materialList[matid].color[2] / 255.0f;
+		matCol.w = (float) g.materialList[matid].color[3] / 255.0f;
+		matCol.w *= renderer.globalAlpha;
+		state.matColor = matCol;
+		state.updateMaterial();
+
+//		if (g.materialList[matid].color[3] != 255)
+		if (matCol.w != 1.0f)
 			isTransparent = true;
 
 		gl::wasTransparent |= isTransparent;
@@ -593,15 +603,8 @@ void Drawable::drawGeometry(int gi)
 			continue;
 		}
 
-		glm::vec4 matCol;
-		matCol.x = (float) g.materialList[matid].color[0] / 255.0f;
-		matCol.y = (float) g.materialList[matid].color[1] / 255.0f;
-		matCol.z = (float) g.materialList[matid].color[2] / 255.0f;
-		matCol.w = (float) g.materialList[matid].color[3] / 255.0f;
-		state.matColor = matCol;
-		state.updateMaterial();
-
-		if (isTransparent) {
+//		if (isTransparent) {
+		if (1) {
 			glEnable(GL_BLEND);
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 			glEnable(GL_ALPHA_TEST);

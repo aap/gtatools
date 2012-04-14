@@ -50,6 +50,8 @@ void Renderer::renderOpaque(void)
 		if (op->BSvisible)
 			op->drawBoundingSphere();
 
+
+		globalAlpha = ip->getFading();
 		gl::wasTransparent = false;
 		if (doCol) {
 			if (op->col)
@@ -62,6 +64,7 @@ void Renderer::renderOpaque(void)
 		}
 
 		ip->wasAdded = false;
+		op->isFreshlyLoaded = false;
 
 		if (gl::wasTransparent) {
 			if (op->flags & 0x40)
@@ -92,6 +95,7 @@ void Renderer::renderTransp1(void)
 
 		glStencilFunc(GL_ALWAYS,(ip->index>>gl::stencilShift)&0xFF,-1);
 
+		globalAlpha = ip->getFading();
 		if (ai == -1)
 			op->drawable.draw();
 		else
@@ -118,6 +122,7 @@ void Renderer::renderTransp2(void)
 
 		glStencilFunc(GL_ALWAYS,(ip->index>>gl::stencilShift)&0xFF,-1);
 
+		globalAlpha = ip->getFading();
 		if (ai == -1)
 			op->drawable.draw();
 		else
@@ -140,7 +145,11 @@ void Renderer::addOpaqueObject(Instance *ip, int a)
 	ip->wasAdded = true;
 	o.inst = ip;
 	o.atomic = a;
-	opaqueRenderList.push_back(o);
+	WorldObject *op = (WorldObject*)objectList.get(ip->id);
+	if (op->flags & 4)
+		opaqueRenderList.push_back(o);
+	else
+		opaqueRenderList.push_front(o);
 }
 
 void Renderer::addTransp1Object(Instance *ip, int a)
@@ -245,14 +254,18 @@ void Renderer::renderScene(void)
 	if (doBFC)
 		glEnable(GL_CULL_FACE);
 	renderOpaque();	// this constructs the transp1/2 render lists
+	globalAlpha = 1.0f;
 	glDepthMask(GL_FALSE);
+
 	renderTransp1();
+	globalAlpha = 1.0f;
 	glDepthMask(GL_TRUE);
 	glDisable(GL_CULL_FACE);
 	water.draw();
 	if (doBFC)
 		glEnable(GL_CULL_FACE);
 	renderTransp2();
+	globalAlpha = 1.0f;
 	glDisable(GL_CULL_FACE);
 }
 

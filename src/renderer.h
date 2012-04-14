@@ -2,6 +2,7 @@
 #define GTA_RENDERER_H
 
 #include <vector>
+#include <deque>
 #include "world.h"
 
 class Drawable;
@@ -15,7 +16,7 @@ struct RenderListObject {
 class Renderer
 {
 private:
-	std::vector<RenderListObject> opaqueRenderList;
+	std::deque<RenderListObject> opaqueRenderList;
 	std::vector<RenderListObject> transp1RenderList;
 	std::vector<RenderListObject> transp2RenderList;
 public:
@@ -37,6 +38,7 @@ public:
 	bool doTrails;
 	bool doBFC;
 	float lodMult;
+	float globalAlpha;
 };
 
 extern Renderer renderer;

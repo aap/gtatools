@@ -8,7 +8,7 @@ ObjManager objMan;
 
 pthread_mutex_t requestMutex = PTHREAD_MUTEX_INITIALIZER;
 
-void ObjManager::request(WorldObject *mp)
+void ObjManager::request(WorldObject *op)
 {
 /*
 	// this is incredibly stupid
@@ -19,27 +19,27 @@ void ObjManager::request(WorldObject *mp)
 
 		while (min <= max) {
 			mid = (min+max) / 2;
-			if (requestQueue[mid]->id == mp->id) {
+			if (requestQueue[mid]->id == op->id) {
 				pthread_mutex_unlock(&requestMutex);
 				return;
 			}
-			if (requestQueue[mid]->id > mp->id)
+			if (requestQueue[mid]->id > op->id)
 				max = mid - 1;
-			else if (requestQueue[mid]->id < mp->id)
+			else if (requestQueue[mid]->id < op->id)
 				min = mid + 1;
 		}
-		requestQueue.insert(requestQueue.begin()+min, mp);
+		requestQueue.insert(requestQueue.begin()+min, op);
 	} else {
-		requestQueue.push_back(mp);
+		requestQueue.push_back(op);
 	}
 	pthread_mutex_unlock(&requestMutex);
 */
 
-	if (mp->isRequested)
+	if (op->isRequested)
 		return;
-	mp->isRequested = true;
+	op->isRequested = true;
 	pthread_mutex_lock(&requestMutex);
-	requestQueue.push_front(mp);
+	requestQueue.push_front(op);
 	pthread_mutex_unlock(&requestMutex);
 }
 
@@ -47,10 +47,11 @@ void ObjManager::loadSingleObject(void)
 {
 	if (requestQueue.size() > 0) {
 		pthread_mutex_lock(&requestMutex);
-		WorldObject *mp = requestQueue[0];
+		WorldObject *op = requestQueue[0];
 		requestQueue.pop_front();
 		pthread_mutex_unlock(&requestMutex);
-		mp->load();
-		mp->isRequested = false;
+		op->load();
+		op->isRequested = false;
+		op->isFreshlyLoaded = true;
 	}
 }

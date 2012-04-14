@@ -43,12 +43,19 @@ public:
 
 	bool wasAdded;
 
+	bool wasDrawn;
+
+	float fadingFactor;
+
 	/* functions */
 	bool isCulled(void);
 	void addToRenderList(void);
 	void transform(void);
 	void printInfo(void);
 	void setVisible(bool v);
+	void setFading(float fade);
+	float getFading(void);
+	Instance(void);
 };
 
 class Zone

@@ -86,8 +86,6 @@ void ObjectList::readIde(ifstream &in)
 			newObj = new WorldObject;
 			newObj->type = blockType;
 			newObj->id = atoi(fields[i++].c_str());
-			newObj->col = 0;
-			newObj->BSvisible = false;
 			newObj->modelName = fields[i++];
 			newObj->textureName = fields[i++];
 			stringToLower(newObj->modelName);
@@ -99,10 +97,9 @@ void ObjectList::readIde(ifstream &in)
 				stringToLower(newObj->animationName);
 			}
 
+			newObj->objectCount = 1;
 			if (hasObjectCount)
 				newObj->objectCount = atoi(fields[i++].c_str());
-			else
-				newObj->objectCount = 1;
 
 			for (uint j = 0; j < newObj->objectCount; j++)
 				newObj->drawDistances.push_back(
@@ -110,12 +107,11 @@ void ObjectList::readIde(ifstream &in)
 
 			newObj->flags = atoi(fields[i++].c_str());
 
+			newObj->isTimed = false;
 			if (blockType == TOBJ) {
 				newObj->timeOn = atoi(fields[i++].c_str());
 				newObj->timeOff = atoi(fields[i++].c_str());
 				newObj->isTimed = true;
-			} else {
-				newObj->isTimed = false;
 			}
 
 			add(newObj);
@@ -319,10 +315,6 @@ void ObjectList::init(int objs)
 	objectCount = objs;
 }
 
-ObjectList::ObjectList(void)
-{
-}
-
 ObjectList::~ObjectList(void)
 {
 	for (int i = 0; i < objectCount; i++)
@@ -341,6 +333,11 @@ int WorldObject::getCorrectAtomic(float d)
 			return i;
 	}
 	return -1;
+}
+
+float WorldObject::getDrawDistance(int atomic)
+{
+	return drawDistances[atomic];
 }
 
 bool WorldObject::isVisibleAtTime(int hour)
@@ -509,5 +506,6 @@ Model::Model(void)
 	isLoaded = false;
 	BSvisible = false;
 	isAnimated = false;
+	isFreshlyLoaded = false;
 	col = 0;
 }

@@ -76,12 +76,13 @@ public:
 	void attachClump(rw::Clump &c);	// better use a pointer
 	void attachTexDict(rw::TextureDictionary &t);	// better use a pointer
 	void attachAnim(Animation &a);
-	float getTime(void);
-	void setTime(float t);
-	void setVertexColors(void);
 	void draw(void);
 	void drawAtomic(uint a);
 	void drawFrame(int fi, bool recurse, bool transform);
+	void setVertexColors(void);
+	float getTime(void);
+	void setTime(float t);
+
 	void printFrames(int level, Frame *r);
 	void dumpClump(bool detailed);
 	std::vector<quat> getBoundingSpheres(void);

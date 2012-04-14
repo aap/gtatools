@@ -171,7 +171,6 @@ void World::readIpl(ifstream &in, string iplName)
 
 void World::addInstance(Instance *i)
 {
-	i->isIslandLod = i->isLod = false;
 	if (i->name.substr(0,3) == "lod")
 		i->isLod = true;
 	else if (i->name.substr(0,9) == "islandlod")
@@ -182,10 +181,6 @@ void World::addInstance(Instance *i)
 	// LODDUMMY
 	if (i->name.substr(0,3) == "xxx")
 		i->isIslandLod = i->isLod = false;
-
-	i->isVisible = true;
-
-	i->wasAdded = false;
 
 	instances.push_back(i);
 	uint k = instances.size()-1;
@@ -282,7 +277,6 @@ void World::readBinIpl(ifstream &in)
 		in.read((char *) &ip->id, sizeof(uint));
 		in.read((char *) &ip->interior, sizeof(uint));
 		in.read((char *) &ip->lod, sizeof(uint));
-		ip->scale = quat(1.0f, 1.0f, 1.0f);
 
 		ip->name = ((WorldObject*)objectList.get(ip->id))->modelName;
 
@@ -338,7 +332,6 @@ void World::readTextIpl(ifstream &in)
 
 			int i = 0;
 			ip = new Instance;
-			ip->lod = -1;
 
 			ip->id = atoi(fields[i++].c_str());
 
@@ -347,8 +340,6 @@ void World::readTextIpl(ifstream &in)
 
 			if (hasInterior)
 				ip->interior = atoi(fields[i++].c_str());
-			else
-				ip->interior = 0;
 
 			ip->position = quat(atof(fields[i].c_str()),
 			                    atof(fields[i+1].c_str()),
@@ -361,8 +352,6 @@ void World::readTextIpl(ifstream &in)
 			                         atof(fields[i+1].c_str()),
 			                         atof(fields[i+2].c_str()));
 				i += 3;
-			} else {
-				ip->scale = quat(1.0f, 1.0f, 1.0f);
 			}
 			ip->rotation = quat(atof(fields[i+3].c_str()),
 			                    atof(fields[i+0].c_str()),
@@ -441,7 +430,7 @@ void World::associateLods(void)
 	dummyObj->objectCount = 1;
 	if (game == GTA3)
 		// not sure about that one
-		dummyObj->drawDistances.push_back(200);
+		dummyObj->drawDistances.push_back(100);
 	else
 		dummyObj->drawDistances.push_back(0);
 	dummyObj->flags = 0;
@@ -644,14 +633,12 @@ void Instance::addToRenderList(void)
 {
 	if (wasAdded)
 		return;
-
 	instCounter++;
 
 	WorldObject *op = (WorldObject*)objectList.get(id);
 
-	// check draw distance
-	float d = cam.distanceTo(position);
-	int ai = op->getCorrectAtomic(d/renderer.lodMult);
+	float dist = cam.distanceTo(position);
+	int ai = op->getCorrectAtomic(dist/renderer.lodMult);
 
 	// frustum cull
 	if (op->isLoaded)
@@ -679,9 +666,11 @@ void Instance::addToRenderList(void)
 			if (interior != 13)
 				return;
 		} if (game == GTASA) {
+			// Gotta figure out what's the meaning of this.
 			if (interior != 13 && interior != 256 &&
 			    interior != 269 && interior != 2048 &&
 			    interior != 768 && interior != 512 &&
+			    interior != 6144 &&
 			    interior != 1024 && interior != 4096)
 				return;
 		}
@@ -692,10 +681,7 @@ void Instance::addToRenderList(void)
 	    !renderer.doCol)
 		return;
 
-	// TODO: implement an object request mechanism
-
 	if (!op->isLoaded) {
-//		op->load();
 		// Request model and try to draw LOD instead
 		objMan.request(op);
 		Instance *ip = world.getInstance(lod);
@@ -703,6 +689,31 @@ void Instance::addToRenderList(void)
 			ip->addToRenderList();
 		return;
 	}
+
+	float drawDist = op->getDrawDistance(ai)/renderer.lodMult;
+	float distDiff = drawDist - dist;
+	const float fadeThrshd = 20.0f;
+
+	if (distDiff < fadeThrshd)
+		setFading(distDiff/fadeThrshd);
+	else if (getFading() != 1.0f)
+		// Increment fading value for instances that are
+		// well within the draw dist.
+		setFading(getFading()+0.3f);
+	else if (op->isFreshlyLoaded)
+		setFading(0.0f);
+		// Retain the flag for other instances.
+		// It is cleared in Renderer.
+	else
+		setFading(1.0f);
+
+	// If a new instance is being faded in or out, also draw the LOD
+	if (getFading() != 1.0f) {
+		Instance *ip = world.getInstance(lod);
+		if (ip != 0)
+			ip->addToRenderList();
+	}
+
 
 	if (op->type == ANIM)
 		renderer.addOpaqueObject(this, -1);
@@ -741,6 +752,20 @@ void Instance::setVisible(bool v)
 	isVisible = v;
 }
 
+void Instance::setFading(float fade)
+{
+	fadingFactor = fade;
+	if (fadingFactor < 0.0f)
+		fadingFactor = 0.0f;
+	else if (fadingFactor > 1.0f)
+		fadingFactor = 1.0f;
+}
+
+float Instance::getFading(void)
+{
+	return fadingFactor;
+}
+
 void Instance::printInfo(void)
 {
 	cout << id << ", "
@@ -758,4 +783,16 @@ void Instance::printInfo(void)
 	     << rotation.w << endl;
 	WorldObject *op = (WorldObject*) objectList.get(id);
 	op->printInfo();
+}
+
+Instance::Instance(void)
+{
+	lod = -1;
+	interior = 0;
+	scale = quat(1.0f, 1.0f, 1.0f);
+	isVisible = true;
+	wasAdded = false;
+	wasDrawn = false;
+	isIslandLod = isLod = false;
+	fadingFactor = 1.0f;
 }

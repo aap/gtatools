@@ -88,10 +88,21 @@ void keypress(uchar key, int x, int y)
 {
 	char buf[20];
 	WorldObject *op;
+	Instance *ip;
 	quat campos;
 	static float dist = 10.0f;
 
 	switch (key) {
+/*
+	case 'f':
+		ip = world.getInstance(lastSelected);
+		ip->setFading(ip->getFading()+0.05f);
+		break;
+	case 'F':
+		ip = world.getInstance(lastSelected);
+		ip->setFading(ip->getFading()-0.05f);
+		break;
+*/
 	case 'y':
 		drawable.setTime(drawable.getTime()+0.033333);
 //		drawable.setTime(drawable.getTime()+0.003333);

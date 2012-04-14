@@ -45,6 +45,8 @@ public:
 	bool BSvisible;
 	bool isAnimated;
 
+	bool isFreshlyLoaded;
+
 	Drawable drawable;
 	CollisionModel *col;
 	std::string animationName;
@@ -115,6 +117,7 @@ public:
 
 	bool isVisibleAtTime(int hour);
 	int getCorrectAtomic(float d);
+	float getDrawDistance(int atomic);
 	void printInfo(void);
 	WorldObject(void);
 };
@@ -139,7 +142,6 @@ public:
 	void readIde(std::ifstream &in);
 	void findAndReadCol(std::string fileName);
 	void readCol(std::ifstream &in, int island = -1);
-	ObjectList(void);
 	~ObjectList(void);
 };
 
