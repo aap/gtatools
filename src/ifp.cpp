@@ -12,6 +12,7 @@
 using namespace rw;
 using namespace std;
 
+// I'm not too pround of this, but it works
 #ifdef DEBUG
 	#define READ_SECTION(x)\
 		fourcc = readUInt32(ifp);\
@@ -20,10 +21,18 @@ using namespace std;
 			exit(1);\
 		}\
 		size = readUInt32(ifp);
+	#define SECTION_DECLARATION\
+		uint32 fourcc, size;
+	#define SECTION_DECLARATION_2\
+		uint32 fourcc, size;
 #else
 	#define READ_SECTION(x)\
-		fourcc = readUInt32(ifp);\
+		readUInt32(ifp);\
 		size = readUInt32(ifp);
+	#define SECTION_DECLARATION\
+		uint32 size;
+	#define SECTION_DECLARATION_2\
+		uint32 fourcc, size;
 #endif
 
 enum {
@@ -38,7 +47,7 @@ enum {
 
 void AnimPackage::read(ifstream &ifp)
 {
-	uint32 fourcc, size;
+	SECTION_DECLARATION_2
 	fourcc = readUInt32(ifp);
 	size = readUInt32(ifp);
 
@@ -78,7 +87,7 @@ void AnimPackage::clear(void)
 
 void Animation::read_1(ifstream &ifp)
 {
-	uint32 fourcc, size;
+	SECTION_DECLARATION
 
 	READ_SECTION(NAME);
 
@@ -127,7 +136,7 @@ void Animation::clear(void)
 
 void AnimObj::read_1(std::ifstream &ifp)
 {
-	uint32 fourcc, size;
+	SECTION_DECLARATION_2
 
 	READ_SECTION(CPAN);
 
@@ -201,32 +210,32 @@ void KeyFrame::read_1(uint32 fourcc, ifstream &ifp)
 	float32 data[4];
 
 	if (fourcc == KR00) {
-		ifp.read((char*)&data, 4*sizeof(float32));
+		ifp.read(reinterpret_cast<char*>(&data), 4*sizeof(float32));
 		rot.w = data[3];
 		rot.x = -data[0];
 		rot.y = -data[1];
 		rot.z = -data[2];
 	} else if (fourcc == KRT0) {
-		ifp.read((char*)&data, 4*sizeof(float32));
+		ifp.read(reinterpret_cast<char*>(&data), 4*sizeof(float32));
 		rot.w = data[3];
 		rot.x = -data[0];
 		rot.y = -data[1];
 		rot.z = -data[2];
-		ifp.read((char*)&data, 3*sizeof(float32));
+		ifp.read(reinterpret_cast<char*>(&data), 3*sizeof(float32));
 		pos.x = data[0];
 		pos.y = data[1];
 		pos.z = data[2];
 	} else if (fourcc == KRTS) {
-		ifp.read((char*)&data, 4*sizeof(float32));
+		ifp.read(reinterpret_cast<char*>(&data), 4*sizeof(float32));
 		rot.w = data[3];
 		rot.x = -data[0];
 		rot.y = -data[1];
 		rot.z = -data[2];
-		ifp.read((char*)&data, 3*sizeof(float32));
+		ifp.read(reinterpret_cast<char*>(&data), 3*sizeof(float32));
 		pos.x = data[0];
 		pos.y = data[1];
 		pos.z = data[2];
-		ifp.read((char*)&data, 3*sizeof(float32));
+		ifp.read(reinterpret_cast<char*>(&data), 3*sizeof(float32));
 		scale.x = data[0];
 		scale.y = data[1];
 		scale.z = data[2];
@@ -238,7 +247,7 @@ void KeyFrame::read_1(uint32 fourcc, ifstream &ifp)
 void KeyFrame::read_3(ifstream &ifp, uint32 frmType)
 {
 	int16 data[5];
-	ifp.read((char*)&data, 5*sizeof(int16));
+	ifp.read(reinterpret_cast<char*>(&data), 5*sizeof(int16));
 	rot.x = data[0]/4096.0f;
 	rot.y = data[1]/4096.0f;
 	rot.z = data[2]/4096.0f;
@@ -247,7 +256,7 @@ void KeyFrame::read_3(ifstream &ifp, uint32 frmType)
 	type = KR00;
 
 	if (frmType == 4) {
-		ifp.read((char*)&data, 3*sizeof(int16));
+		ifp.read(reinterpret_cast<char*>(&data), 3*sizeof(int16));
 		pos.x = data[0]/1024.0f;
 		pos.y = data[1]/1024.0f;
 		pos.z = data[2]/1024.0f;

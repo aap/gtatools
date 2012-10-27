@@ -8,7 +8,6 @@
 #include "world.h"
 #include "drawable.h"
 #include "objects.h"
-#include "objman.h"
 #include "camera.h"
 #include "timecycle.h"
 #include "sky.h"
@@ -17,7 +16,10 @@
 #include "pipeline.h"
 #include "primitives.h"
 #include "renderer.h"
+#include "jobqueue.h"
 using namespace std;
+
+#include <ctime>
 
 Renderer renderer;
 
@@ -25,19 +27,24 @@ Drawable drawable;
 
 volatile bool threadFinished;
 
+clock_t oldtime;
+
 static void *buildListThread(void *args)
 {
 	world.buildRenderList();
+	oldtime = clock();
 	threadFinished = true;
 	return 0;
 }
 
 void Renderer::renderOpaque(void)
 {
+	THREADCHECK();
 	gl::drawTransparent = false;
 	for (uint i = 0; i < opaqueRenderList.size(); i++) {
 		Instance *ip = opaqueRenderList[i].inst;
-		WorldObject *op = (WorldObject*)objectList.get(ip->id);
+		WorldObject *op =
+			static_cast<WorldObject*>(objectList.get(ip->id));
 		int ai = opaqueRenderList[i].atomic;
 
 		glm::mat4 mvSave = gl::state.modelView;
@@ -45,7 +52,8 @@ void Renderer::renderOpaque(void)
 
 		ip->transform();
 
-		glStencilFunc(GL_ALWAYS,(ip->index>>gl::stencilShift)&0xFF,-1);
+		glStencilFunc(GL_ALWAYS,
+		              (ip->index>>gl::stencilShift)&0xFF,-1);
 
 		if (op->BSvisible)
 			op->drawBoundingSphere();
@@ -57,13 +65,20 @@ void Renderer::renderOpaque(void)
 			if (op->col)
 				op->drawCol();
 		} else {
+			if (op->drawable == 0) {
+				cout << "no drawable " << op->modelName << endl;
+				goto next;
+			}
+			if (!op->canDraw()) {
+				cout << "cant draw " << op->modelName << endl;
+				goto next;
+			}
 			if (ai == -1)
-				op->drawable.draw();
+				op->drawable->draw();
 			else
-				op->drawable.drawAtomic(ai);
+				op->drawable->drawAtomic(ai);
 		}
 
-		ip->wasAdded = false;
 		op->isFreshlyLoaded = false;
 
 		if (gl::wasTransparent) {
@@ -73,19 +88,24 @@ void Renderer::renderOpaque(void)
 				addTransp2Object(ip, ai);
 		}
 
+next:
 		gl::state.modelView = mvSave;
 		gl::state.normalMat = nrmSave;
 		gl::state.updateMatrices();
+
+		ip->wasAdded = false;
 	}
 //	cout << dec << opaqueRenderList.size() << " insts drawn\n";
 }
 
 void Renderer::renderTransp1(void)
 {
+	THREADCHECK();
 	gl::drawTransparent = true;
 	for (uint i = 0; i < transp1RenderList.size(); i++) {
 		Instance *ip = transp1RenderList[i].inst;
-		WorldObject *op = (WorldObject*)objectList.get(ip->id);
+		WorldObject *op =
+			static_cast<WorldObject*>(objectList.get(ip->id));
 		int ai = transp1RenderList[i].atomic;
 
 		glm::mat4 mvSave = gl::state.modelView;
@@ -93,13 +113,14 @@ void Renderer::renderTransp1(void)
 
 		ip->transform();
 
-		glStencilFunc(GL_ALWAYS,(ip->index>>gl::stencilShift)&0xFF,-1);
+		glStencilFunc(GL_ALWAYS,
+		              (ip->index>>gl::stencilShift)&0xFF,-1);
 
 		globalAlpha = ip->getFading();
 		if (ai == -1)
-			op->drawable.draw();
+			op->drawable->draw();
 		else
-			op->drawable.drawAtomic(ai);
+			op->drawable->drawAtomic(ai);
 
 		gl::state.modelView = mvSave;
 		gl::state.normalMat = nrmSave;
@@ -109,10 +130,12 @@ void Renderer::renderTransp1(void)
 
 void Renderer::renderTransp2(void)
 {
+	THREADCHECK();
 	gl::drawTransparent = true;
 	for (uint i = 0; i < transp2RenderList.size(); i++) {
 		Instance *ip = transp2RenderList[i].inst;
-		WorldObject *op = (WorldObject*)objectList.get(ip->id);
+		WorldObject *op =
+			static_cast<WorldObject*>(objectList.get(ip->id));
 		int ai = transp2RenderList[i].atomic;
 
 		glm::mat4 mvSave = gl::state.modelView;
@@ -120,13 +143,14 @@ void Renderer::renderTransp2(void)
 
 		ip->transform();
 
-		glStencilFunc(GL_ALWAYS,(ip->index>>gl::stencilShift)&0xFF,-1);
+		glStencilFunc(GL_ALWAYS,
+		              (ip->index>>gl::stencilShift)&0xFF,-1);
 
 		globalAlpha = ip->getFading();
 		if (ai == -1)
-			op->drawable.draw();
+			op->drawable->draw();
 		else
-			op->drawable.drawAtomic(ai);
+			op->drawable->drawAtomic(ai);
 
 		gl::state.modelView = mvSave;
 		gl::state.normalMat = nrmSave;
@@ -145,7 +169,11 @@ void Renderer::addOpaqueObject(Instance *ip, int a)
 	ip->wasAdded = true;
 	o.inst = ip;
 	o.atomic = a;
-	WorldObject *op = (WorldObject*)objectList.get(ip->id);
+	WorldObject *op = static_cast<WorldObject*>(objectList.get(ip->id));
+
+	if (op->drawable == 0)
+		cout << "no drawable adding " << op->modelName << endl;
+
 	if (op->flags & 4)
 		opaqueRenderList.push_back(o);
 	else
@@ -172,6 +200,7 @@ void Renderer::addTransp2Object(Instance *ip, int a)
 
 void Renderer::renderScene(void)
 {
+	THREADCHECK();
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
 	        GL_STENCIL_BUFFER_BIT);
 
@@ -225,16 +254,20 @@ void Renderer::renderScene(void)
 
 	// the test object
 
+/*
 	gl::drawTransparent = false;
 	drawable.draw();
 	gl::drawTransparent = true;
 	drawable.draw();
+*/
 
 	// the world
 
 	opaqueRenderList.clear();
 	transp1RenderList.clear();
 	transp2RenderList.clear();
+
+//	world.cleanUp();
 
 	// Start thread to build render list
 	pthread_t thr;
@@ -243,12 +276,22 @@ void Renderer::renderScene(void)
 		cout << "pthread failed\n";
 
 	// While we're waiting, load requested objects
-	while (!threadFinished)
-		objMan.loadSingleObject();
+//	while (!threadFinished)
+//		objMan.loadSingleObject();
+
+	while (glJobs.processJob())
+		if (threadFinished)
+			break;
+	clock_t newtime = clock();
+	double diff = (newtime-oldtime) * 1000/CLOCKS_PER_SEC;
+//	cout << diff << endl;
 
 	// This shouldn't really be necessary, but somehow pthread_create
 	// fails at some point when I don't put this line here.
 	pthread_join(thr, NULL);
+
+//	while (objMan.unloadSingleObject())
+//		;
 
 	// Everything is done now, draw!
 	if (doBFC)

@@ -18,6 +18,7 @@ Sky sky;
 
 void Sky::draw(void)
 {
+	THREADCHECK();
 	GLuint vbo = 0;
 
 	Weather *w = timeCycle.getCurrentWeatherData();
@@ -76,7 +77,7 @@ void Sky::draw(void)
 	glEnableVertexAttribArray(gl::in_Color);
 	glVertexAttribPointer(gl::in_Vertex, 3, GL_FLOAT, GL_FALSE, 0, 0);
 	glVertexAttribPointer(gl::in_Color, 3, GL_FLOAT, GL_FALSE, 0,
-			     (GLvoid *) (14*3*sizeof(GLfloat)));
+			     (GLvoid*)(14*3*sizeof(GLfloat)));
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 14);
 	glDisableVertexAttribArray(gl::in_Vertex);
 	glDisableVertexAttribArray(gl::in_Color);

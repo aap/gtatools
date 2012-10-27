@@ -24,6 +24,9 @@ enum Intersection {
 
 class Instance
 {
+private:
+	bool isActive;
+	float fadingFactor;
 public:
 	uint index;
 	int id;
@@ -33,29 +36,33 @@ public:
 	quat scale;
 	quat rotation;
 
-	bool isLod;
-	bool isIslandLod;
-
-	std::vector<int> hires;
 	int lod;
-
-	bool isVisible;
+	std::vector<int> hires;
 
 	bool wasAdded;
 
-	bool wasDrawn;
+	bool isLod;
+	bool isIslandLod;
 
-	float fadingFactor;
+	bool isHidden;
+
 
 	/* functions */
-	bool isCulled(void);
 	void addToRenderList(void);
+	void addLodToRenderList(void);
+	bool isCulled(void);
 	void transform(void);
-	void printInfo(void);
-	void setVisible(bool v);
+
+	void releaseIfInactive(void);
+
+	void initFromLine(std::vector<std::string> fields);
+	void initFromBinEntry(char *data);
+
 	void setFading(float fade);
 	float getFading(void);
 	Instance(void);
+
+	void printInfo(void);
 };
 
 class Zone
@@ -71,10 +78,13 @@ public:
 	std::string text;
 
 	/* functions */
+	void initFromLine(std::vector<std::string> fields);
+
 	bool pointInZone(quat p);
 	bool sphereInZone(quat p, float r);
 };
 
+// not used at the moment
 class Island
 {
 public:
@@ -100,22 +110,24 @@ private:
 	std::vector<Instance *> instances;
 
 public:
-	bool isVisible;
 	/* functions */
+	void addInstance(Instance *i);
+
+	void addToRenderList(void);
+	void draw(void);
+
 	enum Intersection intersectBox(quat bmin, quat bmax);
 	bool isPointInside(quat p);
-	void addInstance(Instance *i);
+
 	void setBounds(quat c1, quat c2);
 	quat getMinCorner(void);
 	quat getMaxCorner(void);
-	void addToRenderList(void);
-	void draw(void);
 };
 
 class World
 {
 private:
-	// list of ALL instances
+	// list of all instances
 	std::vector<Instance *> instances;
 
 	std::vector<Island> islands;
@@ -125,25 +137,26 @@ private:
 
 	int interior;
 
+
+	void readBinIpl(std::ifstream& f);
+	void readTextIpl(std::ifstream& f);
 	void addInstance(Instance *i);
 	void addInstanceToIsland(Instance *i);
 	void addInstanceToSectors(Instance *i);
+	int getLod(Instance *i);
 public:
-	int getLod(Instance *);
-	Instance *getInstance(uint i);
-	void readIpl(std::ifstream &, std::string fileName);
-	void readBinIpl(std::ifstream &);
-	void readTextIpl(std::ifstream &);
+	void initSectors(quat start, quat end, int count);
+	void readIpl(std::ifstream& f, std::string fileName);
 	void populateIslands(void);
 	void associateLods(void);
-	void buildRenderList(void);
-	void drawZones(void);
 
-	void setSectorVisible(bool v);
-
-	void initSectors(quat start, quat end, int count);
 	void drawSectors(void);
+	void drawZones(void);
+	void buildRenderList(void);
 
+	void cleanUp(void);
+
+	Instance *getInstance(uint i);
 	void setInterior(int i);
 	int getInterior(void);
 

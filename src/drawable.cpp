@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cstring>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -14,6 +15,7 @@
 #include "world.h"
 #include "timecycle.h"
 #include "renderer.h"
+#include "jobqueue.h"
 
 using namespace std;
 using namespace gl;
@@ -28,12 +30,19 @@ void Drawable::printFrames(int level, Frame *r)
 		printFrames(level+1, r->children[i]);
 }
 
-void Drawable::attachClump(rw::Clump &c)
+void Drawable::attachClump(rw::Clump *clp)
 {
-	clump = c;
+	THREADCHECK();
+//	if (toBeDeleted) {
+//		cout << "loading to be deleted object\n";
+//		clp->clear();
+//		delete clp;
+//		return;
+//	}
 	// frames
-	for (uint i = 0; i < clump.frameList.size(); i++) {
-		rw::Frame &rwf = clump.frameList[i];
+	uint frmsize = clp->frameList.size();
+	for (uint i = 0; i < frmsize; i++) {
+		rw::Frame &rwf = clp->frameList[i];
 		Frame *f = new Frame;
 
 		if (i == 0)	// sensible default if there is no hanim
@@ -76,8 +85,8 @@ void Drawable::attachClump(rw::Clump &c)
 			animRoot = f;
 			for (uint j = 0; j < rwf.hAnimBoneCount; j++) {
 				bool found = false;
-				for (uint k=0;k < clump.frameList.size(); k++) {
-					rw::Frame &rwf2 = clump.frameList[k];
+				for (uint k=0;k < clp->frameList.size();k++) {
+					rw::Frame &rwf2 = clp->frameList[k];
 					if (rwf2.hAnimBoneId ==
 					    rwf.hAnimBoneIds[j]) {
 						boneToFrame.push_back(k);
@@ -95,12 +104,11 @@ void Drawable::attachClump(rw::Clump &c)
 		frmList.push_back(f);
 	}
 
-
 	// geometries
 	GLuint vbo, ibo;
 	GLint size;
-	for (uint i = 0; i < clump.geometryList.size(); i++) {
-		rw::Geometry &rwg = clump.geometryList[i];
+	for (uint i = 0; i < clp->geometryList.size(); i++) {
+		rw::Geometry &rwg = clp->geometryList[i];
 		Geometry geo;
 
 		for (uint j = 0; j < rwg.materialList.size(); j++) {
@@ -110,11 +118,6 @@ void Drawable::attachClump(rw::Clump &c)
 				stringToLower(m.texture.maskName);
 			// TODO: to this for other textures also
 		}
-
-		geo.boundingSphere = quat(rwg.boundingSphere[3],
-		                          rwg.boundingSphere[0],
-		                          rwg.boundingSphere[1],
-		                          rwg.boundingSphere[2]);
 
 		uint numVertices = rwg.vertices.size() / 3;
 
@@ -224,8 +227,8 @@ void Drawable::attachClump(rw::Clump &c)
 	// reorder so number of object according to item definition matches
 	// number of atomic (based on suffix '_L[012]' in frame name)
 	vector<int> tmpList;
-	for (uint i = 0; i < clump.atomicList.size(); i++) {
-		rw::Atomic &atm = clump.atomicList[i];
+	for (uint i = 0; i < clp->atomicList.size(); i++) {
+		rw::Atomic &atm = clp->atomicList[i];
 		Frame *f = frmList[atm.frameIndex];
 		f->geo = atm.geometryIndex;
 		string name = f->name;
@@ -246,8 +249,10 @@ void Drawable::attachClump(rw::Clump &c)
 	}
 	atomicList.insert(atomicList.end(), tmpList.begin(), tmpList.end());
 
+	clump = clp;
 	updateFrames(root);
 	updateGeometries();
+//	toBeLoaded = false;
 }
 
 void Drawable::attachAnim(Animation &a)
@@ -265,46 +270,74 @@ void Drawable::attachAnim(Animation &a)
 	cout << endTime << " seconds\n";
 }
 
-int Drawable::load(string model, string texdict)
+void Drawable::request(string model, string texdict)
+{
+//	toBeLoaded = true;
+	char *str = new char[model.size()+1];
+	strcpy(str, model.c_str());
+	normalJobs.addJob(JobQueue::readDff, this, str);
+	texDict = 0;
+	if (renderer.doTextures)
+		texDict = texMan.get(texdict);
+}
+
+void Drawable::release(void)
+{
+//	if (toBeLoaded)
+//		cout << "can't delete to be loaded object\n";
+//	toBeDeleted = true;
+	normalJobs.addJob(JobQueue::deleteDrawable, this, 0);
+}
+
+int Drawable::loadSynch(string model, string texdict)
 {
 	ifstream dff;
 
+	rw::Clump *clp = new rw::Clump;
 	if (directory.openFile(dff, model) == -1) {
 		cout << "couldn't open " << model << endl;
 		return -1;
 	}
-	rw::Clump c;
-	c.read(dff);
+	clp->read(dff);
 	dff.close();
 
-	texDict = texMan.get(texdict);
+	attachClump(clp);
 
-	attachClump(c);
+	texDict = 0;
+	if (renderer.doTextures)
+		texDict = texMan.get(texdict);
 
 	return 0;
 }
 
 void Drawable::unload(void)
 {
-	clump.clear();
-	texMan.release(texDict->fileName);
-	anim.clear();
+	THREADCHECK();
+	if (clump)
+		clump->clear();
+	delete clump;
 	for (uint i = 0; i < geoList.size(); i++) {
 		if (geoList[i].vbo != 0)
 			glDeleteBuffers(1, &geoList[i].vbo);
 		if (geoList[i].ibo != 0)
 			glDeleteBuffers(1, &geoList[i].ibo);
-		geoList[i].vbo = 0;
-		geoList[i].ibo = 0;
 	}
-	geoList.resize(0);
-	for (uint i = 0; i < frmList.size(); i++) {
+	geoList.clear();
+
+	for (uint i = 0; i < frmList.size(); i++)
 		delete frmList[i];
-		frmList[i] = 0;
-	}
-	frmList.resize(0);
-	boneToFrame.resize(0);
+	frmList.clear();
+	atomicList.clear();
+
+	if (texDict)
+		texMan.release(texDict->fileName);
+	texDict = 0;
+
+	anim.clear();
+	boneToFrame.clear();
 	animRoot = root = 0;
+	curTime = endTime = 0.0f;
+	currentColorStep = 0;
 }
 
 void Drawable::applyAnim(Frame *f)
@@ -362,9 +395,10 @@ void Drawable::setTime(float t)
 
 void Drawable::updateGeometries(void)
 {
+	THREADCHECK();
 	for (uint i = 0; i < geoList.size(); i++) {
 		Geometry &g = geoList[i];
-		rw::Geometry &rwg = clump.geometryList[i];
+		rw::Geometry &rwg = clump->geometryList[i];
 
 		if (!g.isSkinned)
 			continue;
@@ -426,8 +460,9 @@ void Drawable::updateFrames(Frame *f)
 
 void Drawable::setVertexColors(void)
 {
-	for (uint i = 0; i < clump.geometryList.size(); i++) {
-		rw::Geometry &rwg = clump.geometryList[i];
+	THREADCHECK();
+	for (uint i = 0; i < clump->geometryList.size(); i++) {
+		rw::Geometry &rwg = clump->geometryList[i];
 		Geometry &geo = geoList[i];
 
 		if (!rwg.hasNightColors)
@@ -452,6 +487,8 @@ void Drawable::setVertexColors(void)
 
 void Drawable::draw(void)
 {
+	if (clump == 0)
+		cout << "warning: no clump attached\n";
 	if (currentColorStep != timeCycle.getColorStep())
 		setVertexColors();
 
@@ -462,13 +499,13 @@ void Drawable::draw(void)
 
 void Drawable::drawAtomic(uint ai)
 {
+	if (clump == 0)
+		cout << "warning: no clump attached\n";
 	if (currentColorStep != timeCycle.getColorStep())
 		setVertexColors();
 
 	if (ai < atomicList.size())
 		drawFrame(atomicList[ai], true, false);
-	else
-		; // can happen
 }
 
 void Drawable::drawFrame(int fi, bool recurse, bool transform)
@@ -496,6 +533,7 @@ void Drawable::drawFrame(int fi, bool recurse, bool transform)
 		if (f->geo != -1) {
 			drawGeometry(f->geo);
 		} else {
+	THREADCHECK();
 			glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
 //			gl::drawSphere(0.1f, 10, 10);
 		}
@@ -513,10 +551,11 @@ void Drawable::drawFrame(int fi, bool recurse, bool transform)
 
 void Drawable::drawGeometry(int gi)
 {
-	if (uint(gi) >= clump.geometryList.size())
+	THREADCHECK();
+	if (uint(gi) >= clump->geometryList.size())
 		return;
 
-	rw::Geometry &g = clump.geometryList[gi];
+	rw::Geometry &g = clump->geometryList[gi];
 
 	if (geoList[gi].vbo == 0 || geoList[gi].ibo == 0)
 		return;
@@ -568,11 +607,12 @@ void Drawable::drawGeometry(int gi)
 		glActiveTexture(GL_TEXTURE0);
 		int matid = s.matIndex;
 		string texname = "";
-		if (g.materialList[matid].hasTex) {
+		if (renderer.doTextures && texDict != 0 &&
+		    g.materialList[matid].hasTex) {
 			texname = g.materialList[matid].texture.name;
 			Texture *t = texDict->get(texname);
 
-			if (t != 0 && t->tex != 0 && renderer.doTextures) {
+			if (t != 0 && t->tex != 0) {
 				if (t->hasAlpha)
 					isTransparent = true;
 				glBindTexture(GL_TEXTURE_2D,
@@ -585,15 +625,14 @@ void Drawable::drawGeometry(int gi)
 			glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
 		}
 		glm::vec4 matCol;
-		matCol.x = (float) g.materialList[matid].color[0] / 255.0f;
-		matCol.y = (float) g.materialList[matid].color[1] / 255.0f;
-		matCol.z = (float) g.materialList[matid].color[2] / 255.0f;
-		matCol.w = (float) g.materialList[matid].color[3] / 255.0f;
+		matCol.x = float(g.materialList[matid].color[0]) / 255.0f;
+		matCol.y = float(g.materialList[matid].color[1]) / 255.0f;
+		matCol.z = float(g.materialList[matid].color[2]) / 255.0f;
+		matCol.w = float(g.materialList[matid].color[3]) / 255.0f;
 		matCol.w *= renderer.globalAlpha;
 		state.matColor = matCol;
 		state.updateMaterial();
 
-//		if (g.materialList[matid].color[3] != 255)
 		if (matCol.w != 1.0f)
 			isTransparent = true;
 
@@ -643,18 +682,32 @@ void Drawable::drawGeometry(int gi)
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-
-vector<quat> Drawable::getBoundingSpheres(void)
+bool Drawable::hasModel(void)
 {
-	vector<quat> spheres;
-	for (uint i = 0; i < geoList.size(); i++)
-		spheres.push_back(geoList[i].boundingSphere);
-	if (spheres.size() == 0)
-		spheres.push_back(quat(0.0f, 0.0f, 0.0f, 0.0f));
-	return spheres;
+	return (clump != 0);
+}
+
+bool Drawable::hasTextures(void)
+{
+	return (texDict != 0 && texDict->isHierarchyLoaded());
 }
 
 void Drawable::dumpClump(bool detailed)
 {
-	clump.dump(detailed);
+	clump->dump(detailed);
 }
+
+Drawable::Drawable(void)
+{
+	clump = 0;
+	texDict = 0;
+
+//	toBeDeleted = false;
+//	toBeLoaded = false;
+}
+
+Drawable::~Drawable(void)
+{
+	unload();
+}
+

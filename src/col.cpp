@@ -42,7 +42,7 @@ int CollisionModel::read(ifstream &in)
 //	cout << name << endl;
 
 	float32 dataf[10];
-	in.read((char*)dataf, 10*sizeof(float32));
+	in.read(reinterpret_cast<char*>(dataf), 10*sizeof(float32));
 	if (version == 1) {
 		boundingSphere.w = dataf[0];
 		boundingSphere.x = dataf[1];
@@ -79,8 +79,8 @@ int CollisionModel::read(ifstream &in)
 
 	uint numShadFaces = 0;
 	uint numShadVertices = 0;
-	uint shadVertexOffset;
-	uint shadFaceOffset;
+	uint shadVertexOffset = 0;
+	uint shadFaceOffset = 0;
 
 	if (version > 1) {
 		numSpheres = readUInt16(in);
@@ -109,7 +109,8 @@ int CollisionModel::read(ifstream &in)
 		numSpheres = readUInt32(in);
 		spheres.resize(numSpheres);
 		for (uint i = 0; i < numSpheres; i++) {
-			in.read((char*)dataf, 4*sizeof(float32));
+			in.read(reinterpret_cast<char*>(dataf),
+			        4*sizeof(float32));
 			spheres[i].sphere.w = dataf[0];
 			spheres[i].sphere.x = dataf[1];
 			spheres[i].sphere.y = dataf[2];
@@ -124,7 +125,8 @@ int CollisionModel::read(ifstream &in)
 		numBoxes = readUInt32(in);
 		boxes.resize(numBoxes);
 		for (uint i = 0; i < numBoxes; i++) {
-			in.read((char*)dataf, 6*sizeof(float32));
+			in.read(reinterpret_cast<char*>(dataf),
+			        6*sizeof(float32));
 			boxes[i].min.x = dataf[0];
 			boxes[i].min.y = dataf[1];
 			boxes[i].min.z = dataf[2];
@@ -139,13 +141,15 @@ int CollisionModel::read(ifstream &in)
 
 		numVertices = readUInt32(in);
 		vertices.resize(numVertices*3);
-		in.read((char*)&vertices[0], numVertices*3*sizeof(float32));
+		in.read(reinterpret_cast<char*>(&vertices[0]),
+		        numVertices*3*sizeof(float32));
 
 		numFaces = readUInt32(in);
 		faces.resize(numFaces);
 		uint32 datai[3];
 		for (uint i = 0; i < numFaces; i++) {
-			in.read((char*)datai, 3*sizeof(uint32));
+			in.read(reinterpret_cast<char*>(datai),
+			        3*sizeof(uint32));
 			faces[i].a = datai[0];
 			faces[i].b = datai[1];
 			faces[i].c = datai[2];
@@ -158,7 +162,8 @@ int CollisionModel::read(ifstream &in)
 		in.seekg(filestart+sphereOffset, ios::beg);
 		spheres.resize(numSpheres);
 		for (uint i = 0; i < numSpheres; i++) {
-			in.read((char*)dataf, 4*sizeof(float32));
+			in.read(reinterpret_cast<char*>(dataf),
+			        4*sizeof(float32));
 			spheres[i].sphere.w = dataf[3];
 			spheres[i].sphere.x = dataf[0];
 			spheres[i].sphere.y = dataf[1];
@@ -172,7 +177,8 @@ int CollisionModel::read(ifstream &in)
 		in.seekg(filestart+boxOffset, ios::beg);
 		boxes.resize(numBoxes);
 		for (uint i = 0; i < numBoxes; i++) {
-			in.read((char*)dataf, 6*sizeof(float32));
+			in.read(reinterpret_cast<char*>(dataf),
+			        6*sizeof(float32));
 			boxes[i].min.x = dataf[0];
 			boxes[i].min.y = dataf[1];
 			boxes[i].min.z = dataf[2];
@@ -200,7 +206,8 @@ int CollisionModel::read(ifstream &in)
 			              (3*sizeof(uint16));
 			faceGroups.resize(numFaceGroups);
 			for (uint i = 0; i < numFaceGroups; i++) {
-				in.read((char*)dataf,6*sizeof(float32));
+				in.read(reinterpret_cast<char*>(dataf),
+				        6*sizeof(float32));
 				faceGroups[i].min.x = dataf[0];
 				faceGroups[i].min.y = dataf[1];
 				faceGroups[i].min.z = dataf[2];
@@ -214,7 +221,8 @@ int CollisionModel::read(ifstream &in)
 		}
 		faces.resize(numFaces);
 		for (uint i = 0; i < numFaces; i++) {
-			in.read((char*)datai, 3*sizeof(uint16));
+			in.read(reinterpret_cast<char*>(datai),
+			        3*sizeof(uint16));
 			faces[i].a = datai[0];
 			faces[i].b = datai[1];
 			faces[i].c = datai[2];
@@ -227,7 +235,8 @@ int CollisionModel::read(ifstream &in)
 		in.seekg(filestart+vertexOffset, ios::beg);
 		vertices.resize(numVertices*3);
 		for (uint i = 0; i < numVertices; i++) {
-			in.read((char*)datai, 3*sizeof(int16));
+			in.read(reinterpret_cast<char*>(datai),
+			        3*sizeof(int16));
 			vertices[i*3+0] = datai[0] / 128.0f;
 			vertices[i*3+1] = datai[1] / 128.0f;
 			vertices[i*3+2] = datai[2] / 128.0f;
@@ -237,7 +246,8 @@ int CollisionModel::read(ifstream &in)
 		in.seekg(filestart+shadVertexOffset, ios::beg);
 		shadVertices.resize(numShadVertices*3);
 		for (uint i = 0; i < numShadVertices; i++) {
-			in.read((char*)datai, 3*sizeof(int16));
+			in.read(reinterpret_cast<char*>(datai),
+			        3*sizeof(int16));
 			shadVertices[i*3+0] = datai[0] / 128.0f;
 			shadVertices[i*3+1] = datai[1] / 128.0f;
 			shadVertices[i*3+2] = datai[2] / 128.0f;
@@ -246,7 +256,8 @@ int CollisionModel::read(ifstream &in)
 		in.seekg(filestart+shadFaceOffset, ios::beg);
 		shadFaces.resize(numShadFaces);
 		for (uint i = 0; i < numShadFaces; i++) {
-			in.read((char*)datai, 3*sizeof(uint16));
+			in.read(reinterpret_cast<char*>(datai),
+			        3*sizeof(uint16));
 			shadFaces[i].a = datai[0];
 			shadFaces[i].b = datai[1];
 			shadFaces[i].c = datai[2];

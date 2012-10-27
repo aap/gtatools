@@ -17,7 +17,6 @@
 #include "camera.h"
 #include "timecycle.h"
 #include "directory.h"
-#include "objman.h"
 #include "renderer.h"
 #include "objects.h"
 #include "world.h"
@@ -25,8 +24,6 @@
 using namespace std;
 
 World world;
-
-static int instCounter = 0;
 
 /*
  * WorldSector
@@ -85,6 +82,7 @@ void WorldSector::addToRenderList(void)
 
 void WorldSector::draw(void)
 {
+	THREADCHECK();
 	glDisable(GL_BLEND);
 	glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
 
@@ -117,24 +115,17 @@ void World::buildRenderList(void)
 */
 
 	sectors[0].addToRenderList();
-	for (uint i = 1; i < sectors.size(); i++) {
-//		if ((i-1)%12 == 0)
-//			cout << endl;
-		if (sectors[i].isVisible &&
-		    cam.isBoxInFrustum(sectors[i].getMinCorner(),
-		                       sectors[i].getMaxCorner())) {
+	for (uint i = 1; i < sectors.size(); i++)
+		if (cam.isBoxInFrustum(sectors[i].getMinCorner(),
+		                       sectors[i].getMaxCorner()))
 			sectors[i].addToRenderList();
+}
 
-//			cout << "1 ";
-//		} else {
-//			cout << "0 ";
-		}
-	}
-
-//	cout << endl;
-//	cout << dec << instCounter << endl;
-
-	instCounter = 0;
+void World::cleanUp(void)
+{
+	for (uint i = 0; i < instances.size(); i++)
+		instances[i]->releaseIfInactive();
+//	texMan.dumpLoaded();
 }
 
 void World::drawZones(void)
@@ -171,17 +162,6 @@ void World::readIpl(ifstream &in, string iplName)
 
 void World::addInstance(Instance *i)
 {
-	if (i->name.substr(0,3) == "lod")
-		i->isLod = true;
-	else if (i->name.substr(0,9) == "islandlod")
-		i->isIslandLod = true;
-	// Assume only non-lods for San Andreas, the flag is later corrected.
-	if (game == GTASA)
-		i->isIslandLod = i->isLod = false;
-	// LODDUMMY
-	if (i->name.substr(0,3) == "xxx")
-		i->isIslandLod = i->isLod = false;
-
 	instances.push_back(i);
 	uint k = instances.size()-1;
 	instances[k]->index = k;
@@ -263,23 +243,14 @@ void World::readBinIpl(ifstream &in)
 {
 	in.seekg(4, ios::cur);
 	uint instCount;
-	in.read((char *) &instCount, sizeof(uint));
+	in.read(reinterpret_cast<char*>(&instCount), sizeof(uint));
 	in.seekg(68, ios::cur);
 
-	Instance *ip;
 	for (uint i = 0; i < instCount; i++) {
-		ip = new Instance;
-		float tmp[4];
-		in.read((char *) tmp, 3*sizeof(float));
-		ip->position = quat(tmp[0], tmp[1], tmp[2]);
-		in.read((char *) tmp, 4*sizeof(float));
-		ip->rotation = quat(tmp[3], tmp[0], tmp[1], tmp[2]);
-		in.read((char *) &ip->id, sizeof(uint));
-		in.read((char *) &ip->interior, sizeof(uint));
-		in.read((char *) &ip->lod, sizeof(uint));
-
-		ip->name = ((WorldObject*)objectList.get(ip->id))->modelName;
-
+		Instance *ip = new Instance;
+		char data[40];
+		in.read(data, 40);
+		ip->initFromBinEntry(data);
 		addInstance(ip);
 	}
 }
@@ -315,74 +286,13 @@ void World::readTextIpl(ifstream &in)
 			continue;
 		}
 
-		Instance *ip;
-		bool hasInterior = false;
-		bool hasScale = false;
-		bool hasLod = false;
 		if (blockType == INST) {
-			if (fields.size() == 12) { // gta3
-				hasScale = true;
-			} else if (fields.size() == 13) { // gtavc
-				hasScale = true;
-				hasInterior = true;
-			} else if (fields.size() == 11) { // gtasa
-				hasInterior = true;
-				hasLod = true;
-			}
-
-			int i = 0;
-			ip = new Instance;
-
-			ip->id = atoi(fields[i++].c_str());
-
-			ip->name = fields[i++];
-			stringToLower(ip->name);
-
-			if (hasInterior)
-				ip->interior = atoi(fields[i++].c_str());
-
-			ip->position = quat(atof(fields[i].c_str()),
-			                    atof(fields[i+1].c_str()),
-			                    atof(fields[i+2].c_str()));
-			i += 3;
-
-
-			if (hasScale) {
-				ip->scale = quat(atof(fields[i].c_str()),
-			                         atof(fields[i+1].c_str()),
-			                         atof(fields[i+2].c_str()));
-				i += 3;
-			}
-			ip->rotation = quat(atof(fields[i+3].c_str()),
-			                    atof(fields[i+0].c_str()),
-			                    atof(fields[i+1].c_str()),
-			                    atof(fields[i+2].c_str()));
-			i += 4;
-
-			if (hasLod)
-				ip->lod = atoi(fields[i++].c_str());
-
+			Instance *ip = new Instance;
+			ip->initFromLine(fields);
 			addInstance(ip);
 		} else if (blockType == ZONE) {
-			int i = 0;
 			Zone *z = new Zone;
-
-			z->name = fields[i++];
-			stringToLower(z->name);
-			z->type = atoi(fields[i++].c_str());
-			z->corner1 = quat(atof(fields[i].c_str()),
-			                  atof(fields[i+1].c_str()),
-			                  atof(fields[i+2].c_str()));
-			z->corner2 = quat(atof(fields[i+3].c_str()),
-			                  atof(fields[i+4].c_str()),
-			                  atof(fields[i+5].c_str()));
-			i += 6;
-			z->islandNum = atoi(fields[i++].c_str());
-
-			if (fields.size() >= 10) {
-				z->text = fields[i++];
-				stringToLower(z->text);
-			}
+			z->initFromLine(fields);
 
 			if (uint(z->islandNum) >= islands.size())
 				islands.resize(z->islandNum+1);
@@ -399,7 +309,7 @@ void World::associateLods(void)
 {
 	int base = 0;
 
-	/* Associate each instance with its LOD and vice versa */
+	/* Associate every instance with its LOD and vice versa */
 	for (uint i = 0; i < instances.size(); i++) {
 		Instance *ip = instances[i];
 		if (indices[i] == 0)
@@ -443,12 +353,12 @@ void World::associateLods(void)
 //		cout << "adding dummy for " << lod->name << endl;
 
 		Instance *ip = new Instance;
+
 		ip->lod = i;
 		ip->id = dummyObj->id;
-		ip->name = lod->name;
-		ip->name[0] = 'x'; ip->name[1] = 'x'; ip->name[2] = 'x';
-		ip->isIslandLod = ip->isLod = false;
-		ip->interior = 0;
+		string name = lod->name;
+		name[0] = 'x'; name[1] = 'x'; name[2] = 'x';
+		ip->name = name;
 		ip->position = lod->position;
 		ip->scale = quat(1.0f, 1.0f, 1.0f);
 		ip->rotation = quat(1.0f, 0.0f, 0.0f, 0.0f);
@@ -472,12 +382,10 @@ void World::initSectors(quat start, quat end, int count)
 	sectors.resize(count*count+1);
 	sectors[0].setBounds(quat(-10000.0f, -10000.0f, -10000.0f),
 	                     quat(10000.0f, 10000.0f, 10000.0f));
-	sectors[0].isVisible = true;
 #define S(i,j) sectors[i*count+j+1]
 	for (int i = 0; i < count; i++) {
 		quat base = start + stepx*i;
 		for (int j = 0; j < count; j++) {
-			S(i,j).isVisible = true;
 			S(i,j).setBounds(base, base+step);
 			base += stepy;
 		}
@@ -489,15 +397,6 @@ void World::drawSectors(void)
 {
 	for (uint i = 1; i < sectors.size(); i++)
 		sectors[i].draw();
-}
-
-void World::setSectorVisible(bool v)
-{
-	quat camPos = cam.getPosition();
-
-	for (uint i = 0; i < sectors.size(); i++)
-		if (sectors[i].isPointInside(camPos))
-			sectors[i].isVisible = v;
 }
 
 /* finds LOD instance for 3/VC LOD system and returns index */
@@ -522,7 +421,8 @@ int World::getLod(Instance *ip)
 	for (uint i = 0; i < instances.size(); i++) {
 		Instance *inst = instances[i];
 		if (inst->name == lodName1 || inst->name == lodName1) {
-			float d = (inst->position - ip->position).normsq();
+			float d =
+			    (inst->position - ip->position).normsq();
 			if (d <= bestD) {
 				bestD = d;
 				bestLod = i;
@@ -537,7 +437,7 @@ int World::getLod(Instance *ip)
 
 Instance *World::getInstance(uint i)
 {
-	if (i >= 0 && i < instances.size())
+	if (i < instances.size())
 		return instances[i];
 	return 0;
 }
@@ -575,6 +475,7 @@ void Island::addLodToRenderList(void)
 
 void Island::drawZones(void)
 {
+	THREADCHECK();
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glAlphaFunc(GL_GREATER, 0.0);
@@ -614,6 +515,27 @@ bool Island::pointInIsland(quat p)
  * Zone
  */
 
+void Zone::initFromLine(std::vector<std::string> fields)
+{
+	int i = 0;
+	name = fields[i++];
+	stringToLower(name);
+	type = atoi(fields[i++].c_str());
+	corner1 = quat(atof(fields[i].c_str()),
+	               atof(fields[i+1].c_str()),
+	               atof(fields[i+2].c_str()));
+	corner2 = quat(atof(fields[i+3].c_str()),
+	               atof(fields[i+4].c_str()),
+	               atof(fields[i+5].c_str()));
+	i += 6;
+	islandNum = atoi(fields[i++].c_str());
+
+	if (fields.size() >= 10) {
+		text = fields[i++];
+		stringToLower(text);
+	}
+}
+
 bool Zone::sphereInZone(quat p, float r)
 {
 	p.w = r;
@@ -629,42 +551,126 @@ bool Zone::pointInZone(quat p)
  * Instance
  */
 
+void Instance::initFromLine(vector<string> fields)
+{
+	bool lineHasInterior = false;
+	bool lineHasScale = false;
+	bool lineHasLod = false;
+	if (fields.size() == 12) { // gta3
+		lineHasScale = true;
+	} else if (fields.size() == 13) { // gtavc
+		lineHasScale = true;
+		lineHasInterior = true;
+	} else if (fields.size() == 11) { // gtasa
+		lineHasInterior = true;
+		lineHasLod = true;
+	}
+
+	int i = 0;
+	id = atoi(fields[i++].c_str());
+
+	name = fields[i++];
+	stringToLower(name);
+
+	if (lineHasInterior)
+		interior = atoi(fields[i++].c_str());
+
+	position = quat(atof(fields[i].c_str()),
+	                atof(fields[i+1].c_str()),
+	                atof(fields[i+2].c_str()));
+	i += 3;
+
+
+	if (lineHasScale) {
+		scale = quat(atof(fields[i].c_str()),
+		             atof(fields[i+1].c_str()),
+		             atof(fields[i+2].c_str()));
+		i += 3;
+	}
+	rotation = quat(atof(fields[i+3].c_str()),
+	                atof(fields[i+0].c_str()),
+	                atof(fields[i+1].c_str()),
+	                atof(fields[i+2].c_str()));
+	i += 4;
+
+	if (lineHasLod)
+		lod = atoi(fields[i++].c_str());
+
+	if (name.substr(0,3) == "lod")
+		isLod = true;
+	else if (name.substr(0,9) == "islandlod")
+		isIslandLod = true;
+	// Assume only non-lods for San Andreas, the flag is later corrected.
+	if (game == GTASA)
+		isIslandLod = isLod = false;
+	// LODDUMMY
+	if (name.substr(0,3) == "xxx")
+		isIslandLod = isLod = false;
+}
+
+void Instance::initFromBinEntry(char *data)
+{
+	float *pos = reinterpret_cast<float *> (&data[0]);
+	float *rot = reinterpret_cast<float *> (&data[12]);
+	int *ints = reinterpret_cast<int *> (&data[28]);
+
+	position = quat(pos[0], pos[1], pos[2]);
+	rotation = quat(rot[3], rot[0], rot[1], rot[2]);
+	id = ints[0];
+	interior = ints[1];
+	lod = ints[2];
+
+	name = static_cast<WorldObject*>(objectList.get(id))->modelName;
+
+	if (name.substr(0,3) == "lod")
+		isLod = true;
+	else if (name.substr(0,9) == "islandlod")
+		isIslandLod = true;
+	// Assume only non-lods for San Andreas, the flag is later corrected.
+	if (game == GTASA)
+		isIslandLod = isLod = false;
+	// LODDUMMY
+	if (name.substr(0,3) == "xxx")
+		isIslandLod = isLod = false;
+}
+
 void Instance::addToRenderList(void)
 {
+	const float fadeThrshd = 20.0f;
+
+	// set by 'addOpaqueObject'
 	if (wasAdded)
 		return;
-	instCounter++;
 
-	WorldObject *op = (WorldObject*)objectList.get(id);
+	WorldObject *op = static_cast<WorldObject*>(objectList.get(id));
 
-	float dist = cam.distanceTo(position);
-	int ai = op->getCorrectAtomic(dist/renderer.lodMult);
+	float dist = cam.distanceTo(position)/renderer.lodMult;
+	int ai = op->getCorrectAtomic(dist);
 
 	// frustum cull
-	if (op->isLoaded)
+	if (op->canDraw())
 		if (isCulled() && !(op->flags & 128))
 			return;
 
 	// if the instance is too far away, try the LOD version
 	if (ai < 0) {
-		Instance *ip = world.getInstance(lod);
-		if (ip != 0)
-			ip->addToRenderList();
-		return;
+		addLodToRenderList();
+		goto release;
 	}
 
-	if (!isVisible)
+	if (isHidden)
 		return;
 
 	if (op->modelName == "LODDUMMY")
 		return;
 
 	// check for interior (if intr < 0 everything is drawn)
-	int intr = world.getInterior();
+	int intr;
+	intr = world.getInterior();
 	if (interior != intr && intr >= 0 && !renderer.doCol) {
 		if (game == GTAVC) {
 			if (interior != 13)
-				return;
+				goto release;
 		} if (game == GTASA) {
 			// Gotta figure out what's the meaning of this.
 			if (interior != 13 && interior != 256 &&
@@ -672,63 +678,92 @@ void Instance::addToRenderList(void)
 			    interior != 768 && interior != 512 &&
 			    interior != 6144 &&
 			    interior != 1024 && interior != 4096)
-				return;
+				goto release;
 		}
 	}
 
 	// check for time
 	if (op->isTimed && !op->isVisibleAtTime(timeCycle.getHour()) &&
 	    !renderer.doCol)
-		return;
+		goto release;
 
-	if (!op->isLoaded) {
-		// Request model and try to draw LOD instead
-		objMan.request(op);
-		Instance *ip = world.getInstance(lod);
-		if (ip != 0)
-			ip->addToRenderList();
+	// request model
+	if (!isActive) {
+		op->incRefCount();
+		isActive = true;
+	}
+
+	if (!op->canDraw()) {
+		addLodToRenderList();
 		return;
 	}
 
-	float drawDist = op->getDrawDistance(ai)/renderer.lodMult;
-	float distDiff = drawDist - dist;
-	const float fadeThrshd = 20.0f;
+	float drawDist, distDiff;
+	drawDist = op->getDrawDistance(ai);
+	distDiff = drawDist - dist;
 
 	if (distDiff < fadeThrshd)
 		setFading(distDiff/fadeThrshd);
 	else if (getFading() != 1.0f)
 		// Increment fading value for instances that are
 		// well within the draw dist.
-		setFading(getFading()+0.3f);
+		setFading(getFading()+0.25f);
 	else if (op->isFreshlyLoaded)
 		setFading(0.0f);
-		// Retain the flag for other instances.
-		// It is cleared in Renderer.
+		// Retain the freshlyLoaded flag for other instances.
+		// It is cleared by Renderer.
 	else
 		setFading(1.0f);
 
-	// If a new instance is being faded in or out, also draw the LOD
-	if (getFading() != 1.0f) {
-		Instance *ip = world.getInstance(lod);
-		if (ip != 0)
-			ip->addToRenderList();
-	}
+	// If a new instance is being faded in or out, also draw LOD
+	if (getFading() != 1.0f)
+		addLodToRenderList();
 
+	if (!isActive)
+		cout << name << " this can't be\n";
 
 	if (op->type == ANIM)
 		renderer.addOpaqueObject(this, -1);
 	else
 		renderer.addOpaqueObject(this, ai);
+	return;
+
+release:
+	if (isActive) {
+		op->decRefCount();
+		isActive = false;
+	}
+	return;
+}
+
+void Instance::addLodToRenderList(void)
+{
+	Instance *ip = world.getInstance(lod);
+	if (ip != 0)
+		ip->addToRenderList();
 }
 
 bool Instance::isCulled(void)
 {
-	WorldObject *op = (WorldObject*)objectList.get(id);
-
-	for (uint i = 0; i < op->boundingSpheres.size(); i++)
-		if (cam.isSphereInFrustum(op->boundingSpheres[i] + position))
-			return false;
+	WorldObject *op = static_cast<WorldObject*>(objectList.get(id));
+	if (!op->col)
+		return false;
+	if (cam.isSphereInFrustum(op->col->boundingSphere + position))
+		return false;
 	return true;
+}
+
+void Instance::releaseIfInactive(void)
+{
+	WorldObject *op = static_cast<WorldObject*>(objectList.get(id));
+
+	float dist = cam.distanceTo(position)/renderer.lodMult;
+	int ai = op->getCorrectAtomic(dist);
+
+	if (ai < 0 && isActive) {
+		op->decRefCount();
+		isActive = false;
+	}
 }
 
 void Instance::transform(void)
@@ -745,11 +780,6 @@ void Instance::transform(void)
 	gl::state.modelView *= glm::mat4_cast(q);
 	gl::state.calculateNormalMat();
 	gl::state.updateMatrices();
-}
-
-void Instance::setVisible(bool v)
-{
-	isVisible = v;
 }
 
 void Instance::setFading(float fade)
@@ -781,7 +811,7 @@ void Instance::printInfo(void)
 	     << rotation.y << ", "
 	     << rotation.z << ", "
 	     << rotation.w << endl;
-	WorldObject *op = (WorldObject*) objectList.get(id);
+	WorldObject *op = static_cast<WorldObject*>(objectList.get(id));
 	op->printInfo();
 }
 
@@ -790,9 +820,9 @@ Instance::Instance(void)
 	lod = -1;
 	interior = 0;
 	scale = quat(1.0f, 1.0f, 1.0f);
-	isVisible = true;
+	isHidden = false;
 	wasAdded = false;
-	wasDrawn = false;
+	isActive = false;
 	isIslandLod = isLod = false;
 	fadingFactor = 1.0f;
 }

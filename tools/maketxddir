@@ -7,6 +7,6 @@ for i in *[Tt][Xx][Dd]; do
 	txdconv $i ../txd/$i
 done
 cd ../txd
-makedir *
+makegtadir *
 mv gta.dir ../txd.dir
 mv gta.img ../txd.img

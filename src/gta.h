@@ -15,6 +15,10 @@
 #include <vector>
 #include "math.h"
 
+#define THREADCHECK()\
+	if (oglThread != pthread_self()) \
+		cout << "warning: using gl commands not in gl thread\n";
+
 enum {
 	GTA3 = 1,
 	GTAVC = 2,
@@ -28,6 +32,8 @@ extern char *progname;
 extern std::string gamePath;
 extern int game;
 extern bool running;
+extern volatile bool initDone;
+extern uint oglThread;
 
 void initGame(void);
 

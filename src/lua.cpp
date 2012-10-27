@@ -7,6 +7,7 @@
 #include "camera.h"
 #include "world.h"
 #include "renderer.h"
+#include "jobqueue.h"
 
 #include "lua.h"
 
@@ -41,6 +42,7 @@ void LuaInterpreter(void)
 				cout << endl;
 			} else {
 				running = false;
+				normalJobs.wakeUp();
 			}
 			continue;
 		}

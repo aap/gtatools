@@ -21,6 +21,7 @@ Water water;
 
 void Water::draw(void)
 {
+	THREADCHECK();
 	Weather *w = timeCycle.getCurrentWeatherData();
 	glm::vec4 matCol(w->water.x, w->water.y, w->water.z, w->water.w);
 	gl::state.matColor = matCol;
@@ -41,7 +42,7 @@ void Water::draw(void)
 	glEnableVertexAttribArray(gl::in_TexCoord);
 	glVertexAttribPointer(gl::in_Vertex, 3, GL_FLOAT, GL_FALSE, 0, 0);
 	glVertexAttribPointer(gl::in_TexCoord, 2, GL_FLOAT, GL_FALSE, 0,
-	                      (GLvoid *) (vertices.size()*3/5*sizeof(GLfloat)));
+	                      (GLvoid*)(vertices.size()*3/5*sizeof(GLfloat)));
 	glDrawArrays(GL_TRIANGLES, 0, vertices.size()*3/5/3);
 	glDisableVertexAttribArray(gl::in_Vertex);
 	glDisableVertexAttribArray(gl::in_TexCoord);
@@ -50,6 +51,7 @@ void Water::draw(void)
 
 void Water::loadWater(ifstream &f)
 {
+	THREADCHECK();
 	string line;
 	getline(f, line);
 	if (line != "processed") {
@@ -57,7 +59,7 @@ void Water::loadWater(ifstream &f)
 		return;
 	}
 
-	TexDictionary *txd = texMan.get("particle.txd");
+	TexDictionary *txd = texMan.requestSynch("particle.txd");
 	Texture *t = txd->get("waterclear256");
 	tex = t->tex;
 
@@ -135,19 +137,20 @@ void Water::loadWater(ifstream &f)
 
 void Water::loadWaterpro(std::ifstream &f)
 {
+	THREADCHECK();
 	float palette[48];
 	unsigned char indiceshi[128*128];
 	unsigned char indiceslo[64*64];
 
 	f.seekg(4, ios::cur);
-	f.read((char*) &palette, 48*sizeof(float));
+	f.read(reinterpret_cast<char*>(&palette), 48*sizeof(float));
 	f.seekg(0x300, ios::cur);
-	f.read((char*) &indiceslo, 64*64);
-	f.read((char*) &indiceshi, 128*128);
+	f.read(reinterpret_cast<char*>(&indiceslo), 64*64);
+	f.read(reinterpret_cast<char*>(&indiceshi), 128*128);
 
 	float patchSize = 32;
 	float base[2];
-	TexDictionary *txd = texMan.get("particle.txd");
+	TexDictionary *txd = texMan.requestSynch("particle.txd");
 	if (game == GTA3) {
 		base[0] = -2048;
 		base[1] = -2048;

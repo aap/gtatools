@@ -4,12 +4,16 @@
 
 #include <iostream>
 #include <string>
+#include <cstring>
 
 #include "gta.h"
 #include "directory.h"
 #include "texman.h"
+#include "jobqueue.h"
 
 using namespace std;
+
+#include <ctime>
 
 TexManager texMan;
 
@@ -17,18 +21,31 @@ TexManager texMan;
  * TexManager
  */
 
-TexDictionary *TexManager::get(string fileName, bool load)
+void TexManager::dumpLoaded(void)
+{
+	for (uint i = 0; i < txdList.size(); i++) {
+		if (txdList[i]->isLoaded)
+			cout << txdList[i]->fileName << endl;
+	}
+}
+
+TexDictionary *TexManager::requestSynch(std::string fileName)
+{
+	return get(fileName, true, true);
+}
+
+TexDictionary *TexManager::get(string fileName, bool load, bool synch)
 {
 	stringToLower(fileName);
 
 	uint pos = find(fileName);
 	if (pos != 0) {
 		if (load) {
-			if (!txdList[pos]->loaded) {
-				txdList[pos]->load();
+			if (!txdList[pos]->isLoaded) {
+				txdList[pos]->load(synch);
 				if (txdList[pos]->parent && 
-				    !txdList[pos]->parent->loaded) {
-					txdList[pos]->parent->load();
+				    !txdList[pos]->parent->isLoaded) {
+					txdList[pos]->parent->load(synch);
 					txdList[pos]->parent->refCount++;
 				}
 			}
@@ -37,7 +54,7 @@ TexDictionary *TexManager::get(string fileName, bool load)
 		return txdList[pos];
 	}
 
-	uint i = add(fileName, load);
+	uint i = add(fileName, load, synch);
 	if (load)
 		txdList[i]->refCount = 1;
 	return txdList[i];
@@ -81,16 +98,16 @@ uint TexManager::find(string fileName)
 	return 0;
 }
 
-uint TexManager::add(string fileName, bool load)
+uint TexManager::add(string fileName, bool load, bool synch)
 {
 	TexDictionary *txd = new TexDictionary;
-	txd->loaded = false;
+	txd->isLoaded = false;
+	txd->isLoading = false;
 	txd->isGlobal = false;
 	txd->parent = 0;
 	txd->fileName = fileName;
 	if (load)
-		if (txd->load() != 0)
-			return 0;
+		txd->load(synch);
 
 	if (txdList.size() > 0) {
 		int min, max, mid;
@@ -127,7 +144,8 @@ void TexManager::addParentInfo(string child, string parent)
 void TexManager::addGlobal(std::string fileName)
 {
 	TexDictionary *txd = new TexDictionary;
-	txd->loaded = false;
+	txd->isLoaded = false;
+	txd->isLoading = false;
 	txd->isGlobal = true;
 	txd->parent = 0;
 	stringToLower(fileName);
@@ -135,8 +153,6 @@ void TexManager::addGlobal(std::string fileName)
 	if (pos != string::npos)
 		fileName = fileName.substr(pos+1);
 	txd->fileName = fileName;
-//	if (txd->load() != 0)
-//		return;
 	globalTxdList.push_back(txd);
 }
 
@@ -144,8 +160,8 @@ Texture *TexManager::getGlobalTex(std::string texName)
 {
 	for (uint i = 0; i < globalTxdList.size(); i++) {
 		TexDictionary *txd = globalTxdList[i];
-		if (!txd->loaded)
-			txd->load();
+		if (!txd->isLoaded)
+			txd->load(true);
 		Texture *tex = txd->get(texName);
 		if (tex != 0)
 			return tex;
@@ -156,14 +172,14 @@ Texture *TexManager::getGlobalTex(std::string texName)
 void TexManager::dump(void)
 {
 	for (uint i = 0; i < txdList.size(); i++) {
-		cout << txdList[i]->fileName<<" "<<txdList[i]->loaded << endl;
+		cout << txdList[i]->fileName<<" "<<txdList[i]->isLoaded << endl;
 		if (txdList[i]->parent)
 			cout << " " << txdList[i]->parent->fileName << " " <<
-				txdList[i]->parent->loaded << endl;
+				txdList[i]->parent->isLoaded << endl;
 	}
 	cout << "globals:\n";
 	for (uint i = 0; i < globalTxdList.size(); i++) {
-		cout << globalTxdList[i]->fileName<<" "<<globalTxdList[i]->loaded << endl;
+		cout << globalTxdList[i]->fileName<<" "<<globalTxdList[i]->isLoaded << endl;
 	}
 }
 
@@ -194,31 +210,48 @@ Texture *TexDictionary::get(string texName)
 	return t;
 }
 
-int TexDictionary::load(void)
+int TexDictionary::load(bool synch)
 {
+	if (isLoading)
+		return 0;
+	isLoading = true;
+	if (!synch) {
+		char *str = new char[fileName.size()+1];
+		strcpy(str, fileName.c_str());
+		normalJobs.addJob(JobQueue::readTxd, this, str);
+		return 0;
+	}
 	ifstream txdf;
 	if (directory.openFile(txdf, fileName) == -1) {
 		cout << "couldn't open " << fileName << endl;
-		return 1;
+		return -1;
 	}
-	rw::TextureDictionary txd;
-	txd.read(txdf);
+	rw::TextureDictionary *txd = new rw::TextureDictionary;
+	txd->read(txdf);
 	txdf.close();
 
 	// convert to a sensible format
-	for (uint i = 0; i < txd.texList.size(); i++) {
-		if (txd.texList[i].platform == rw::PLATFORM_PS2)
-			txd.texList[i].convertFromPS2();
-		if (txd.texList[i].platform == rw::PLATFORM_XBOX)
-			txd.texList[i].convertFromXbox();
-		if (txd.texList[i].dxtCompression)
-			txd.texList[i].decompressDxt();
-		txd.texList[i].convertTo32Bit();
+	for (uint i = 0; i < txd->texList.size(); i++) {
+		if (txd->texList[i].platform == rw::PLATFORM_PS2)
+			txd->texList[i].convertFromPS2();
+		if (txd->texList[i].platform == rw::PLATFORM_XBOX)
+			txd->texList[i].convertFromXbox();
+		if (txd->texList[i].dxtCompression)
+			txd->texList[i].decompressDxt();
+		txd->texList[i].convertTo32Bit();
 	}
 
+	attachTxd(txd);
+	return 0;
+}
+
+void TexDictionary::attachTxd(rw::TextureDictionary *txd)
+{
+	THREADCHECK();
 	glActiveTexture(GL_TEXTURE0);
-	for (uint i = 0; i < txd.texList.size(); i++) {
-		rw::NativeTexture &nt = txd.texList[i];
+//	cout << fileName << endl;
+	for (uint i = 0; i < txd->texList.size(); i++) {
+		rw::NativeTexture &nt = txd->texList[i];
 		Texture t;
 		t.name = nt.name;
 		t.maskName = nt.maskName;
@@ -232,6 +265,7 @@ int TexDictionary::load(void)
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
+		clock_t oldtime = clock();
 		if ((nt.rasterFormat & rw::RASTER_MASK) == rw::RASTER_8888 ||
 		    !(nt.rasterFormat & (rw::RASTER_PAL8 | rw::RASTER_PAL4))) {
 			glTexImage2D(GL_TEXTURE_2D, 0, 4,
@@ -248,19 +282,33 @@ int TexDictionary::load(void)
 			glDeleteTextures(1, &t.tex);
 			t.tex = 0;
 		}
+		clock_t newtime = clock();
+		double diff = (newtime-oldtime) * 1000/CLOCKS_PER_SEC;
+//		cout << "texload: " << diff << " "
+//		     << (nt.width[0]*nt.height[0]*4) << " " << hex << (uint) &nt.texels[0][0] << endl;
+
 		texList.push_back(t);
 	}
+//	cout << endl;
 	glBindTexture(GL_TEXTURE_2D, 0);
-	txd.clear();	// TODO: Why doesn't the deconstructor do this?
-	loaded = true;
-	return 0;
+	txd->clear();	// TODO: Why doesn't the deconstructor do this?
+	delete txd;
+	isLoaded = true;
+	isLoading = false;
 }
 
 void TexDictionary::unload(void)
 {
-	for (uint i = 0; i < texList.size(); i++) {
+	THREADCHECK();
+	for (uint i = 0; i < texList.size(); i++)
 		glDeleteTextures(1, &texList[i].tex);
-		texList[i].tex = 0;
-	}
-	loaded = false;
+	texList.clear();
+	isLoaded = false;
 }
+
+/*
+bool TexDictionary::isHierarchyLoaded(void)
+{
+	return parent ? (isLoaded && parent->isHierarchyLoaded()) : isLoaded;
+}
+*/

@@ -26,6 +26,7 @@ void State::calculateNormalMat(void)
 
 void State::updateMatrices(void)
 {
+	THREADCHECK();
 	glUniformMatrix4fv(u_Projection, 1, GL_FALSE,
 	                   glm::value_ptr(projection));
 	glUniformMatrix4fv(u_ModelView, 1, GL_FALSE,
@@ -36,11 +37,13 @@ void State::updateMatrices(void)
 
 void State::updateMaterial(void)
 {
+	THREADCHECK();
 	glUniform4fv(u_MatColor, 1, glm::value_ptr(matColor));
 }
 
 void State::updateLight(void)
 {
+	THREADCHECK();
 	glUniform4fv(u_LightPos, 1, glm::value_ptr(lightPos));
 	glUniform3fv(u_LightCol, 1, glm::value_ptr(lightCol));
 	glUniform3fv(u_AmbientLight, 1, glm::value_ptr(ambientLight));
@@ -48,11 +51,13 @@ void State::updateLight(void)
 
 void State::updateTexture(void)
 {
+	THREADCHECK();
 	glUniform1i(u_Texture, texture);
 }
 
 void State::updateFog(void)
 {
+	THREADCHECK();
 	glUniform4fv(u_FogColor, 1, glm::value_ptr(fogColor));
 	glUniform1f(u_FogDensity, fogDensity);
 	glUniform1f(u_FogStart, fogStart);
@@ -70,7 +75,8 @@ void State::updateAll(void)
 
 void Pipeline::getVar(const char *name, GLint *var, GLint type)
 {
-	GLint v;
+	THREADCHECK();
+	GLint v = -1;
 
 	if (type == 0) {
 		v = glGetAttribLocation(currentPipe->program, name);
@@ -86,6 +92,7 @@ void Pipeline::getVar(const char *name, GLint *var, GLint type)
 
 void Pipeline::use(void)
 {
+	THREADCHECK();
 	currentPipe = this;
 	glUseProgram(currentPipe->program);
 
@@ -111,6 +118,7 @@ void Pipeline::use(void)
 
 void Pipeline::load(const char *vertsrc, const char *fragsrc)
 {
+	THREADCHECK();
 	ifstream shrSrc;
 	GLint filelength;
 	GLint success;
@@ -185,6 +193,7 @@ void Pipeline::load(const char *vertsrc, const char *fragsrc)
 
 void Pipeline::printLog(GLuint object)
 {
+	THREADCHECK();
 	GLint len;
 	char *log;
 

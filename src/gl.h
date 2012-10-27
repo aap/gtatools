@@ -13,7 +13,7 @@ namespace gl {
 	void mouseButton(int button, int state, int x, int y);
 	void mouseMotion(int x, int y);
 	void initGl(void);
-	void start(int *argc, char *argv[]);
+	void *opengl(void *args);
 
 	extern int stencilShift;
 	extern int width;

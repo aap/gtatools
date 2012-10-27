@@ -36,33 +36,38 @@ public:
 // base class for all objects having a model
 class Model : public Object
 {
+private:
 public:
 	std::string modelName;
 	std::string textureName;
 
-	bool isRequested;
-	bool isLoaded;
+//	bool isRequested;
 	bool BSvisible;
 	bool isAnimated;
 
 	bool isFreshlyLoaded;
 
-	Drawable drawable;
+	Drawable *drawable;
 	CollisionModel *col;
 	std::string animationName;
 
-	std::vector<quat> boundingSpheres; // obsolete
+	int refCount;
 
+public:
+	bool canDraw(void);
 	void load(void);
+	void unload(void);
 	void drawCol(void);
 	void drawBoundingSphere(void);
+	void incRefCount(void);
+	void decRefCount(void);
 	Model(void);
 };
 
 // ped
 class Ped : public Model
 {
-public:
+private:
 	std::string defaultPedType;
 	std::string behaviour;
 	std::string animGroup;
@@ -73,12 +78,13 @@ public:
 
 	std::string voiceArchive;
 	std::string voice1, voice2;
+public:
+	void initFromLine(std::vector<std::string> fields);
 };
 
 // car
 class Car : public Model
 {
-public:
 	std::string vehicleType;
 	std::string handlingId;
 	std::string gameName;
@@ -95,6 +101,8 @@ public:
 
 	// planes
 	int lodId;
+public:
+	void initFromLine(std::vector<std::string> fields);
 };
 
 // hier
@@ -106,6 +114,7 @@ class Hier : public Model
 // objs, tobj, and anim
 class WorldObject : public Model
 {
+//private:
 public:
 	uint objectCount;
 	std::vector<float> drawDistances;
@@ -115,11 +124,15 @@ public:
 	int timeOn;
 	int timeOff;
 
+public:
+	void initFromLine(std::vector<std::string> fields, int blockType);
+
 	bool isVisibleAtTime(int hour);
 	int getCorrectAtomic(float d);
 	float getDrawDistance(int atomic);
-	void printInfo(void);
 	WorldObject(void);
+
+	void printInfo(void);
 };
 
 class ObjectList

@@ -81,7 +81,7 @@ void drawSphere(GLfloat r, GLint slices, GLint stacks)
 	glEnableVertexAttribArray(in_Normal);
 	glVertexAttribPointer(in_Vertex, 3, GL_FLOAT, GL_FALSE, 0, 0);
 	glVertexAttribPointer(in_Normal, 3, GL_FLOAT, GL_FALSE, 0,
-	                      (GLvoid *) (sphere.size()/2*sizeof(GLfloat)));
+	                      (GLvoid*)(sphere.size()/2*sizeof(GLfloat)));
 	glDrawArrays(GL_QUADS, 0, sphere.size()/3/2);
 	glDisableVertexAttribArray(in_Vertex);
 	glDisableVertexAttribArray(in_Normal);
@@ -164,7 +164,7 @@ void drawCube2(quat pos1, quat pos2)
 //	glEnableVertexAttribArray(in_Normal);
 	glVertexAttribPointer(in_Vertex, 3, GL_FLOAT, GL_FALSE, 0, 0);
 	glVertexAttribPointer(in_Normal, 3, GL_FLOAT, GL_FALSE, 0,
-	                     (GLvoid *) (6*4*3*sizeof(GLfloat)));
+	                      (GLvoid*)(6*4*3*sizeof(GLfloat)));
 	glDrawArrays(GL_QUADS, 0, 6*4);
 	glDisableVertexAttribArray(in_Vertex);
 	glDisableVertexAttribArray(in_Normal);
@@ -248,7 +248,7 @@ void drawCube(GLfloat size)
 	glEnableVertexAttribArray(in_Normal);
 	glVertexAttribPointer(in_Vertex, 3, GL_FLOAT, GL_FALSE, 0, 0);
 	glVertexAttribPointer(in_Normal, 3, GL_FLOAT, GL_FALSE, 0,
-	                     (GLvoid *) (6*4*3*sizeof(GLfloat)));
+	                      (GLvoid*)(6*4*3*sizeof(GLfloat)));
 	glDrawArrays(GL_QUADS, 0, 6*4);
 	glDisableVertexAttribArray(in_Vertex);
 	glDisableVertexAttribArray(in_Normal);
@@ -308,7 +308,7 @@ void drawAxes(GLfloat *mat)
 	glEnableVertexAttribArray(in_Color);
 	glVertexAttribPointer(in_Vertex, 3, GL_FLOAT, GL_FALSE, 0, 0);
 	glVertexAttribPointer(in_Color, 4, GL_FLOAT, GL_FALSE, 0,
-	                      (GLvoid*) (3*2*3*sizeof(GLfloat)));
+	                      (GLvoid*)(3*2*3*sizeof(GLfloat)));
 	glDrawArrays(GL_LINES, 0, 3*2);
 	glDisableVertexAttribArray(in_Vertex);
 	glDisableVertexAttribArray(in_Color);

@@ -23,6 +23,9 @@
 #include "lua.h"
 #include "gl.h"
 
+#include "jobqueue.h"
+#include "directory.h"
+
 using namespace std;
 
 namespace gl {
@@ -80,7 +83,7 @@ void reshape(int w, int h)
 	height = h;
 	if (height == 0)
 		height = 1;
-	cam.setAspectRatio((GLfloat) width / height);
+	cam.setAspectRatio(GLfloat(width)/GLfloat(height));
 	glViewport(0, 0, width, height);
 }
 
@@ -88,28 +91,19 @@ void keypress(uchar key, int x, int y)
 {
 	char buf[20];
 	WorldObject *op;
-	Instance *ip;
+//	Instance *ip;
 	quat campos;
 	static float dist = 10.0f;
 
 	switch (key) {
-/*
-	case 'f':
-		ip = world.getInstance(lastSelected);
-		ip->setFading(ip->getFading()+0.05f);
+	case 'c':
+		world.cleanUp();
 		break;
-	case 'F':
-		ip = world.getInstance(lastSelected);
-		ip->setFading(ip->getFading()-0.05f);
-		break;
-*/
 	case 'y':
 		drawable.setTime(drawable.getTime()+0.033333);
-//		drawable.setTime(drawable.getTime()+0.003333);
 		break;
 	case 'Y':
 		drawable.setTime(drawable.getTime()-0.033333);
-//		drawable.setTime(drawable.getTime()-0.003333);
 		break;
 	case 'W':
 		cam.moveInOut(dist);
@@ -124,14 +118,14 @@ void keypress(uchar key, int x, int y)
 		cam.setDistance(cam.getDistance()+dist);
 		break;
 	case 'd':
-		op = (WorldObject*)objectList.get(
-			world.getInstance(lastSelected)->id);
-		op->drawable.dumpClump(false);
+		op = static_cast<WorldObject*>(objectList.get(
+			world.getInstance(lastSelected)->id));
+		op->drawable->dumpClump(false);
 		break;
 	case 'D':
-		op = (WorldObject*)objectList.get(
-			world.getInstance(lastSelected)->id);
-		op->drawable.dumpClump(true);
+		op = static_cast<WorldObject*>(objectList.get(
+			world.getInstance(lastSelected)->id));
+		op->drawable->dumpClump(true);
 		break;
 	case 'x':
 		dist /= 2.0f;
@@ -166,25 +160,25 @@ void keypress(uchar key, int x, int y)
 	case 'v':
 		if (lastSelected == 0)
 			break;
-		world.getInstance(lastSelected)->setVisible(false);
+		world.getInstance(lastSelected)->isHidden = true;
 		break;
 	case 'V':
 		if (lastSelected == 0)
 			break;
-		world.getInstance(lastSelected)->setVisible(true);
+		world.getInstance(lastSelected)->isHidden = false;
 		break;
 	case 'b':
 		if (lastSelected == 0)
 			break;
-		op = (WorldObject*)objectList.get(
-			world.getInstance(lastSelected)->id);
+		op = static_cast<WorldObject*>(objectList.get(
+			world.getInstance(lastSelected)->id));
 		op->BSvisible = true;
 		break;
 	case 'B':
 		if (lastSelected == 0)
 			break;
-		op = (WorldObject*)objectList.get(
-			world.getInstance(lastSelected)->id);
+		op = static_cast<WorldObject*>(objectList.get(
+			world.getInstance(lastSelected)->id));
 		op->BSvisible = false;
 		break;
 	case 'i':
@@ -195,6 +189,7 @@ void keypress(uchar key, int x, int y)
 	case 'q':
 	case 27:
 		running = false;
+		normalJobs.wakeUp();
 		break;
 	default:
 		break;
@@ -203,6 +198,22 @@ void keypress(uchar key, int x, int y)
 
 void keypressSpecial(int key, int x, int y)
 {
+	switch (key) {
+	case GLUT_KEY_LEFT:
+		cam.setYaw(cam.getYaw()+0.1f);
+		break;
+	case GLUT_KEY_RIGHT:
+		cam.setYaw(cam.getYaw()-0.1f);
+		break;
+	case GLUT_KEY_UP:
+		cam.setPitch(cam.getPitch()-0.1f);
+		break;
+	case GLUT_KEY_DOWN:
+		cam.setPitch(cam.getPitch()+0.1f);
+		break;
+	default:
+		break;
+	}
 }
 
 void mouseButton(int button, int state, int x, int y)
@@ -229,29 +240,32 @@ void mouseButton(int button, int state, int x, int y)
 			if (ox - mx == 0 && oy - my == 0) {
 				cout << x << " " << y << endl;
 				// read clicked object's index
-				GLubyte stencil[4];
+				union {
+					char bytes[4];
+					int integer;
+				} stencil;
 				// fewer passes would probably be enough
 				stencilShift = 0;
 				renderScene();
 				glReadPixels(x, height - y - 1, 1, 1,
 				             GL_STENCIL_INDEX,
-				             GL_UNSIGNED_INT, stencil);
+				             GL_UNSIGNED_INT, stencil.bytes);
 				stencilShift = 8;
 				renderScene();
 				glReadPixels(x, height - y - 1, 1, 1,
 				             GL_STENCIL_INDEX,
-				             GL_UNSIGNED_INT, stencil+1);
+				             GL_UNSIGNED_INT, stencil.bytes+1);
 				stencilShift = 16;
 				renderScene();
 				glReadPixels(x, height - y - 1, 1, 1,
 				             GL_STENCIL_INDEX,
-				             GL_UNSIGNED_INT, stencil+2);
+				             GL_UNSIGNED_INT, stencil.bytes+2);
 				stencilShift = 24;
 				renderScene();
 				glReadPixels(x, height - y - 1, 1, 1,
 				             GL_STENCIL_INDEX,
-				             GL_UNSIGNED_INT, stencil+3);
-				lastSelected = *((uint *) stencil);
+				             GL_UNSIGNED_INT, stencil.bytes+3);
+				lastSelected = stencil.integer;
 			}
 		}
 		if (button == GLUT_MIDDLE_BUTTON)
@@ -275,8 +289,8 @@ void mouseMotion(int x, int y)
 	mx = x;
 	my = y;
 
-	dx = ((float)(ox - mx) / width);
-	dy = ((float)(oy - my) / height);
+	dx = float(ox - mx) / float(width);
+	dy = float(oy - my) / float(height);
 	if (!isShiftDown) {
 		if (isLDown) {
 			cam.setYaw(cam.getYaw()+dx*2.0f);
@@ -354,16 +368,14 @@ void initGl(void)
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void *opengl(void *args);
-void *loader(void *args);
-void *lua(void *args);
-
-void start(int *argc, char *argv[])
+void *opengl(void *args)
 {
+	void **a = (void**)args;
+	int *argc = (int *) (a[0]);
+	char **argv= (char **) (a[1]);
+
 	width = 644;
 	height = 340;
-//	width = 640;
-//	height = 480;
 
 	glutInit(argc, argv);
 	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE |
@@ -379,10 +391,11 @@ void start(int *argc, char *argv[])
 	glutSpecialFunc(keypressSpecial);
 	glutIdleFunc(renderScene);
 
+	oglThread = pthread_self();
+
 	initGl();
 
 	initGame();
-
 
 if (*argc >= 4) {
 	string dff = argv[2];
@@ -390,16 +403,15 @@ if (*argc >= 4) {
 	if (txd == "search") {
 		cout << "searching " << dff << endl;
 		for (int i = 0; i < objectList.getObjectCount(); i++) {
-			Object *o;
-			if (!(o = objectList.get(i)))
+			Model *mdl;
+			if (!(mdl = objectList.get(i)))
 				continue;
-			if (o->type != OBJS && o->type != TOBJ &&
-			    o->type != ANIM && o->type != PEDS &&
-			    o->type != CARS && o->type != WEAP)
+			if (mdl->type != OBJS && mdl->type != TOBJ &&
+			    mdl->type != ANIM && mdl->type != PEDS &&
+			    mdl->type != CARS && mdl->type != WEAP)
 				continue;
-			Model *m = (Model*) o;
-			if (m->modelName == dff) {
-				txd = m->textureName;
+			if (mdl->modelName == dff) {
+				txd = mdl->textureName;
 				cout << "found texdict: " << txd << endl;
 			}
 		}
@@ -407,9 +419,10 @@ if (*argc >= 4) {
 
 	dff += ".dff";
 	txd += ".txd";
-	if (drawable.load(dff, txd) == -1)
-		exit(1);
-
+//	if (drawable.load(dff, txd) == -1)
+//		exit(1);
+//	drawable.loadNonblocking(dff, txd);
+#if 0
 	AnimPackage anpk;
 	string fileName = getPath("anim/ped.ifp");
 	ifstream f(fileName.c_str(), ios::binary);
@@ -435,28 +448,12 @@ if (*argc >= 4) {
 			break;
 		}
 	}
+#endif
 }
 
-	running = true;
+	initDone = true;
 
-	pthread_t thread1, thread2;
-	pthread_create(&thread1, NULL, opengl, NULL);
-	pthread_create(&thread2, NULL, lua, NULL);
-
-	// this will never happen
-	pthread_join(thread1, NULL);
-	pthread_join(thread2, NULL);
-}
-
-void *opengl(void *args)
-{
 	glutMainLoop();
-	return NULL;
-}
-
-void *lua(void *args)
-{
-	LuaInterpreter();
 	return NULL;
 }
 

@@ -1,12 +1,12 @@
 OBJDIR = obj
 _OBJ = gta.o directory.o world.o camera.o pipeline.o gl.o primitives.o \
 drawable.o objects.o texman.o water.o timecycle.o sky.o lua.o ifp.o col.o \
-renderer.o objman.o
+renderer.o jobqueue.o
 OBJ = $(patsubst %,$(OBJDIR)/%,$(_OBJ))
 RWDIR=$(HOME)/rwtools
 CC = g++
-CFLAGS = -Wall -g -L$(RWDIR) -Wl,-Bstatic -lrwtools \
--Wl,-Bdynamic -lGL -lGLU -lglut -lGLEW -lpthread -llua -lreadline
+CFLAGS = -Wall -Wextra -g -L$(RWDIR) -Wl,-Bstatic -lrwtools \
+-Wl,-Bdynamic -lGL -lGLU -lglut -lGLEW -lpthread -llua -lreadline -O3
 BIN=gta
 
 build: $(OBJRW) $(OBJ) 

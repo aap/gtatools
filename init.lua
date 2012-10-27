@@ -30,4 +30,13 @@ cam.setPitch(4.875)
 -- blueberry
 --cam.setTarget(335.5654907, -159.0345306, 17.85120964) 
 
-cam.setTarget(0,0,0)
+--cam.setTarget(0,0,0)
+--cam.setTarget(-10000, -10000, -10000)
+
+function a()
+	cam.setTarget(0,0,0)
+end
+
+function b()
+	cam.setTarget(-10000,-10000,-10000)
+end

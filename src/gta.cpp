@@ -16,6 +16,8 @@
 #include "camera.h"
 #include "timecycle.h"
 #include "water.h"
+#include "jobqueue.h"
+#include "lua.h"
 using namespace std;
 
 /*
@@ -26,15 +28,11 @@ string gamePath;
 char *progname;
 int game;
 bool running;
+uint oglThread;
+volatile bool initDone;
 
-static int gArgc;
-static char **gArgv;
-
-void *startGl(void *args)
-{
-	gl::start(&gArgc, gArgv);
-	return 0;
-}
+void *lua(void *args);
+void *filereader(void *args);
 
 void parseDat(ifstream &f)
 {
@@ -115,6 +113,7 @@ void parseDat(ifstream &f)
 	}
 }
 
+/* Load Gl-independent game files and start OpenGL */
 int main(int argc, char *argv[])
 {
 	progname = argv[0];
@@ -122,34 +121,36 @@ int main(int argc, char *argv[])
 		cerr << "usage: " << argv[0] << " game_path\n";
 		return 1;
 	}
+
 	gamePath = argv[1];
 	string datFileName = getPath("data/gta.dat");
 	ifstream f(datFileName.c_str());
-	if (f.fail()) {
-		datFileName = getPath("data/gta_vc.dat");
-		f.open(datFileName.c_str(), ios::binary);
-		if (f.fail()) {
-			datFileName = getPath("data/gta3.dat");
-			f.open(datFileName.c_str(), ios::binary);
-			if (f.fail()) {
-				cerr << "couldn't open dat file\n";
-				return 0;
-			}
-			game = GTA3;
-			world.initSectors(quat(-2048, -2048, 0),
-			                  quat(2048, 2048, 0), 10);
-			objectList.init(5000);
-		} else {
-			game = GTAVC;
-			world.initSectors(quat(-2448, -2048, 0),
-			                  quat(1648, 2048, 0), 10);
-			objectList.init(5000);
-		}
-	} else {
+	if (!f.fail()) {
 		game = GTASA;
 		world.initSectors(quat(-3000, -3000, 0),
 		                  quat(3000, 3000, 0), 12);
 		objectList.init(19000);
+	} else {
+		datFileName = getPath("data/gta_vc.dat");
+		f.open(datFileName.c_str(), ios::binary);
+		if (!f.fail()) {
+			game = GTAVC;
+			world.initSectors(quat(-2448, -2048, 0),
+			                  quat(1648, 2048, 0), 10);
+			objectList.init(5000);
+		} else {
+			datFileName = getPath("data/gta3.dat");
+			f.open(datFileName.c_str(), ios::binary);
+			if (!f.fail()) {
+				game = GTA3;
+				world.initSectors(quat(-2048, -2048, 0),
+						  quat(2048, 2048, 0), 10);
+				objectList.init(5000);
+			} else {
+				cerr << "couldn't open dat file\n";
+				return 0;
+			}
+		}
 	}
 	f.close();
 
@@ -234,16 +235,50 @@ int main(int argc, char *argv[])
 	parseDat(datFile);
 	datFile.close();
 
-	gl::start(&argc, argv);
 
+	// start threads
+	void *args[] = { (void*) &argc, (void*) argv };
+
+	running = true;
+	initDone = false;
+
+	pthread_t thread1, thread2, thread3;
+
+	pthread_create(&thread1, NULL, gl::opengl, args);
+	pthread_create(&thread2, NULL, lua, NULL);
+	pthread_create(&thread3, NULL, filereader, NULL);
+
+	// this will never happen
+	pthread_join(thread1, NULL);
+	pthread_join(thread2, NULL);
+	pthread_join(thread3, NULL);
 	return 0;
 }
 
+void *filereader(void *args)
+{
+	while (running) {
+	//	normalJobs.processJob();
+		while(normalJobs.processJob());
+		normalJobs.waitForJobs();
+	}
+	return NULL;
+}
+
+void *lua(void *args)
+{
+	while (initDone == false);
+
+	LuaInterpreter();
+	return NULL;
+}
+
+/* Load files that depend on a valid GL context */
 void initGame(void)
 {
 	cam.setPitch(PI/8.0f-PI/2.0f);
 	cam.setDistance(20.0f);
-	cam.setAspectRatio((GLfloat) gl::width / gl::height);
+	cam.setAspectRatio(GLfloat(gl::width / gl::height));
 	cam.setTarget(quat(335.5654907, -159.0345306, 17.85120964));
 
 	cout << "associating lods\n";

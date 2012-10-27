@@ -17,6 +17,8 @@
 #include "primitives.h"
 #include "directory.h"
 #include "col.h"
+#include "jobqueue.h"
+#include "renderer.h"
 #include "objects.h"
 
 using namespace std;
@@ -32,7 +34,6 @@ void ObjectList::readIde(ifstream &in)
 	string line;
 	vector<string> fields;
 	int blockType = END;
-	bool hasObjectCount = true;
 	do {
 		getline(in, line);
 		getFields(line, ",", fields);
@@ -76,117 +77,20 @@ void ObjectList::readIde(ifstream &in)
 
 		if (blockType == OBJS || blockType == TOBJ ||
 		    blockType == ANIM) {
-			WorldObject *newObj;
-			if (fields.size() == 5 ||
-			    (fields.size() == 7 && blockType == TOBJ) ||
-			    blockType == ANIM)
-				hasObjectCount = false;
-
-			int i = 0;
-			newObj = new WorldObject;
-			newObj->type = blockType;
-			newObj->id = atoi(fields[i++].c_str());
-			newObj->modelName = fields[i++];
-			newObj->textureName = fields[i++];
-			stringToLower(newObj->modelName);
-			stringToLower(newObj->textureName);
-
-			if (blockType == ANIM) {
-				newObj->isAnimated = true;
-				newObj->animationName = fields[i++];
-				stringToLower(newObj->animationName);
-			}
-
-			newObj->objectCount = 1;
-			if (hasObjectCount)
-				newObj->objectCount = atoi(fields[i++].c_str());
-
-			for (uint j = 0; j < newObj->objectCount; j++)
-				newObj->drawDistances.push_back(
-				                    atof(fields[i++].c_str()));
-
-			newObj->flags = atoi(fields[i++].c_str());
-
-			newObj->isTimed = false;
-			if (blockType == TOBJ) {
-				newObj->timeOn = atoi(fields[i++].c_str());
-				newObj->timeOff = atoi(fields[i++].c_str());
-				newObj->isTimed = true;
-			}
-
-			add(newObj);
+			WorldObject *obj;
+			obj = new WorldObject;
+			obj->initFromLine(fields, blockType);
+			add(obj);
 		} else if (blockType == PEDS) {
-			Ped *newObj;
-			int i = 0;
-			newObj = new Ped;
-			newObj->type = blockType;
-			newObj->id = atoi(fields[i++].c_str());
-			newObj->modelName = fields[i++];
-			newObj->textureName = fields[i++];
-			newObj->defaultPedType = fields[i++];
-			newObj->behaviour = fields[i++];
-			newObj->animGroup = fields[i++];
-			stringToLower(newObj->modelName);
-			stringToLower(newObj->textureName);
-			stringToLower(newObj->defaultPedType);
-			stringToLower(newObj->behaviour);
-			stringToLower(newObj->animGroup);
-			newObj->carsCanDrive = atoi(fields[i++].c_str());
-
-			if (fields.size() >= 10) {	// vc and sa
-				newObj->animFile = fields[i++];
-				stringToLower(newObj->animFile);
-				newObj->radio1 = atoi(fields[i++].c_str());
-				newObj->radio2 = atoi(fields[i++].c_str());
-			}
-			if (fields.size() >= 13) {	// sa
-				newObj->voiceArchive = fields[i++];
-				newObj->voice1 = fields[i++];
-				newObj->voice2 = fields[i++];
-				stringToLower(newObj->voiceArchive);
-				stringToLower(newObj->voice1);
-				stringToLower(newObj->voice2);
-			}
-
-			add(newObj);
+			Ped *obj;
+			obj = new Ped;
+			obj->initFromLine(fields);
+			add(obj);
 		} else if (blockType == CARS) {
-			Car *newObj;
-			int i = 0;
-			newObj = new Car;
-			newObj->type = blockType;
-			newObj->id = atoi(fields[i++].c_str());
-			newObj->modelName = fields[i++];
-			newObj->textureName = fields[i++];
-			newObj->vehicleType = fields[i++];
-			newObj->handlingId = fields[i++];
-			newObj->gameName = fields[i++];
-			if (game == GTAVC || game == GTASA)
-				newObj->anims = fields[i++];
-			newObj->className = fields[i++];
-			newObj->frequency = atoi(fields[i++].c_str());
-			newObj->level = atoi(fields[i++].c_str());
-			newObj->compRules = atoi(fields[i++].c_str());
-
-			stringToLower(newObj->modelName);
-			stringToLower(newObj->textureName);
-			stringToLower(newObj->vehicleType);
-			stringToLower(newObj->handlingId);
-			stringToLower(newObj->anims);
-			stringToLower(newObj->className);
-
-			if (game != GTASA && newObj->className == "car") {
-				newObj->wheelModelId=atoi(fields[i++].c_str());
-				newObj->wheelScaleF = atof(fields[i++].c_str());
-				newObj->wheelScaleR = newObj->wheelScaleF;
-			}
-			if (game != GTASA && newObj->className == "bike") {
-				newObj->unknown = atoi(fields[i++].c_str());
-			}
-			if (game != GTASA && newObj->className == "plane") {
-				newObj->lodId = atoi(fields[i++].c_str());
-			}
-
-			add(newObj);
+			Car *obj;
+			obj = new Car;
+			obj->initFromLine(fields);
+			add(obj);
 		} else if (blockType == TXDP) {
 			int i = 0;
 			string child = fields[i++];
@@ -295,7 +199,7 @@ Model *ObjectList::get(string name)
 
 void ObjectList::add(Model *o)
 {
-	if ((int)o->id >= objectCount || o->id < 0) {
+	if (int(o->id) >= objectCount) {
 		cout << "warning: id " << o->id << " out of range\n";
 		return;
 	}
@@ -325,6 +229,44 @@ ObjectList::~ObjectList(void)
 /*
  * WorldObject
  */
+
+void WorldObject::initFromLine(std::vector<std::string> fields, int blockType)
+{
+	bool lineHasObjectCount = true;
+	if (fields.size() == 5 || (fields.size() == 7 && blockType == TOBJ) ||
+	    blockType == ANIM)
+		lineHasObjectCount = false;
+
+	int i = 0;
+	type = blockType;
+	id = atoi(fields[i++].c_str());
+	modelName = fields[i++];
+	textureName = fields[i++];
+	stringToLower(modelName);
+	stringToLower(textureName);
+
+	if (blockType == ANIM) {
+		isAnimated = true;
+		animationName = fields[i++];
+		stringToLower(animationName);
+	}
+
+	objectCount = 1;
+	if (lineHasObjectCount)
+		objectCount = atoi(fields[i++].c_str());
+
+	for (uint j = 0; j < objectCount; j++)
+		drawDistances.push_back(atof(fields[i++].c_str()));
+
+	flags = atoi(fields[i++].c_str());
+
+	isTimed = false;
+	if (blockType == TOBJ) {
+		timeOn = atoi(fields[i++].c_str());
+		timeOff = atoi(fields[i++].c_str());
+		isTimed = true;
+	}
+}
 
 int WorldObject::getCorrectAtomic(float d)
 {
@@ -382,11 +324,89 @@ WorldObject::WorldObject(void)
 }
 
 /*
+ * Ped
+ */
+
+void Ped::initFromLine(std::vector<std::string> fields)
+{
+	int i = 0;
+	type = PEDS;
+	id = atoi(fields[i++].c_str());
+	modelName = fields[i++];
+	textureName = fields[i++];
+	defaultPedType = fields[i++];
+	behaviour = fields[i++];
+	animGroup = fields[i++];
+	stringToLower(modelName);
+	stringToLower(textureName);
+	stringToLower(defaultPedType);
+	stringToLower(behaviour);
+	stringToLower(animGroup);
+	carsCanDrive = atoi(fields[i++].c_str());
+
+	if (fields.size() >= 10) {	// vc and sa
+		animFile = fields[i++];
+		stringToLower(animFile);
+		radio1 = atoi(fields[i++].c_str());
+		radio2 = atoi(fields[i++].c_str());
+	}
+	if (fields.size() >= 13) {	// sa
+		voiceArchive = fields[i++];
+		voice1 = fields[i++];
+		voice2 = fields[i++];
+		stringToLower(voiceArchive);
+		stringToLower(voice1);
+		stringToLower(voice2);
+	}
+}
+
+/*
+ * Car
+ */
+
+
+void Car::initFromLine(std::vector<std::string> fields)
+{
+	int i = 0;
+	type = CARS;
+	id = atoi(fields[i++].c_str());
+	modelName = fields[i++];
+	textureName = fields[i++];
+	vehicleType = fields[i++];
+	handlingId = fields[i++];
+	gameName = fields[i++];
+	if (game == GTAVC || game == GTASA)
+		anims = fields[i++];
+	className = fields[i++];
+	frequency = atoi(fields[i++].c_str());
+	level = atoi(fields[i++].c_str());
+	compRules = atoi(fields[i++].c_str());
+
+	stringToLower(modelName);
+	stringToLower(textureName);
+	stringToLower(vehicleType);
+	stringToLower(handlingId);
+	stringToLower(anims);
+	stringToLower(className);
+
+	if (game != GTASA && className == "car") {
+		wheelModelId=atoi(fields[i++].c_str());
+		wheelScaleF = atof(fields[i++].c_str());
+		wheelScaleR = wheelScaleF;
+	}
+	if (game != GTASA && className == "bike")
+		unknown = atoi(fields[i++].c_str());
+	if (game != GTASA && className == "plane")
+		lodId = atoi(fields[i++].c_str());
+}
+
+/*
  * Model
  */
 
 void Model::drawBoundingSphere(void)
 {
+	THREADCHECK();
 	glm::mat4 mvSave = gl::state.modelView;
 	glm::mat3 nrmSave = gl::state.normalMat;
 
@@ -423,6 +443,7 @@ void Model::drawBoundingSphere(void)
 
 void Model::drawCol(void)
 {
+	THREADCHECK();
 	// draw faces
 	glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
 	glVertexAttrib4f(gl::in_Color, 1.0f, 1.0f, 1.0f, 1.0f);
@@ -493,19 +514,51 @@ void Model::drawCol(void)
 
 void Model::load(void)
 {
-//	cout << modelName << " " << textureName << endl;
-	if (drawable.load(modelName+".dff", textureName+".txd") == -1)
+//	cout << "loading: " << modelName << " " << textureName << endl;
+	if (drawable) {
+		cout << "can't load two drawables (" << modelName << ")\n";
 		return;
-	boundingSpheres = drawable.getBoundingSpheres();
-	isLoaded = true;
+	}
+	drawable = new Drawable;
+	if (drawable == 0)
+		cout << "panic: no more memory\n";
+	drawable->request(modelName+".dff", textureName+".txd");
+	isFreshlyLoaded = true;
+}
+
+void Model::unload(void)
+{
+	drawable->release();
+	drawable = 0;
+}
+
+void Model::incRefCount(void)
+{
+	if (refCount == 0)
+		load();
+	refCount++;
+}
+
+void Model::decRefCount(void)
+{
+	refCount--;
+	if (refCount == 0)
+		unload();
+}
+
+bool Model::canDraw(void)
+{
+	return drawable != 0 && drawable->hasModel() &&
+	       (drawable->hasTextures() || !renderer.doTextures);
 }
 
 Model::Model(void)
 {
-	isRequested = false;
-	isLoaded = false;
+//	isRequested = false;
 	BSvisible = false;
 	isAnimated = false;
 	isFreshlyLoaded = false;
+	refCount = 0;
+	drawable = 0;
 	col = 0;
 }

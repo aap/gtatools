@@ -39,14 +39,12 @@ struct Geometry {
 	std::vector<GLfloat> vertices;
 
 	std::vector<GLubyte> vertexColors;
-
-	quat boundingSphere;
 };
 
 class Drawable
 {
 private:
-	rw::Clump clump;
+	rw::Clump *clump;
 	// geometry
 	std::vector<Geometry> geoList;
 	// frames
@@ -64,6 +62,9 @@ private:
 
 	int currentColorStep;
 
+//	bool toBeDeleted;
+//	bool toBeLoaded;
+
 	void attachTexDict(TexDictionary &t);
 	void updateFrames(Frame *r);
 	void updateGeometries(void);
@@ -71,10 +72,12 @@ private:
 	void drawGeometry(int g);
 
 public:
-	int load(std::string model, std::string texdict);
+	void request(std::string model, std::string texdict);
+	void release(void);
+	int loadSynch(std::string model, std::string texdict);
 	void unload(void);
-	void attachClump(rw::Clump &c);	// better use a pointer
-	void attachTexDict(rw::TextureDictionary &t);	// better use a pointer
+
+	void attachClump(rw::Clump *c);
 	void attachAnim(Animation &a);
 	void draw(void);
 	void drawAtomic(uint a);
@@ -82,10 +85,15 @@ public:
 	void setVertexColors(void);
 	float getTime(void);
 	void setTime(float t);
+	bool hasModel(void);
+	bool hasTextures(void);
 
 	void printFrames(int level, Frame *r);
 	void dumpClump(bool detailed);
 	std::vector<quat> getBoundingSpheres(void);
+
+	Drawable(void);
+	~Drawable(void);
 };
 
 #endif
