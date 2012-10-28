@@ -29,9 +29,15 @@ void handleKeyboardInput(void)
 
 	if (glfwGetKey('Y')) {
 		if (isShiftDown)
-			drawable.setTime(drawable.getTime()-0.033333);
+			drawable.setTime(drawable.getTime()-0.033333/2.0);
 		else
-			drawable.setTime(drawable.getTime()+0.033333);
+			drawable.setTime(drawable.getTime()+0.033333/2.0);
+	}
+	if (glfwGetKey('U')) {
+		if (isShiftDown)
+			drawable.setOvrTime(drawable.getOvrTime()-0.033333/2.0);
+		else
+			drawable.setOvrTime(drawable.getOvrTime()+0.033333/2.0);
 	}
 	if (glfwGetKey('W')) {
 		if (isShiftDown)

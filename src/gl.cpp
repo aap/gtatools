@@ -19,7 +19,7 @@
 #include "objects.h"
 #include "world.h"
 #include "timecycle.h"
-#include "ifp.h"
+#include "animation.h"
 #include "lua.h"
 #include "gl.h"
 

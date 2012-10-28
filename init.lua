@@ -42,3 +42,7 @@ end
 function b()
 	cam.setTarget(-10000,-10000,-10000)
 end
+
+function c()
+	setMixedAnim("walk_player", "run_player", 0.5);
+end

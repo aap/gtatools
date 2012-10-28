@@ -51,7 +51,7 @@ struct Animation
 
 	/* functions */
 	void getKeyframe(float t, std::string name, KeyFrame &kf);
-	void apply(float curTime, Frame *f);
+	void apply(float curTime, Frame *f, bool recurse = true);
 	void read_1(std::ifstream &ifp);
 	void read_3(std::ifstream &ifp);
 	void clear(void);
@@ -65,6 +65,21 @@ struct AnimPackage
 	/* functions */
 	void read(std::ifstream &ifp);
 	void clear(void);
+};
+
+class MixedAnimation
+{
+private:
+	Animation *anim1;
+	Animation *anim2;
+	float mixFactor;
+public:
+	float endTime;
+	void attachAnims(Animation *a, Animation *b, float f);
+	void apply(float t, Frame *f);
+
+	MixedAnimation(void);
+	MixedAnimation(Animation *a, Animation *b, float f);
 };
 
 #endif

@@ -21,6 +21,7 @@ struct quaternion
 	N dot(const quaternion& rhs) const;
 	N dot4(const quaternion& rhs) const;
 	quaternion<N> wedge(const quaternion& rhs) const;
+	quaternion<N> slerp(const quaternion& rhs, float f) const;
 	quaternion& operator= (const quaternion& rhs);
 	quaternion& operator+= (const N& rhs);
 	quaternion& operator-= (const N& rhs);
@@ -130,6 +131,23 @@ quaternion<N> quaternion<N>::wedge(const quaternion& rhs) const
 	float yn = z*rhs.x - x*rhs.z;
 	float zn = x*rhs.y - y*rhs.x;
 	return quaternion(xn, yn, zn);
+}
+
+template <class N>
+quaternion<N> quaternion<N>::slerp(const quaternion& rhs, float f) const
+{
+	// slerp
+	quaternion<N> q1 = *this;
+	float dot = q1.dot4(rhs);
+	if (dot < 0) {
+		dot = -dot;
+		q1 = -q1;
+	}
+	float phi = acos(dot);
+
+	if (phi > 0.00001)
+		q1 = q1*sin((1.0f-f)*phi)/sin(phi)+rhs*sin(f*phi)/sin(phi);
+	return q1;
 }
 
 template <class N>

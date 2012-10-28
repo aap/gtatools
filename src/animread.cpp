@@ -10,7 +10,7 @@
 
 #include "gta.h"
 #include "math.h"
-#include "ifp.h"
+#include "animation.h"
 #include "drawable.h"
 
 using namespace rw;
@@ -83,12 +83,6 @@ void AnimPackage::read(ifstream &ifp)
 	}
 }
 
-void AnimPackage::clear(void)
-{
-	animList.resize(0);
-	name = "";
-}
-
 void Animation::read_1(ifstream &ifp)
 {
 	SECTION_DECLARATION
@@ -151,55 +145,6 @@ void Animation::read_3(ifstream &ifp)
 	}
 }
 
-void Animation::getKeyframe(float t, string name, KeyFrame &kf)
-{
-	uint oi;
-	// TODO: probably too slow
-	for (oi = 0; oi < objList.size(); oi++)
-		if (objList[oi].name == name)
-			break;
-
-	if (oi < objList.size())
-		objList[oi].interpolate(t, kf);
-	else
-		kf.type = 0;
-}
-
-void Animation::apply(float t, ::Frame *f)
-{
-	KeyFrame kf;
-	getKeyframe(t, f->name, kf);
-
-	if (kf.type != 0) {
-		glm::quat q;
-		q.x = kf.rot.x;
-		q.y = kf.rot.y;
-		q.z = kf.rot.z;
-		q.w = kf.rot.w;
-
-		if (kf.type == KRT0 || kf.type == KRTS) {
-			f->pos.x = kf.pos.x;
-			f->pos.y = kf.pos.y;
-			f->pos.z = kf.pos.z;
-		}
-		// no scaling yet
-
-		f->modelMat = glm::mat4_cast(q);
-		f->modelMat[3][0] = f->pos.x;
-		f->modelMat[3][1] = f->pos.y;
-		f->modelMat[3][2] = f->pos.z;
-	}
-
-	for (uint i = 0; i < f->children.size(); i++)
-		apply(t, f->children[i]);
-}
-
-void Animation::clear(void)
-{
-	objList.resize(0);
-	name = "";
-}
-
 void AnimObj::read_1(std::ifstream &ifp)
 {
 	SECTION_DECLARATION_2
@@ -241,41 +186,6 @@ void AnimObj::read_3(std::ifstream &ifp)
 	frmList.resize(frames);
 	for (int32 i = 0; i < frames; i++)
 		frmList[i].read_3(ifp, frmType);
-}
-
-void AnimObj::interpolate(float t, KeyFrame &key)
-{
-	if (t >= frmList[frmList.size()-1].timeKey) {
-		key = frmList[frmList.size()-1];
-		return;
-	}
-
-	uint i;
-	for (i = 0; i < frmList.size(); i++)
-		if (t < frmList[i].timeKey)
-			break;
-	KeyFrame &f1 = frmList[i-1];
-	KeyFrame &f2 = frmList[i];
-	key = f1;
-
-	float r = (f1.timeKey - t)/(f1.timeKey - f2.timeKey);
-
-	key.pos = f1.pos*(1.0f - r) + f2.pos*r;
-	key.scale = f1.scale*(1.0f - r) + f2.scale*r;
-
-	// slerp
-	quat q1 = f1.rot;
-	quat q2 = f2.rot;
-	float dot = q1.dot4(q2);
-	if (dot < 0) {
-		dot = -dot;
-		q1 = -q1;
-	}
-	float phi = acos(dot);
-
-	key.rot = q1;
-	if (phi > 0.00001)
-		key.rot = q1*sin((1.0f-r)*phi)/sin(phi)+q2*sin(r*phi)/sin(phi);
 }
 
 void KeyFrame::read_1(uint32 fourcc, ifstream &ifp)

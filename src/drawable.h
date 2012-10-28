@@ -10,7 +10,7 @@
 
 #include "math.h"
 #include "texman.h"
-#include "ifp.h"
+#include "animation.h"
 
 struct Frame {
 	std::string name;
@@ -59,10 +59,13 @@ private:
 	TexDictionary *texDict;
 	std::vector<int> atomicList;
 
-	Animation *anim;
+	MixedAnimation manim;
+	Animation *overrideAnim;
+//	Animation *anim;
 	Frame *animRoot;
 	std::vector<uint> boneToFrame;
 	float curTime;
+	float curOvrTime;
 
 	int currentColorStep;
 
@@ -80,12 +83,16 @@ public:
 
 	void attachClump(rw::Clump *c);
 	void attachAnim(Animation *a);
+	void attachMixedAnim(Animation *a, Animation *b, float f);
+	void attachOverrideAnim(Animation *a);
 	void draw(void);
 	void drawAtomic(uint a);
 	void drawFrame(int fi, bool recurse, bool transform);
 	void setVertexColors(void);
 	float getTime(void);
 	void setTime(float t);
+	float getOvrTime(void);
+	void setOvrTime(float t);
 	void resetFrames(void);
 	bool hasModel(void);
 	bool hasTextures(void);

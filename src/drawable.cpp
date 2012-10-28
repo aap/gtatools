@@ -255,12 +255,31 @@ void Drawable::attachClump(rw::Clump *clp)
 
 void Drawable::attachAnim(Animation *a)
 {
+/*
 	anim = a;
 	curTime = 0.0f;
 	cout << "attached animation " << anim->name << endl;
 	cout << anim->endTime << " seconds\n";
+*/
+	manim.attachAnims(a, 0, 1.0f);
+	cout << "attached animation " << a->name << endl;
+	cout << manim.endTime << " seconds\n";
 }
 
+void Drawable::attachMixedAnim(Animation *a, Animation *b, float f)
+{
+	manim.attachAnims(a, b, f);
+	cout << "attached animations " << a->name << " " << b->name << endl;
+	cout << manim.endTime << " seconds\n";
+}
+
+void Drawable::attachOverrideAnim(Animation *a)
+{
+	overrideAnim = a;
+	curOvrTime = 0.0f;
+	cout << "attached override animation " << overrideAnim->name << endl;
+	cout << overrideAnim->endTime << " seconds\n";
+}
 
 void Drawable::request(string model, string texdict)
 {
@@ -322,13 +341,32 @@ void Drawable::unload(void)
 	texDict = 0;
 
 	// TODO: handle virtual animations
-	anim = 0;
+	//anim = 0;
 	boneToFrame.clear();
 	animRoot = root = 0;
 	curTime = 0.0f;
 	currentColorStep = 0;
 }
 
+
+float Drawable::getOvrTime(void)
+{
+	return curOvrTime;
+}
+
+void Drawable::setOvrTime(float t)
+{
+	if (overrideAnim == 0)
+		return;
+	curOvrTime = t;
+	while (curOvrTime > overrideAnim->endTime)
+		curOvrTime -= overrideAnim->endTime;
+	while (curOvrTime < 0.0f)
+		curOvrTime += overrideAnim->endTime;
+	overrideAnim->apply(curOvrTime/overrideAnim->endTime, animRoot);
+	updateFrames(animRoot);
+	updateGeometries();
+}
 
 float Drawable::getTime(void)
 {
@@ -337,14 +375,21 @@ float Drawable::getTime(void)
 
 void Drawable::setTime(float t)
 {
-	if (anim == 0)
-		return;
+//	if (anim == 0)
+//		return;
 	curTime = t;
+/*
 	while (curTime > anim->endTime)
 		curTime -= anim->endTime;
 	while (curTime < 0.0f)
 		curTime += anim->endTime;
 	anim->apply(curTime/anim->endTime, animRoot);
+*/
+	while (curTime > manim.endTime)
+		curTime -= manim.endTime;
+	while (curTime < 0.0f)
+		curTime += manim.endTime;
+	manim.apply(curTime/manim.endTime, animRoot);
 	updateFrames(animRoot);
 	updateGeometries();
 }
@@ -352,7 +397,6 @@ void Drawable::setTime(float t)
 // TODO: normals
 void Drawable::updateGeometries(void)
 {
-//	THREADCHECK();
 	for (uint i = 0; i < geoList.size(); i++) {
 		Geometry &g = geoList[i];
 		rw::Geometry &rwg = clump->geometryList[i];
@@ -393,14 +437,6 @@ void Drawable::updateGeometries(void)
 			g.vertices[j*3+2] = v.z;
 		}
 		g.dirty = true;
-/*
-		if (g.vbo == 0)
-			continue;
-		glBindBuffer(GL_ARRAY_BUFFER, g.vbo);
-		glBufferSubData(GL_ARRAY_BUFFER, 0,
-		                g.vertices.size()*sizeof(GLfloat),
-		                &g.vertices[0]);
-*/
 	}
 }
 
@@ -681,7 +717,7 @@ Drawable::Drawable(void)
 {
 	clump = 0;
 	texDict = 0;
-	anim = 0;
+	//anim = 0;
 }
 
 Drawable::~Drawable(void)

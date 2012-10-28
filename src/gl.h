@@ -4,7 +4,7 @@
 #include <GL/glew.h>
 #include "gta.h"
 #include "pipeline.h"
-#include "ifp.h"
+#include "animation.h"
 
 namespace gl {
 	void handleKeyboardInput(void);

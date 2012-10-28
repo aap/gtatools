@@ -9,7 +9,7 @@
 #include "renderer.h"
 #include "jobqueue.h"
 #include "drawable.h"
-#include "ifp.h"
+#include "animation.h"
 
 #include "lua.h"
 
@@ -355,12 +355,43 @@ int rendererGetLodMult(lua_State *L)
 }
 
 
+int setMixedAnim(lua_State *L)
+{
+	string arg1 = luaL_checkstring(L, 1);
+	string arg2 = luaL_checkstring(L, 2);
+	float arg3 = luaL_checknumber(L, 3);
+	int ind1 = -1, ind2 = -1;
+	for (uint i = 0; i < gl::anpk.animList.size(); i++) {
+		if (gl::anpk.animList[i].name == arg1)
+			ind1 = i;
+		if (gl::anpk.animList[i].name == arg2)
+			ind2 = i;
+	}
+	if (ind1 != -1 && ind2 != -1)
+		drawable.attachMixedAnim(&gl::anpk.animList[ind1],
+		                         &gl::anpk.animList[ind2],
+		                         arg3);
+	return 0;
+}
+
 int setAnim(lua_State *L)
 {
 	string arg = luaL_checkstring(L, 1);
 	for (uint i = 0; i < gl::anpk.animList.size(); i++) {
 		if (gl::anpk.animList[i].name == arg) {
 			drawable.attachAnim(&gl::anpk.animList[i]);
+			break;
+		}
+	}
+	return 0;
+}
+
+int setOvrAnim(lua_State *L)
+{
+	string arg = luaL_checkstring(L, 1);
+	for (uint i = 0; i < gl::anpk.animList.size(); i++) {
+		if (gl::anpk.animList[i].name == arg) {
+			drawable.attachOverrideAnim(&gl::anpk.animList[i]);
 			break;
 		}
 	}
@@ -399,6 +430,8 @@ void registerGl(lua_State *L)
 	lua_register(L, "__rendererSetLodMult", rendererSetLodMult);
 	lua_register(L, "__rendererGetLodMult", rendererGetLodMult);
 	lua_register(L, "setAnim", setAnim);
+	lua_register(L, "setOvrAnim", setOvrAnim);
+	lua_register(L, "setMixedAnim", setMixedAnim);
 	lua_register(L, "listAnims", listAnims);
 	lua_register(L, "resetDrawable", resetDrawable);
 }
