@@ -231,7 +231,7 @@ void Renderer::renderScene(void)
 	gl::state.updateAll();
 	glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
 
-	gl::drawAxes(glm::value_ptr(gl::state.modelView));
+//	gl::drawAxes(glm::value_ptr(gl::state.modelView));
 
 	glDisable(GL_DEPTH_TEST);
 	sky.draw();
@@ -253,13 +253,13 @@ void Renderer::renderScene(void)
 	gl::drawWire = false;
 
 	// the test object
-
-/*
-	gl::drawTransparent = false;
-	drawable.draw();
-	gl::drawTransparent = true;
-	drawable.draw();
-*/
+	if (drawable.hasModel() &&
+	    (drawable.hasTextures() || !renderer.doTextures)) {
+		gl::drawTransparent = false;
+		drawable.draw();
+		gl::drawTransparent = true;
+		drawable.draw();
+	}
 
 	// the world
 
@@ -282,8 +282,8 @@ void Renderer::renderScene(void)
 	while (glJobs.processJob())
 		if (threadFinished)
 			break;
-	clock_t newtime = clock();
-	double diff = (newtime-oldtime) * 1000/CLOCKS_PER_SEC;
+//	clock_t newtime = clock();
+//	double diff = (newtime-oldtime) * 1000/CLOCKS_PER_SEC;
 //	cout << diff << endl;
 
 	// This shouldn't really be necessary, but somehow pthread_create

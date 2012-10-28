@@ -252,6 +252,9 @@ int main(int argc, char *argv[])
 	pthread_join(thread1, NULL);
 	pthread_join(thread2, NULL);
 	pthread_join(thread3, NULL);
+
+	cout << "in main again\n";
+
 	return 0;
 }
 
@@ -262,6 +265,7 @@ void *filereader(void *args)
 		while(normalJobs.processJob());
 		normalJobs.waitForJobs();
 	}
+	cout << "return from file reader thread\n";
 	return NULL;
 }
 
@@ -270,6 +274,7 @@ void *lua(void *args)
 	while (initDone == false);
 
 	LuaInterpreter();
+	cout << "return from lua thread\n";
 	return NULL;
 }
 
@@ -278,7 +283,7 @@ void initGame(void)
 {
 	cam.setPitch(PI/8.0f-PI/2.0f);
 	cam.setDistance(20.0f);
-	cam.setAspectRatio(GLfloat(gl::width / gl::height));
+	cam.setAspectRatio(GLfloat(gl::width) / GLfloat(gl::height));
 	cam.setTarget(quat(335.5654907, -159.0345306, 17.85120964));
 
 	cout << "associating lods\n";

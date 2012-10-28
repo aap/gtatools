@@ -3,11 +3,15 @@
 #include <iostream>
 #include <fstream>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+
 #include <renderware.h>
 
 #include "gta.h"
 #include "math.h"
 #include "ifp.h"
+#include "drawable.h"
 
 using namespace rw;
 using namespace std;
@@ -95,6 +99,7 @@ void Animation::read_1(ifstream &ifp)
 	char *buf = new char[size];
 	ifp.read(buf, size);
 	name = buf;
+	stringToLower(name);
 	delete[] buf;
 
 	READ_SECTION(DGAN);
@@ -107,10 +112,18 @@ void Animation::read_1(ifstream &ifp)
 	size = (size+0x3) & ~0x3;
 	ifp.seekg(size, ios::cur);
 
-
+	endTime = 0.0f;
 	for (uint32 i = 0; i < numObjs && ifp.tellg() < end; i++) {
 		objList.resize(objList.size()+1);
 		objList[i].read_1(ifp);
+		int last = objList[i].frames-1;
+		if (objList[i].frmList[last].timeKey > endTime)
+			endTime = objList[i].frmList[last].timeKey;
+	}
+	for (uint i = 0; i < objList.size(); i++) {
+		AnimObj &ao = objList[i];
+		for (int j = 0; j < ao.frames; j++)
+			ao.frmList[j].timeKey /= endTime;
 	}
 }
 
@@ -119,13 +132,66 @@ void Animation::read_3(ifstream &ifp)
 	char buf[24];
 	ifp.read(buf, 24);
 	name = buf;
+	stringToLower(name);
 	uint32 numObjs = readUInt32(ifp);
 	ifp.seekg(4, ios::cur);	// frameSize
 	ifp.seekg(4, ios::cur);
 
 	objList.resize(numObjs);
-	for (uint32 i = 0; i < numObjs; i++)
+	for (uint32 i = 0; i < numObjs; i++) {
 		objList[i].read_3(ifp);
+		int last = objList[i].frames-1;
+		if (objList[i].frmList[last].timeKey > endTime)
+			endTime = objList[i].frmList[last].timeKey;
+	}
+	for (uint i = 0; i < objList.size(); i++) {
+		AnimObj &ao = objList[i];
+		for (int j = 0; j < ao.frames; j++)
+			ao.frmList[j].timeKey /= endTime;
+	}
+}
+
+void Animation::getKeyframe(float t, string name, KeyFrame &kf)
+{
+	uint oi;
+	// TODO: probably too slow
+	for (oi = 0; oi < objList.size(); oi++)
+		if (objList[oi].name == name)
+			break;
+
+	if (oi < objList.size())
+		objList[oi].interpolate(t, kf);
+	else
+		kf.type = 0;
+}
+
+void Animation::apply(float t, ::Frame *f)
+{
+	KeyFrame kf;
+	getKeyframe(t, f->name, kf);
+
+	if (kf.type != 0) {
+		glm::quat q;
+		q.x = kf.rot.x;
+		q.y = kf.rot.y;
+		q.z = kf.rot.z;
+		q.w = kf.rot.w;
+
+		if (kf.type == KRT0 || kf.type == KRTS) {
+			f->pos.x = kf.pos.x;
+			f->pos.y = kf.pos.y;
+			f->pos.z = kf.pos.z;
+		}
+		// no scaling yet
+
+		f->modelMat = glm::mat4_cast(q);
+		f->modelMat[3][0] = f->pos.x;
+		f->modelMat[3][1] = f->pos.y;
+		f->modelMat[3][2] = f->pos.z;
+	}
+
+	for (uint i = 0; i < f->children.size(); i++)
+		apply(t, f->children[i]);
 }
 
 void Animation::clear(void)
@@ -144,6 +210,7 @@ void AnimObj::read_1(std::ifstream &ifp)
 	char *buf = new char[28];
 	ifp.read(buf, 28);
 	name = buf;
+	stringToLower(name);
 	delete[] buf;
 	frames = readInt32(ifp);
 	unknown = readInt32(ifp);
@@ -166,6 +233,7 @@ void AnimObj::read_3(std::ifstream &ifp)
 	char buf[24];
 	ifp.read(buf, 24);
 	name = buf;
+	stringToLower(name);
 	uint32 frmType = readUInt32(ifp);
 	frames = readUInt32(ifp);
 	ifp.seekg(4, ios::cur); // boneId
@@ -198,7 +266,12 @@ void AnimObj::interpolate(float t, KeyFrame &key)
 	// slerp
 	quat q1 = f1.rot;
 	quat q2 = f2.rot;
-	float phi = acos(q1.dot4(q2));
+	float dot = q1.dot4(q2);
+	if (dot < 0) {
+		dot = -dot;
+		q1 = -q1;
+	}
+	float phi = acos(dot);
 
 	key.rot = q1;
 	if (phi > 0.00001)

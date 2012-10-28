@@ -41,12 +41,17 @@ struct AnimObj
 	void interpolate(float t, KeyFrame &key);
 };
 
+struct Frame;
+
 struct Animation
 {
 	std::string name;
 	std::vector<AnimObj> objList;
+	float endTime;
 
 	/* functions */
+	void getKeyframe(float t, std::string name, KeyFrame &kf);
+	void apply(float curTime, Frame *f);
 	void read_1(std::ifstream &ifp);
 	void read_3(std::ifstream &ifp);
 	void clear(void);

@@ -8,6 +8,8 @@
 #include "world.h"
 #include "renderer.h"
 #include "jobqueue.h"
+#include "drawable.h"
+#include "ifp.h"
 
 #include "lua.h"
 
@@ -75,7 +77,6 @@ void LuaInterpreter(void)
 		}
 	}
 	lua_close(L);
-//	cout << "lua exiting\n";
 }
 
 int gettop(lua_State *L)
@@ -353,6 +354,32 @@ int rendererGetLodMult(lua_State *L)
 	return 1;
 }
 
+
+int setAnim(lua_State *L)
+{
+	string arg = luaL_checkstring(L, 1);
+	for (uint i = 0; i < gl::anpk.animList.size(); i++) {
+		if (gl::anpk.animList[i].name == arg) {
+			drawable.attachAnim(&gl::anpk.animList[i]);
+			break;
+		}
+	}
+	return 0;
+}
+
+int listAnims(lua_State *L)
+{
+	for (uint i = 0; i < gl::anpk.animList.size(); i++)
+		cout << gl::anpk.animList[i].name << endl;
+	return 0;
+}
+
+int resetDrawable(lua_State *L)
+{
+	drawable.resetFrames();
+	return 0;
+}
+
 void registerGl(lua_State *L)
 {
 	lua_register(L, "__rendererSetDoTextures", rendererSetDoTextures);
@@ -371,4 +398,7 @@ void registerGl(lua_State *L)
 	lua_register(L, "__rendererGetDoBFC", rendererGetDoBFC);
 	lua_register(L, "__rendererSetLodMult", rendererSetLodMult);
 	lua_register(L, "__rendererGetLodMult", rendererGetLodMult);
+	lua_register(L, "setAnim", setAnim);
+	lua_register(L, "listAnims", listAnims);
+	lua_register(L, "resetDrawable", resetDrawable);
 }

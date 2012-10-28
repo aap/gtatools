@@ -4,14 +4,16 @@
 #include <GL/glew.h>
 #include "gta.h"
 #include "pipeline.h"
+#include "ifp.h"
 
 namespace gl {
-	void renderScene(void);
-	void reshape(int w, int h);
-	void keypress(uchar key, int x, int y);
-	void keypressSpecial(int key, int x, int y);
-	void mouseButton(int button, int state, int x, int y);
+	void handleKeyboardInput(void);
+	void keypress(int key, int state);
+	void mouseButton(int button, int state);
 	void mouseMotion(int x, int y);
+	void handleJoystickInput(int joy);
+
+	void resize(int w, int h);
 	void initGl(void);
 	void *opengl(void *args);
 
@@ -26,6 +28,9 @@ namespace gl {
 	extern bool drawWire;
 
 	extern Pipeline simplePipe, lambertPipe, gtaPipe;
+
+	/* XXX */
+	extern AnimPackage anpk;
 }
 
 #endif

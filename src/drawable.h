@@ -17,6 +17,9 @@ struct Frame {
 	glm::vec3 pos;
 	glm::mat4 modelMat;
 
+	glm::vec3 defPos;
+	glm::mat4 defMat;
+
 	// bones
 	int boneId;
 	glm::mat4 boneInverseMat;
@@ -34,6 +37,8 @@ struct Frame {
 struct Geometry {
 	GLuint vbo;
 	GLuint ibo;
+
+	bool dirty;
 
 	bool isSkinned;
 	std::vector<GLfloat> vertices;
@@ -54,16 +59,12 @@ private:
 	TexDictionary *texDict;
 	std::vector<int> atomicList;
 
-	Animation anim;
+	Animation *anim;
 	Frame *animRoot;
 	std::vector<uint> boneToFrame;
-	float endTime;
 	float curTime;
 
 	int currentColorStep;
-
-//	bool toBeDeleted;
-//	bool toBeLoaded;
 
 	void attachTexDict(TexDictionary &t);
 	void updateFrames(Frame *r);
@@ -78,13 +79,14 @@ public:
 	void unload(void);
 
 	void attachClump(rw::Clump *c);
-	void attachAnim(Animation &a);
+	void attachAnim(Animation *a);
 	void draw(void);
 	void drawAtomic(uint a);
 	void drawFrame(int fi, bool recurse, bool transform);
 	void setVertexColors(void);
 	float getTime(void);
 	void setTime(float t);
+	void resetFrames(void);
 	bool hasModel(void);
 	bool hasTextures(void);
 

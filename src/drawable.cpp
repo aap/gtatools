@@ -24,6 +24,8 @@ void Drawable::printFrames(int level, Frame *r)
 {
 	for (int i = 0; i < level; i++)
 		cout << "  ";
+	if (r == 0)
+		r = root;
 	cout << r->name << " " << r->parent << " " <<
 	        r->boneId << " " << r->geo<< endl;
 	for (uint i = 0; i < r->children.size(); i++)
@@ -33,12 +35,6 @@ void Drawable::printFrames(int level, Frame *r)
 void Drawable::attachClump(rw::Clump *clp)
 {
 	THREADCHECK();
-//	if (toBeDeleted) {
-//		cout << "loading to be deleted object\n";
-//		clp->clear();
-//		delete clp;
-//		return;
-//	}
 	// frames
 	uint frmsize = clp->frameList.size();
 	for (uint i = 0; i < frmsize; i++) {
@@ -53,6 +49,7 @@ void Drawable::attachClump(rw::Clump *clp)
 		f->pos = glm::vec3(rwf.position[0],
 		                   rwf.position[1],
 		                   rwf.position[2]);
+		f->defPos = f->pos;
 
 		glm::vec4 x, y, z, w;
 		#define M(i,j) rwf.rotationMatrix[(i)*3+(j)]
@@ -62,6 +59,7 @@ void Drawable::attachClump(rw::Clump *clp)
 		x.w = 0.0f;   y.w = 0.0f;   z.w = 0.0f;   w.w = 1.0f;
 		#undef M
 		f->modelMat = glm::mat4(x, y, z, w);
+		f->defMat = f->modelMat;
 
 		f->boneMat = glm::mat4(1.0f);
 		f->boneInverseMat = glm::mat4(1.0f);
@@ -217,6 +215,7 @@ void Drawable::attachClump(rw::Clump *clp)
 
 		geo.vbo = vbo;
 		geo.ibo = ibo;
+		geo.dirty = false;
 		geoList.push_back(geo);
 	}
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -252,27 +251,19 @@ void Drawable::attachClump(rw::Clump *clp)
 	clump = clp;
 	updateFrames(root);
 	updateGeometries();
-//	toBeLoaded = false;
 }
 
-void Drawable::attachAnim(Animation &a)
+void Drawable::attachAnim(Animation *a)
 {
 	anim = a;
 	curTime = 0.0f;
-	endTime = 0.0f;
-	for (uint i = 0; i < anim.objList.size(); i++) {
-		AnimObj &ao = anim.objList[i];
-		if (endTime < ao.frmList[ao.frames-1].timeKey)
-			endTime = ao.frmList[ao.frames-1].timeKey;
-		stringToLower(anim.objList[i].name);
-	}
-	cout << "attached animation " << anim.name << endl;
-	cout << endTime << " seconds\n";
+	cout << "attached animation " << anim->name << endl;
+	cout << anim->endTime << " seconds\n";
 }
+
 
 void Drawable::request(string model, string texdict)
 {
-//	toBeLoaded = true;
 	char *str = new char[model.size()+1];
 	strcpy(str, model.c_str());
 	normalJobs.addJob(JobQueue::readDff, this, str);
@@ -283,9 +274,6 @@ void Drawable::request(string model, string texdict)
 
 void Drawable::release(void)
 {
-//	if (toBeLoaded)
-//		cout << "can't delete to be loaded object\n";
-//	toBeDeleted = true;
 	normalJobs.addJob(JobQueue::deleteDrawable, this, 0);
 }
 
@@ -305,7 +293,7 @@ int Drawable::loadSynch(string model, string texdict)
 
 	texDict = 0;
 	if (renderer.doTextures)
-		texDict = texMan.get(texdict);
+		texDict = texMan.get(texdict, true);
 
 	return 0;
 }
@@ -333,48 +321,14 @@ void Drawable::unload(void)
 		texMan.release(texDict->fileName);
 	texDict = 0;
 
-	anim.clear();
+	// TODO: handle virtual animations
+	anim = 0;
 	boneToFrame.clear();
 	animRoot = root = 0;
-	curTime = endTime = 0.0f;
+	curTime = 0.0f;
 	currentColorStep = 0;
 }
 
-void Drawable::applyAnim(Frame *f)
-{
-	uint oi;
-	for (oi = 0; oi < anim.objList.size(); oi++)
-		if (f->name == anim.objList[oi].name)
-			break;
-
-	if (oi < anim.objList.size()) {
-		AnimObj &ao = anim.objList[oi];
-
-		KeyFrame kf;
-		ao.interpolate(curTime, kf);
-
-		glm::quat q;
-		q.x = kf.rot.x;
-		q.y = kf.rot.y;
-		q.z = kf.rot.z;
-		q.w = kf.rot.w;
-
-		if (kf.type == KRT0 || kf.type == KRTS) {
-			f->pos.x = kf.pos.x;
-			f->pos.y = kf.pos.y;
-			f->pos.z = kf.pos.z;
-		}
-		// no scaling yet
-
-		f->modelMat = glm::mat4_cast(q);
-		f->modelMat[3][0] = f->pos.x;
-		f->modelMat[3][1] = f->pos.y;
-		f->modelMat[3][2] = f->pos.z;
-	}
-
-	for (uint i = 0; i < f->children.size(); i++)
-		applyAnim(f->children[i]);
-}
 
 float Drawable::getTime(void)
 {
@@ -383,19 +337,22 @@ float Drawable::getTime(void)
 
 void Drawable::setTime(float t)
 {
+	if (anim == 0)
+		return;
 	curTime = t;
-	while (curTime > endTime)
-		curTime -= endTime;
+	while (curTime > anim->endTime)
+		curTime -= anim->endTime;
 	while (curTime < 0.0f)
-		curTime += endTime;
-	applyAnim(animRoot);
+		curTime += anim->endTime;
+	anim->apply(curTime/anim->endTime, animRoot);
 	updateFrames(animRoot);
 	updateGeometries();
 }
 
+// TODO: normals
 void Drawable::updateGeometries(void)
 {
-	THREADCHECK();
+//	THREADCHECK();
 	for (uint i = 0; i < geoList.size(); i++) {
 		Geometry &g = geoList[i];
 		rw::Geometry &rwg = clump->geometryList[i];
@@ -435,12 +392,15 @@ void Drawable::updateGeometries(void)
 			g.vertices[j*3+1] = v.y;
 			g.vertices[j*3+2] = v.z;
 		}
+		g.dirty = true;
+/*
 		if (g.vbo == 0)
 			continue;
 		glBindBuffer(GL_ARRAY_BUFFER, g.vbo);
 		glBufferSubData(GL_ARRAY_BUFFER, 0,
 		                g.vertices.size()*sizeof(GLfloat),
 		                &g.vertices[0]);
+*/
 	}
 }
 
@@ -533,7 +493,7 @@ void Drawable::drawFrame(int fi, bool recurse, bool transform)
 		if (f->geo != -1) {
 			drawGeometry(f->geo);
 		} else {
-	THREADCHECK();
+			THREADCHECK();
 			glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
 //			gl::drawSphere(0.1f, 10, 10);
 		}
@@ -566,6 +526,12 @@ void Drawable::drawGeometry(int gi)
 
 	uint numVertices = g.vertices.size() / 3;
 	glBindBuffer(GL_ARRAY_BUFFER, geoList[gi].vbo);
+	if (geoList[gi].dirty) {
+		glBufferSubData(GL_ARRAY_BUFFER, 0,
+		                geoList[gi].vertices.size()*sizeof(GLfloat),
+		                &geoList[gi].vertices[0]);
+		geoList[gi].dirty = false;
+	}
 	glEnableVertexAttribArray(in_Vertex);
 	GLint offset = 0;
 	glVertexAttribPointer(in_Vertex, 3, GL_FLOAT, GL_FALSE, 0,
@@ -670,6 +636,10 @@ void Drawable::drawGeometry(int gi)
 			glDrawElements(mode, s.indices.size(),
 				       GL_UNSIGNED_INT,
 				       (GLvoid*) (offset*sizeof(rw::uint32)));
+
+//			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+//			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
 			offset += g.splits[j].indices.size();
 		}
 	}
@@ -680,6 +650,16 @@ void Drawable::drawGeometry(int gi)
 	glDisableVertexAttribArray(in_TexCoord);
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void Drawable::resetFrames(void)
+{
+	for (uint i = 0; i < frmList.size(); i++) {
+		frmList[i]->pos = frmList[i]->defPos;
+		frmList[i]->modelMat = frmList[i]->defMat;
+	}
+	updateFrames(root);
+	updateGeometries();
 }
 
 bool Drawable::hasModel(void)
@@ -701,9 +681,7 @@ Drawable::Drawable(void)
 {
 	clump = 0;
 	texDict = 0;
-
-//	toBeDeleted = false;
-//	toBeLoaded = false;
+	anim = 0;
 }
 
 Drawable::~Drawable(void)
