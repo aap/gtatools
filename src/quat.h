@@ -14,6 +14,7 @@ struct quaternion
 	quaternion(const quaternion<N>& quat);
 	void print(std::ostream&) const;
 	void conjugate();
+	quaternion<N> getConjugate(void) const;
 	N normsq() const;
 	N norm() const;
 	void normalize();
@@ -84,6 +85,12 @@ void quaternion<N>::conjugate()
 }
 
 template <class N>
+quaternion<N> quaternion<N>::getConjugate(void) const
+{
+	return quaternion(w, -x, -y, -z);
+}
+
+template <class N>
 N quaternion<N>::normsq() const
 {
 	N n;
@@ -127,9 +134,12 @@ N quaternion<N>::dot4(const quaternion& rhs) const
 template <class N>
 quaternion<N> quaternion<N>::wedge(const quaternion& rhs) const
 {
-	float xn = y*rhs.z - z*rhs.y;
-	float yn = z*rhs.x - x*rhs.z;
-	float zn = x*rhs.y - y*rhs.x;
+//	float xn = y*rhs.z - z*rhs.y;
+//	float yn = z*rhs.x - x*rhs.z;
+//	float zn = x*rhs.y - y*rhs.x;
+	N xn = y*rhs.z - z*rhs.y;
+	N yn = z*rhs.x - x*rhs.z;
+	N zn = x*rhs.y - y*rhs.x;
 	return quaternion(xn, yn, zn);
 }
 

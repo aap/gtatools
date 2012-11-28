@@ -419,7 +419,7 @@ void Model::drawBoundingSphere(void)
 
 
 	glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
-	glVertexAttrib4f(gl::in_Color, 1.0f, 1.0f, 1.0f, 1.0f);
+	glVertexAttrib4f(gl::in_Color, 1.0f, 1.0f, 1.0f, 0.5f);
 	glm::vec4 color;
 	if (col->island == 0)
 		color = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f);

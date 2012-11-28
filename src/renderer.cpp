@@ -4,6 +4,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include "world.h"
 #include "drawable.h"
@@ -55,10 +56,6 @@ void Renderer::renderOpaque(void)
 		glStencilFunc(GL_ALWAYS,
 		              (ip->index>>gl::stencilShift)&0xFF,-1);
 
-		if (op->BSvisible)
-			op->drawBoundingSphere();
-
-
 		globalAlpha = ip->getFading();
 		gl::wasTransparent = false;
 		if (doCol) {
@@ -87,6 +84,9 @@ void Renderer::renderOpaque(void)
 			else
 				addTransp2Object(ip, ai);
 		}
+
+		if (op->BSvisible)
+			op->drawBoundingSphere();
 
 next:
 		gl::state.modelView = mvSave;

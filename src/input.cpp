@@ -5,6 +5,7 @@
 #include "camera.h"
 #include "jobqueue.h"
 #include "renderer.h"
+#include "objects.h"
 #include "drawable.h"
 
 using namespace std;
@@ -33,23 +34,36 @@ void handleKeyboardInput(void)
 		else
 			drawable.setTime(drawable.getTime()+0.033333/2.0);
 	}
+
 	if (glfwGetKey('U')) {
 		if (isShiftDown)
 			drawable.setOvrTime(drawable.getOvrTime()-0.033333/2.0);
 		else
 			drawable.setOvrTime(drawable.getOvrTime()+0.033333/2.0);
 	}
+
 	if (glfwGetKey('W')) {
 		if (isShiftDown)
 			cam.moveInOut(dist);
 		else
 			cam.setDistance(cam.getDistance()-dist);
 	}
+
 	if (glfwGetKey('S')) {
 		if (isShiftDown)
 			cam.moveInOut(-dist);
 		else
 			cam.setDistance(cam.getDistance()+dist);
+	}
+
+	if (glfwGetKey('B')) {
+		WorldObject *op;
+		op = static_cast<WorldObject*>(objectList.get(
+			world.getInstance(lastSelected)->id));
+		if (isShiftDown)
+			op->BSvisible = false;
+		else
+			op->BSvisible = true;
 	}
 }
 

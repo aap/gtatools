@@ -748,7 +748,12 @@ bool Instance::isCulled(void)
 	WorldObject *op = static_cast<WorldObject*>(objectList.get(id));
 	if (!op->col)
 		return false;
-	if (cam.isSphereInFrustum(op->col->boundingSphere + position))
+	quat bs = op->col->boundingSphere;
+	bs.w = 0;
+	bs = rotation.getConjugate() * bs * rotation;
+	bs += position;
+	bs.w = op->col->boundingSphere.w;
+	if (cam.isSphereInFrustum(bs))
 		return false;
 	return true;
 }
