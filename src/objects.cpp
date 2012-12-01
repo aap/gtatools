@@ -144,7 +144,7 @@ void ObjectList::readCol(ifstream &in, int island)
 	CollisionModel *col;
 	while (!in.eof()) {
 		col = new CollisionModel;
-		if (col->read(in) == 0) {
+		if (col->read(in)) {
 			delete col;
 			break;
 		}

@@ -47,6 +47,8 @@ cam.setYaw(3)
 -- cam.setPitch(5.4859175682068)
 -- cam.setYaw(4.9777021408081)
 
+setAnim("walk_player")
+
 function a()
 	cam.setTarget(0,0,0)
 end

@@ -56,15 +56,6 @@ void handleKeyboardInput(void)
 			cam.setDistance(cam.getDistance()+dist);
 	}
 
-	if (glfwGetKey('B')) {
-		WorldObject *op;
-		op = static_cast<WorldObject*>(objectList.get(
-			world.getInstance(lastSelected)->id));
-		if (isShiftDown)
-			op->BSvisible = false;
-		else
-			op->BSvisible = true;
-	}
 }
 
 void keypress(int key, int state)
@@ -77,6 +68,25 @@ void keypress(int key, int state)
 	case GLFW_KEY_ESC:
 		running = false;
 		normalJobs.wakeUp();
+		break;
+	case 'B':
+		WorldObject *op;
+		op = static_cast<WorldObject*>(objectList.get(
+			world.getInstance(lastSelected)->id));
+		if (isShiftDown)
+			op->BSvisible = false;
+		else
+			op->BSvisible = true;
+		break;
+	case 'P':
+		if (isShiftDown) {
+			if (lastSelected == 0)
+				break;
+			uint id = world.getInstance(lastSelected)->id;
+			Model *mp = objectList.get(id);
+			mp->drawable->printFrames(0,0);
+		} else
+			drawable.printFrames(0, 0);
 		break;
 	default:
 		break;

@@ -3,6 +3,7 @@
 #include "gta.h"
 #include "math.h"
 #include "pipeline.h"
+#include "drawable.h"
 #include "camera.h"
 
 Camera cam;
@@ -10,6 +11,9 @@ Camera cam;
 void Camera::look()
 {
 	updateCam();
+
+	if (aim)
+		target = aim->getPosition();
 
 	gl::state.projection = glm::perspective(fov, aspectRatio, n, f);
 	gl::state.modelView = glm::mat4(1.0f);
@@ -290,6 +294,11 @@ quat Camera::getPosition(void)
 	return pos * dist + target;
 }
 
+void Camera::lock(Drawable *d)
+{
+	aim = d;
+}
+
 void Camera::setFov(float f)
 {
 	fov = f;
@@ -316,5 +325,6 @@ Camera::Camera()
 	aspectRatio = 1.0f;
 	n = 0.1f;
 	f = 10000.0f;
+	aim = 0;
 }
 

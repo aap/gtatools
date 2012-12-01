@@ -24,10 +24,15 @@ void Drawable::printFrames(int level, Frame *r)
 {
 	for (int i = 0; i < level; i++)
 		cout << "  ";
-	if (r == 0)
+	if (r == 0) {
 		r = root;
-	cout << r->name << " " << r->parent << " " <<
-	        r->boneId << " " << r->geo<< endl;
+		cout << endl;
+	}
+	cout << r->name << dec << " " << r->parent << " " <<
+	        r->boneId << " " << r->geo;
+	if (r == animRoot)
+		cout << "    <--";
+	cout << endl;
 	for (uint i = 0; i < r->children.size(); i++)
 		printFrames(level+1, r->children[i]);
 }
@@ -41,8 +46,9 @@ void Drawable::attachClump(rw::Clump *clp)
 		rw::Frame &rwf = clp->frameList[i];
 		Frame *f = new Frame;
 
-		if (i == 0)	// sensible default if there is no hanim
-			animRoot = f;
+//		if (i == 0)	// sensible default if there is no hanim
+//			animRoot = f;
+		animRoot = 0;
 
 		f->boneId = rwf.hasHAnim ? rwf.hAnimBoneId : -1;
 
@@ -62,6 +68,7 @@ void Drawable::attachClump(rw::Clump *clp)
 		f->defMat = f->modelMat;
 
 		f->boneMat = glm::mat4(1.0f);
+//		f->boneMat = f->modelMat;
 		f->boneInverseMat = glm::mat4(1.0f);
 
 		f->name = rwf.name;
@@ -100,6 +107,11 @@ void Drawable::attachClump(rw::Clump *clp)
 		}
 
 		frmList.push_back(f);
+	}
+	if (animRoot == 0) {
+		animRoot = root;
+		if (root->children.size())
+			animRoot = root->children[0];
 	}
 
 	// geometries
@@ -249,18 +261,13 @@ void Drawable::attachClump(rw::Clump *clp)
 	atomicList.insert(atomicList.end(), tmpList.begin(), tmpList.end());
 
 	clump = clp;
+
 	updateFrames(root);
 	updateGeometries();
 }
 
 void Drawable::attachAnim(Animation *a)
 {
-/*
-	anim = a;
-	curTime = 0.0f;
-	cout << "attached animation " << anim->name << endl;
-	cout << anim->endTime << " seconds\n";
-*/
 	manim.attachAnims(a, 0, 1.0f);
 	cout << "attached animation " << a->name << endl;
 	cout << manim.endTime << " seconds\n";
@@ -375,16 +382,9 @@ float Drawable::getTime(void)
 
 void Drawable::setTime(float t)
 {
-//	if (anim == 0)
-//		return;
+	if (manim.endTime <= 0.0)
+		return;
 	curTime = t;
-/*
-	while (curTime > anim->endTime)
-		curTime -= anim->endTime;
-	while (curTime < 0.0f)
-		curTime += anim->endTime;
-	anim->apply(curTime/anim->endTime, animRoot);
-*/
 	while (curTime > manim.endTime)
 		curTime -= manim.endTime;
 	while (curTime < 0.0f)
@@ -397,6 +397,7 @@ void Drawable::setTime(float t)
 // TODO: normals
 void Drawable::updateGeometries(void)
 {
+//	return;
 	for (uint i = 0; i < geoList.size(); i++) {
 		Geometry &g = geoList[i];
 		rw::Geometry &rwg = clump->geometryList[i];
@@ -421,6 +422,7 @@ void Drawable::updateGeometries(void)
 			weights[3] = rwg.vertexBoneWeights[j*4+3];
 
 			glm::mat4 m;
+
 			m  = frmList[boneToFrame[indices[0]]]->boneMat *
 			     weights[0];
 			m += frmList[boneToFrame[indices[1]]]->boneMat *
@@ -447,11 +449,19 @@ void Drawable::updateFrames(Frame *f)
 	else
 		f->ltm = f->modelMat;
 
-	if (f->boneId != -1)
-		f->boneMat = f->ltm * f->boneInverseMat;
+	// I'm very unsure about this, it seems to work for all cases, though.
+	if (f->parent && f->parent->boneId != -1 &&
+	   //this seems like a hack, I don't know, how to do it correctly
+	   !(f->parent->geo >= 0 && f->parent == animRoot))
+		f->boneMat = f->parent->boneMat * f->modelMat;
+	else if (f->boneId != -1)
+		f->boneMat = f->modelMat;
 
 	for (uint i = 0; i < f->children.size(); i++)
 		updateFrames(f->children[i]);
+
+	if (f->boneId != -1)
+		f->boneMat = f->boneMat * f->boneInverseMat;
 }
 
 void Drawable::setVertexColors(void)
@@ -490,7 +500,8 @@ void Drawable::draw(void)
 
 	if (frmList.size() == 0)
 		return;
-	drawFrame(0, true, true);
+//	drawFrame(root, true, true);
+	drawFrame(root, true, false);
 }
 
 void Drawable::drawAtomic(uint ai)
@@ -501,16 +512,11 @@ void Drawable::drawAtomic(uint ai)
 		setVertexColors();
 
 	if (ai < atomicList.size())
-		drawFrame(atomicList[ai], true, false);
+		drawFrame(frmList[atomicList[ai]], true, false);
 }
 
-void Drawable::drawFrame(int fi, bool recurse, bool transform)
+void Drawable::drawFrame(Frame *f, bool recurse, bool transform)
 {
-	if (uint(fi) >= frmList.size())
-		return;
-
-	Frame *f = frmList[fi];
-
 	if (!f)
 		return;
 
@@ -518,7 +524,11 @@ void Drawable::drawFrame(int fi, bool recurse, bool transform)
 	glm::mat3 nrmSave = gl::state.normalMat;
 
 	if (transform)
-		gl::state.modelView *= f->ltm;
+//	if (f->parent != root)
+//	if (transform && (f->geo < 0 ||
+//	    (f->geo >= 0 && !geoList[f->geo].isSkinned)))
+//		gl::state.modelView *= f->ltm;
+		gl::state.modelView *= f->modelMat;
 
 	gl::state.calculateNormalMat();
 	gl::state.updateMatrices();
@@ -528,20 +538,23 @@ void Drawable::drawFrame(int fi, bool recurse, bool transform)
 //	    !strstr(f->name.c_str(), "_dam")) {
 		if (f->geo != -1) {
 			drawGeometry(f->geo);
+//			glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
+//			gl::drawSphere(0.1f, 10, 10);
 		} else {
-			THREADCHECK();
-			glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
+//			THREADCHECK();
+//			glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
 //			gl::drawSphere(0.1f, 10, 10);
 		}
 //	}
 
+	if (recurse)
+		for (uint i = 0; i < f->children.size(); i++)
+//			drawFrame(f->children[i], true, transform);
+			drawFrame(f->children[i], true, true);
+
 	gl::state.modelView = mvSave;
 	gl::state.normalMat = nrmSave;
 	gl::state.updateMatrices();
-
-	if (recurse)
-		for (uint i = 0; i < f->children.size(); i++)
-			drawFrame(f->children[i]->index, true, transform);
 
 }
 
@@ -688,6 +701,16 @@ void Drawable::drawGeometry(int gi)
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
+quat Drawable::getPosition(void)
+{
+	if (root == 0)
+		return quat(0,0,0,0);
+	Frame *r = root;
+	if (animRoot)
+		r = animRoot;
+	return quat(r->pos[0], r->pos[1], r->pos[2]);
+}
+
 void Drawable::resetFrames(void)
 {
 	for (uint i = 0; i < frmList.size(); i++) {
@@ -717,7 +740,9 @@ Drawable::Drawable(void)
 {
 	clump = 0;
 	texDict = 0;
-	//anim = 0;
+	root = 0;
+	animRoot = 0;
+	overrideAnim = 0;
 }
 
 Drawable::~Drawable(void)

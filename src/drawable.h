@@ -49,8 +49,8 @@ struct Geometry {
 class Drawable
 {
 private:
-	rw::Clump *clump;
 	// geometry
+	rw::Clump *clump;
 	std::vector<Geometry> geoList;
 	// frames
 	Frame *root;
@@ -58,10 +58,9 @@ private:
 	// textures
 	TexDictionary *texDict;
 	std::vector<int> atomicList;
-
+	//animation
 	MixedAnimation manim;
 	Animation *overrideAnim;
-//	Animation *anim;
 	Frame *animRoot;
 	std::vector<uint> boneToFrame;
 	float curTime;
@@ -87,7 +86,7 @@ public:
 	void attachOverrideAnim(Animation *a);
 	void draw(void);
 	void drawAtomic(uint a);
-	void drawFrame(int fi, bool recurse, bool transform);
+	void drawFrame(Frame *f, bool recurse, bool transform);
 	void setVertexColors(void);
 	float getTime(void);
 	void setTime(float t);
@@ -96,6 +95,7 @@ public:
 	void resetFrames(void);
 	bool hasModel(void);
 	bool hasTextures(void);
+	quat getPosition(void);
 
 	void printFrames(int level, Frame *r);
 	void dumpClump(bool detailed);

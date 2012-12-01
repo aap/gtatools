@@ -16,7 +16,7 @@ int CollisionModel::read(ifstream &in)
 	buffer[4] = '\0';
 	in.read(buffer, 4);
 	if (in.eof() || buffer[0] == '\0')
-		return 0;
+		return 1;
 	string format = buffer;
 
 	int version;
@@ -25,12 +25,12 @@ int CollisionModel::read(ifstream &in)
 		version = 1;
 	} else if (format == "COL2") {
 		version = 2;
-	} else if (format == "COL3") {
+	} else if (format == "COL3" || format == "COL4") {
 		version = 3;
 	} else {
 		cout << "unknown col format\n";
 		cout << hex << in.tellg() << endl;
-		return 0;
+		return 1;
 	}
 
 	uint filestart = in.tellg();
@@ -269,5 +269,5 @@ int CollisionModel::read(ifstream &in)
 	}
 	in.seekg(fileend, ios::beg);
 //	cout << hex << in.tellg() << endl << endl;
-	return 1;
+	return 0;
 }

@@ -203,6 +203,16 @@ int cameraGetPosition(lua_State *L)
 	return 3;
 }
 
+int cameraLock(lua_State *L)
+{
+	int i = luaL_checkinteger(L, 1);
+	if (i)
+		cam.lock(&drawable);
+	else
+		cam.lock(0);
+	return 0;
+}
+
 void registerCamera(lua_State *L)
 {
 	lua_register(L, "__cameraPanLR", cameraPanLR);
@@ -221,6 +231,7 @@ void registerCamera(lua_State *L)
 	lua_register(L, "__cameraGetTarget", cameraGetTarget);
 	lua_register(L, "__cameraGetFov", cameraGetFov);
 	lua_register(L, "__cameraGetPosition", cameraGetPosition);
+	lua_register(L, "__cameraLock", cameraLock);
 }
 
 /*
