@@ -20,7 +20,6 @@ private:
 	std::vector<RenderListObject> transp1RenderList;
 	std::vector<RenderListObject> transp2RenderList;
 public:
-	void init(void);
 	void renderScene(void);
 	void addOpaqueObject(Instance *ip, int a);
 	void addTransp1Object(Instance *ip, int a);
@@ -29,6 +28,7 @@ public:
 	void renderOpaque(void);
 	void renderTransp1(void);
 	void renderTransp2(void);
+	Renderer(void);
 
 	bool doZones;
 	bool doTextures;
@@ -41,6 +41,6 @@ public:
 	float globalAlpha;
 };
 
-extern Renderer renderer;
+extern Renderer *renderer;
 
 #endif

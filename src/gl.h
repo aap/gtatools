@@ -14,7 +14,7 @@ namespace gl {
 	void handleJoystickInput(int joy);
 
 	void resize(int w, int h);
-	void initGl(void);
+	int initGl(void);
 	void *opengl(void *args);
 
 	extern int stencilShift;
@@ -27,7 +27,7 @@ namespace gl {
 	extern bool drawTransparent;
 	extern bool drawWire;
 
-	extern Pipeline simplePipe, lambertPipe, gtaPipe;
+	extern Pipeline *simplePipe, *lambertPipe, *gtaPipe;
 
 	/* XXX */
 	extern AnimPackage anpk;

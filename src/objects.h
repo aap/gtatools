@@ -41,7 +41,6 @@ public:
 	std::string modelName;
 	std::string textureName;
 
-//	bool isRequested;
 	bool BSvisible;
 	bool isAnimated;
 
@@ -62,6 +61,7 @@ public:
 	void incRefCount(void);
 	void decRefCount(void);
 	Model(void);
+	~Model(void);
 };
 
 // ped
@@ -151,13 +151,13 @@ public:
 	void dump(void);
 	void associateCols(void);
 
-	void init(int objs);
 	void readIde(std::ifstream &in);
 	void findAndReadCol(std::string fileName);
 	void readCol(std::ifstream &in, int island = -1);
+	ObjectList(int objs);
 	~ObjectList(void);
 };
 
-extern ObjectList objectList;
+extern ObjectList *objectList;
 
 #endif

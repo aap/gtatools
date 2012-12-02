@@ -4,12 +4,14 @@
 #endif
 
 #include <cstdlib>
+#include <signal.h>
 
 #include <iostream>
 #include <fstream>
 
 #include "gta.h"
 #include "gl.h"
+#include "renderer.h"
 #include "objects.h"
 #include "world.h"
 #include "directory.h"
@@ -27,93 +29,18 @@ using namespace std;
 string gamePath;
 char *progname;
 int game;
-bool running;
 uint oglThread;
+volatile bool running;
 volatile bool initDone;
+
+int initGame(void);
+void parseDat(ifstream &f);
 
 void *lua(void *args);
 void *filereader(void *args);
+pthread_t luathread;
 
-void parseDat(ifstream &f)
-{
-	string type;
-	string fileName;
-	string line;
-	vector<string> fields;
-	int island;
-	ifstream inFile;
-
-
-	bool colsInitialized = false;
-	while (!f.eof()) {
-		getline(f, line);
-		getFields(line, " \t", fields);
-
-		if (fields.size() < 1 || fields[0][0] == '#')
-			continue;
-
-		type = fields[0];
-
-		if (type == "COLFILE")
-			fileName = fields[2];
-		else
-			fileName = fields[1];
-		fileName = getPath(fileName);
-		if (type == "IDE") {
-			inFile.open(fileName.c_str());
-			if (inFile.fail()) {
-				cerr << "couldn't open ide " <<fileName<<endl;
-				exit(1);
-			}
-			objectList.readIde(inFile);
-			inFile.close();
-
-			size_t i = fileName.find_last_of(PSEP_C);
-			objectList.findAndReadCol(fileName.substr(i+1));
-		} else if (type == "IPL" || type == "MAPZONE") {
-			if (!colsInitialized) {
-				cout << "associating cols\n";
-				objectList.associateCols();
-				colsInitialized = true;
-				cout << "continue with main dat\n";
-			}
-
-			inFile.open(fileName.c_str());
-			if (inFile.fail()) {
-				cerr << "couldn't open ipl " <<fileName<<endl;
-				exit(1);
-			}
-			world.readIpl(inFile,
-			     fileName.substr(fileName.find_last_of(PSEP_S)+1));
-			inFile.close();
-		} else if (type == "TEXDICTION") {
-			directory.addFile(fileName);
-			texMan.addGlobal(fileName);
-		} else if (type == "MODELFILE") {
-			directory.addFile(fileName);
-		} else if (type == "IMG") {
-			inFile.open(fileName.c_str(), ios::binary);
-			if (inFile.fail()) {
-				cerr << "couldn't open img " << fileName<<endl;
-				exit(1);
-			}
-			directory.addFromFile(inFile, fileName);
-			inFile.close();
-		} else if (type == "COLFILE") {
-			island = atoi(fields[1].c_str());
-			inFile.open(fileName.c_str());
-			if (inFile.fail()) {
-				cerr << "couldn't open col " <<fileName<<endl;
-				exit(1);
-			}
-			objectList.readCol(inFile, island);
-			inFile.close();
-		} else if (type == "SPLASH") {
-		}
-	}
-}
-
-/* Load Gl-independent game files and start OpenGL */
+/* Load Gl-independent game files and start threads */
 int main(int argc, char *argv[])
 {
 	progname = argv[0];
@@ -123,32 +50,88 @@ int main(int argc, char *argv[])
 	}
 
 	gamePath = argv[1];
+
+	// start threads
+	void *args[] = { (void*) &argc, (void*) argv };
+
+	running = true;
+	initDone = false;
+
+	pthread_t thread1, thread3;
+
+	pthread_create(&thread1, NULL, gl::opengl, args);
+	pthread_create(&luathread, NULL, lua, NULL);
+	pthread_create(&thread3, NULL, filereader, NULL);
+
+	// this will never happen
+	pthread_join(thread1, NULL);
+	pthread_join(luathread, NULL);
+	pthread_join(thread3, NULL);
+
+//	cout << "back in main\n";
+	cout << endl;
+
+	return 0;
+}
+
+void exitprog(void)
+{
+	running = false;
+	initDone = true;
+	normalJobs.wakeUp();
+}
+
+void *filereader(void *args)
+{
+	while (running) {
+		while(normalJobs.processJob());
+		if (!running)
+			break;
+		normalJobs.waitForJobs();
+	}
+//	cout << "return from file reader thread\n";
+	return NULL;
+}
+
+void *lua(void *args)
+{
+	while (initDone == false);
+
+	LuaInterpreter();
+//	cout << "return from lua thread\n";
+	return NULL;
+}
+
+int initGame(void)
+{
+	world = new World;
+
 	string datFileName = getPath("data/gta.dat");
 	ifstream f(datFileName.c_str());
 	if (!f.fail()) {
 		game = GTASA;
-		world.initSectors(quat(-3000, -3000, 0),
+		world->initSectors(quat(-3000, -3000, 0),
 		                  quat(3000, 3000, 0), 12);
-		objectList.init(19000);
+		objectList = new ObjectList(19000);
 	} else {
 		datFileName = getPath("data/gta_vc.dat");
 		f.open(datFileName.c_str(), ios::binary);
 		if (!f.fail()) {
 			game = GTAVC;
-			world.initSectors(quat(-2448, -2048, 0),
+			world->initSectors(quat(-2448, -2048, 0),
 			                  quat(1648, 2048, 0), 10);
-			objectList.init(5000);
+			objectList = new ObjectList(5000);
 		} else {
 			datFileName = getPath("data/gta3.dat");
 			f.open(datFileName.c_str(), ios::binary);
 			if (!f.fail()) {
 				game = GTA3;
-				world.initSectors(quat(-2048, -2048, 0),
+				world->initSectors(quat(-2048, -2048, 0),
 						  quat(2048, 2048, 0), 10);
-				objectList.init(5000);
+				objectList = new ObjectList(5000);
 			} else {
 				cerr << "couldn't open dat file\n";
-				return 0;
+				return 1;
 			}
 		}
 	}
@@ -236,61 +219,19 @@ int main(int argc, char *argv[])
 	datFile.close();
 
 
-	// start threads
-	void *args[] = { (void*) &argc, (void*) argv };
+	renderer = new Renderer;
+	cam = new Camera;
 
-	running = true;
-	initDone = false;
-
-	pthread_t thread1, thread2, thread3;
-
-	pthread_create(&thread1, NULL, gl::opengl, args);
-	pthread_create(&thread2, NULL, lua, NULL);
-	pthread_create(&thread3, NULL, filereader, NULL);
-
-	// this will never happen
-	pthread_join(thread1, NULL);
-	pthread_join(thread2, NULL);
-	pthread_join(thread3, NULL);
-
-	cout << "in main again\n";
-
-	return 0;
-}
-
-void *filereader(void *args)
-{
-	while (running) {
-	//	normalJobs.processJob();
-		while(normalJobs.processJob());
-		normalJobs.waitForJobs();
-	}
-	cout << "return from file reader thread\n";
-	return NULL;
-}
-
-void *lua(void *args)
-{
-	while (initDone == false);
-
-	LuaInterpreter();
-	cout << "return from lua thread\n";
-	return NULL;
-}
-
-/* Load files that depend on a valid GL context */
-void initGame(void)
-{
-	cam.setPitch(PI/8.0f-PI/2.0f);
-	cam.setDistance(20.0f);
-	cam.setAspectRatio(GLfloat(gl::width) / GLfloat(gl::height));
-	cam.setTarget(quat(335.5654907, -159.0345306, 17.85120964));
+	cam->setPitch(PI/8.0f-PI/2.0f);
+	cam->setDistance(20.0f);
+	cam->setAspectRatio(GLfloat(gl::width) / GLfloat(gl::height));
+	cam->setTarget(quat(335.5654907, -159.0345306, 17.85120964));
 
 	cout << "associating lods\n";
-	world.associateLods();
+	world->associateLods();
 
 	cout << "populating islands\n";
-	world.populateIslands();
+	world->populateIslands();
 
 	// load water
 	cout << "loading water\n";
@@ -317,12 +258,93 @@ void initGame(void)
 	// load timecycle
 	cout << "loading timecycle\n";
 	string fileName = getPath("data/timecyc.dat");
-	ifstream f(fileName.c_str());
+	f.open(fileName.c_str());
 	if (f.fail()) {
 		cerr << "couldn't open timecyc.dat\n";
 	} else {
 		timeCycle.load(f);
 		f.close();
+	}
+
+	return 0;
+}
+
+void parseDat(ifstream &f)
+{
+	string type;
+	string fileName;
+	string line;
+	vector<string> fields;
+	int island;
+	ifstream inFile;
+
+
+	bool colsInitialized = false;
+	while (!f.eof()) {
+		getline(f, line);
+		getFields(line, " \t", fields);
+
+		if (fields.size() < 1 || fields[0][0] == '#')
+			continue;
+
+		type = fields[0];
+
+		if (type == "COLFILE")
+			fileName = fields[2];
+		else
+			fileName = fields[1];
+		fileName = getPath(fileName);
+		if (type == "IDE") {
+			inFile.open(fileName.c_str());
+			if (inFile.fail()) {
+				cerr << "couldn't open ide " <<fileName<<endl;
+				exit(1);
+			}
+			objectList->readIde(inFile);
+			inFile.close();
+
+			size_t i = fileName.find_last_of(PSEP_C);
+			objectList->findAndReadCol(fileName.substr(i+1));
+		} else if (type == "IPL" || type == "MAPZONE") {
+			if (!colsInitialized) {
+				cout << "associating cols\n";
+				objectList->associateCols();
+				colsInitialized = true;
+				cout << "continue with main dat\n";
+			}
+
+			inFile.open(fileName.c_str());
+			if (inFile.fail()) {
+				cerr << "couldn't open ipl " <<fileName<<endl;
+				exit(1);
+			}
+			world->readIpl(inFile,
+			     fileName.substr(fileName.find_last_of(PSEP_S)+1));
+			inFile.close();
+		} else if (type == "TEXDICTION") {
+			directory.addFile(fileName);
+			texMan.addGlobal(fileName);
+		} else if (type == "MODELFILE") {
+			directory.addFile(fileName);
+		} else if (type == "IMG") {
+			inFile.open(fileName.c_str(), ios::binary);
+			if (inFile.fail()) {
+				cerr << "couldn't open img " << fileName<<endl;
+				exit(1);
+			}
+			directory.addFromFile(inFile, fileName);
+			inFile.close();
+		} else if (type == "COLFILE") {
+			island = atoi(fields[1].c_str());
+			inFile.open(fileName.c_str());
+			if (inFile.fail()) {
+				cerr << "couldn't open col " <<fileName<<endl;
+				exit(1);
+			}
+			objectList->readCol(inFile, island);
+			inFile.close();
+		} else if (type == "SPLASH") {
+		}
 	}
 }
 

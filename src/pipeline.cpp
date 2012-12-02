@@ -213,4 +213,16 @@ void Pipeline::printLog(GLuint object)
 	delete[] log;
 }
 
+Pipeline::Pipeline(const char *vertsrc, const char *fragsrc)
+{
+	load(vertsrc, fragsrc);
+}
+
+Pipeline::~Pipeline(void)
+{
+	glDeleteProgram(program);
+	glDeleteProgram(vertshader);
+	glDeleteProgram(fragshader);
+}
+
 }

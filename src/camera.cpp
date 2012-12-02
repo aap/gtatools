@@ -6,7 +6,7 @@
 #include "drawable.h"
 #include "camera.h"
 
-Camera cam;
+Camera *cam;
 
 void Camera::look()
 {

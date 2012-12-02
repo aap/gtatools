@@ -52,6 +52,6 @@ public:
 	Camera(void);
 };
 
-extern Camera cam;
+extern Camera *cam;
 
 #endif

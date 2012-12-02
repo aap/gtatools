@@ -23,7 +23,7 @@
 
 using namespace std;
 
-ObjectList objectList;
+ObjectList *objectList;
 
 /*
  * ObjectList
@@ -211,7 +211,7 @@ int ObjectList::getObjectCount(void)
 	return objectCount;
 }
 
-void ObjectList::init(int objs)
+ObjectList::ObjectList(int objs)
 {
 	objects = new Model*[objs];
 	for (int i = 0; i < objs; i++)
@@ -221,9 +221,12 @@ void ObjectList::init(int objs)
 
 ObjectList::~ObjectList(void)
 {
+//	cout << "deleting objlist\n";
 	for (int i = 0; i < objectCount; i++)
 		delete objects[i];
 	delete[] objects;
+	objectCount = 0;
+	objects = 0;
 }
 
 /*
@@ -549,16 +552,22 @@ void Model::decRefCount(void)
 bool Model::canDraw(void)
 {
 	return drawable != 0 && drawable->hasModel() &&
-	       (drawable->hasTextures() || !renderer.doTextures);
+	       (drawable->hasTextures() || !renderer->doTextures);
 }
 
 Model::Model(void)
 {
-//	isRequested = false;
 	BSvisible = false;
 	isAnimated = false;
 	isFreshlyLoaded = false;
 	refCount = 0;
 	drawable = 0;
 	col = 0;
+}
+
+Model::~Model(void)
+{
+	delete drawable;
+	// TODO: add ref count for cols
+//	delete col;
 }

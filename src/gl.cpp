@@ -30,10 +30,9 @@ using namespace std;
 
 namespace gl {
 
-static string statusLine;
 static GLuint axes_vbo;
 
-Pipeline simplePipe, lambertPipe, gtaPipe;
+Pipeline *simplePipe, *lambertPipe, *gtaPipe;
 
 int stencilShift;
 int width;
@@ -53,16 +52,16 @@ void resize(int w, int h)
 	height = h;
 	if (height == 0)
 		height = 1;
-	cam.setAspectRatio(GLfloat(width)/GLfloat(height));
+	cam->setAspectRatio(GLfloat(width)/GLfloat(height));
 	glViewport(0, 0, width, height);
 }
 
 
-void initGl(void)
+int initGl(void)
 {
 	if (glewInit() != GLEW_OK) {
 		cerr << "couldn't init glew\n";
-		exit(1);
+		return 1;
 	}
 
 	glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
@@ -74,8 +73,6 @@ void initGl(void)
 	glEnable(GL_STENCIL_TEST);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
-	renderer.init();
-
 	int white = 0xFFFFFFFF;
 	glGenTextures(1, &whiteTex);
 	glBindTexture(GL_TEXTURE_2D, whiteTex);
@@ -86,9 +83,9 @@ void initGl(void)
 		     1, 1, 0, GL_RGBA,
 		     GL_UNSIGNED_BYTE, &white);
 
-	simplePipe.load("shader/simple.vert", "shader/simple.frag");
-	lambertPipe.load("shader/lambert.vert", "shader/simple.frag");
-	gtaPipe.load("shader/gtaPipe.vert", "shader/gtaPipe.frag");
+	simplePipe = new Pipeline("shader/simple.vert", "shader/simple.frag");
+//	lambertPipe = new Pipeline("shader/lambert.vert", "shader/simple.frag");
+	gtaPipe = new Pipeline("shader/gtaPipe.vert", "shader/gtaPipe.frag");
 
 	GLfloat axes[] = {
 		0.0f, 0.0f, 0.0f,
@@ -109,6 +106,21 @@ void initGl(void)
 	glBindBuffer(GL_ARRAY_BUFFER, axes_vbo);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(axes), axes, GL_STATIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	return 0;
+}
+
+void cleanUp(void)
+{
+	delete objectList;
+	delete world;
+	delete renderer;
+	delete cam;
+
+	delete simplePipe;
+	delete gtaPipe;
+
+	drawable.unload();
 }
 
 void *opengl(void *args)
@@ -117,12 +129,14 @@ void *opengl(void *args)
 	int *argc = (int *) (a[0]);
 	char **argv= (char **) (a[1]);
 
+	oglThread = pthread_self();
+
 	width = 644;
 	height = 340;
 
 	if (!glfwInit()) {
 		cerr << "Error: could not initialize GLFW\n";
-		running = false;
+		exitprog();
 		return NULL;
 	}
 	if (!glfwOpenWindow(width, height,
@@ -131,7 +145,17 @@ void *opengl(void *args)
 	                    GLFW_WINDOW)) {
 		cerr << "Error: could not create GLFW window\n";
 		glfwTerminate();
-		running = false;
+		exitprog();
+		return NULL;
+	}
+
+	if (initGl()) {
+		exitprog();
+		return NULL;
+	}
+
+	if (initGame()) {
+		exitprog();
 		return NULL;
 	}
 
@@ -141,21 +165,15 @@ void *opengl(void *args)
 	glfwSetWindowSizeCallback(resize);
 //	glfwEnable(GLFW_KEY_REPEAT);
 
-	oglThread = pthread_self();
-
-	initGl();
-
-	initGame();
-
 	// Load the test object
 	if (*argc >= 4) {
 		string dff = argv[2];
 		string txd = argv[3];
 		if (txd == "search") {
 			cout << "searching " << dff << endl;
-			for (int i = 0; i < objectList.getObjectCount(); i++) {
+			for (int i = 0; i < objectList->getObjectCount(); i++) {
 				Model *mdl;
-				if (!(mdl = objectList.get(i)))
+				if (!(mdl = objectList->get(i)))
 					continue;
 				if (mdl->type != OBJS && mdl->type != TOBJ &&
 				    mdl->type != ANIM && mdl->type != PEDS &&
@@ -198,13 +216,15 @@ void *opengl(void *args)
 		handleKeyboardInput();
 		handleJoystickInput(GLFW_JOYSTICK_1);
 
-		renderer.renderScene();
+		renderer->renderScene();
 
 		glfwSwapBuffers();
 	}
 
+	cleanUp();
+
 	glfwTerminate();
-	cout << "return from opengl thread\n";
+//	cout << "return from opengl thread\n";
 	return NULL;
 }
 

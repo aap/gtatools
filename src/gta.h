@@ -16,8 +16,10 @@
 #include "math.h"
 
 #define THREADCHECK()\
-	if (oglThread != pthread_self()) \
-		cout << "warning: using gl commands not in gl thread\n";
+	if (oglThread != pthread_self()) {\
+		cout << "warning: using gl commands not in gl thread\t ";\
+		cout << __PRETTY_FUNCTION__ << endl;\
+	}
 
 enum {
 	GTA3 = 1,
@@ -31,11 +33,12 @@ typedef unsigned int uint;
 extern char *progname;
 extern std::string gamePath;
 extern int game;
-extern bool running;
+extern volatile bool running;
 extern volatile bool initDone;
 extern uint oglThread;
 
-void initGame(void);
+void exitprog(void);
+int initGame(void);
 
 bool isPointInBox(quat p, quat corner1, quat corner2);
 bool isSphereInBox(quat p, quat corner1, quat corner2);

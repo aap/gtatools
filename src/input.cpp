@@ -44,16 +44,16 @@ void handleKeyboardInput(void)
 
 	if (glfwGetKey('W')) {
 		if (isShiftDown)
-			cam.moveInOut(dist);
+			cam->moveInOut(dist);
 		else
-			cam.setDistance(cam.getDistance()-dist);
+			cam->setDistance(cam->getDistance()-dist);
 	}
 
 	if (glfwGetKey('S')) {
 		if (isShiftDown)
-			cam.moveInOut(-dist);
+			cam->moveInOut(-dist);
 		else
-			cam.setDistance(cam.getDistance()+dist);
+			cam->setDistance(cam->getDistance()+dist);
 	}
 
 }
@@ -66,13 +66,12 @@ void keypress(int key, int state)
 	switch (key) {
 	case 'Q':
 	case GLFW_KEY_ESC:
-		running = false;
-		normalJobs.wakeUp();
+		exitprog();
 		break;
 	case 'B':
 		WorldObject *op;
-		op = static_cast<WorldObject*>(objectList.get(
-			world.getInstance(lastSelected)->id));
+		op = static_cast<WorldObject*>(objectList->get(
+			world->getInstance(lastSelected)->id));
 		if (isShiftDown)
 			op->BSvisible = false;
 		else
@@ -82,8 +81,8 @@ void keypress(int key, int state)
 		if (isShiftDown) {
 			if (lastSelected == 0)
 				break;
-			uint id = world.getInstance(lastSelected)->id;
-			Model *mp = objectList.get(id);
+			uint id = world->getInstance(lastSelected)->id;
+			Model *mp = objectList->get(id);
 			mp->drawable->printFrames(0,0);
 		} else
 			drawable.printFrames(0, 0);
@@ -125,22 +124,22 @@ void mouseButton(int button, int state)
 				} stencil;
 				// fewer passes would probably be enough
 				stencilShift = 0;
-				renderer.renderScene();
+				renderer->renderScene();
 				glReadPixels(x, height - y - 1, 1, 1,
 				             GL_STENCIL_INDEX,
 				             GL_UNSIGNED_INT, stencil.bytes);
 				stencilShift = 8;
-				renderer.renderScene();
+				renderer->renderScene();
 				glReadPixels(x, height - y - 1, 1, 1,
 				             GL_STENCIL_INDEX,
 				             GL_UNSIGNED_INT, stencil.bytes+1);
 				stencilShift = 16;
-				renderer.renderScene();
+				renderer->renderScene();
 				glReadPixels(x, height - y - 1, 1, 1,
 				             GL_STENCIL_INDEX,
 				             GL_UNSIGNED_INT, stencil.bytes+2);
 				stencilShift = 24;
-				renderer.renderScene();
+				renderer->renderScene();
 				glReadPixels(x, height - y - 1, 1, 1,
 				             GL_STENCIL_INDEX,
 				             GL_UNSIGNED_INT, stencil.bytes+3);
@@ -167,20 +166,20 @@ void mouseMotion(int x, int y)
 	dy = float(oy - my) / float(height);
 	if (!isShiftDown) {
 		if (isLDown) {
-			cam.setYaw(cam.getYaw()+dx*2.0f);
-			cam.setPitch(cam.getPitch()-dy*2.0f);
+			cam->setYaw(cam->getYaw()+dx*2.0f);
+			cam->setPitch(cam->getPitch()-dy*2.0f);
 		}
 		if (isMDown) {
-			cam.panLR(-dx*8.0f);
-			cam.panUD(-dy*8.0f);
+			cam->panLR(-dx*8.0f);
+			cam->panUD(-dy*8.0f);
 		}
 		if (isRDown) {
-			cam.setDistance(cam.getDistance()+dx*12.0f);
+			cam->setDistance(cam->getDistance()+dx*12.0f);
 		}
 	} else if (isShiftDown) {
 		if (isLDown) {
-			cam.turnLR(dx*2.0f);
-			cam.turnUD(-dy*2.0f);
+			cam->turnLR(dx*2.0f);
+			cam->turnUD(-dy*2.0f);
 		}
 		if (isMDown) {
 		}
@@ -207,9 +206,9 @@ void handleJoystickInput(int joy)
 		accel = 2.0f;
 	if (buttons[4])
 		accel = 0.5f;
-	cam.moveInOut(-axes[2]*accel);
-	cam.turnLR(-axes[0]/10.0f);
-	cam.turnUD(axes[1]/10.0f);
+	cam->moveInOut(-axes[2]*accel);
+	cam->turnLR(-axes[0]/10.0f);
+	cam->turnUD(axes[1]/10.0f);
 }
 
 

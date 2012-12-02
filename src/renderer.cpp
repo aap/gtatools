@@ -22,7 +22,7 @@ using namespace std;
 
 #include <ctime>
 
-Renderer renderer;
+Renderer *renderer;
 
 Drawable drawable;
 
@@ -32,7 +32,7 @@ clock_t oldtime;
 
 static void *buildListThread(void *args)
 {
-	world.buildRenderList();
+	world->buildRenderList();
 	oldtime = clock();
 	threadFinished = true;
 	return 0;
@@ -45,7 +45,7 @@ void Renderer::renderOpaque(void)
 	for (uint i = 0; i < opaqueRenderList.size(); i++) {
 		Instance *ip = opaqueRenderList[i].inst;
 		WorldObject *op =
-			static_cast<WorldObject*>(objectList.get(ip->id));
+			static_cast<WorldObject*>(objectList->get(ip->id));
 		int ai = opaqueRenderList[i].atomic;
 
 		glm::mat4 mvSave = gl::state.modelView;
@@ -105,7 +105,7 @@ void Renderer::renderTransp1(void)
 	for (uint i = 0; i < transp1RenderList.size(); i++) {
 		Instance *ip = transp1RenderList[i].inst;
 		WorldObject *op =
-			static_cast<WorldObject*>(objectList.get(ip->id));
+			static_cast<WorldObject*>(objectList->get(ip->id));
 		int ai = transp1RenderList[i].atomic;
 
 		glm::mat4 mvSave = gl::state.modelView;
@@ -135,7 +135,7 @@ void Renderer::renderTransp2(void)
 	for (uint i = 0; i < transp2RenderList.size(); i++) {
 		Instance *ip = transp2RenderList[i].inst;
 		WorldObject *op =
-			static_cast<WorldObject*>(objectList.get(ip->id));
+			static_cast<WorldObject*>(objectList->get(ip->id));
 		int ai = transp2RenderList[i].atomic;
 
 		glm::mat4 mvSave = gl::state.modelView;
@@ -158,8 +158,8 @@ void Renderer::renderTransp2(void)
 	}
 
 	if (doZones)
-//		world.drawZones();
-		world.drawSectors();
+//		world->drawZones();
+		world->drawSectors();
 }
 
 void Renderer::addOpaqueObject(Instance *ip, int a)
@@ -169,7 +169,7 @@ void Renderer::addOpaqueObject(Instance *ip, int a)
 	ip->wasAdded = true;
 	o.inst = ip;
 	o.atomic = a;
-	WorldObject *op = static_cast<WorldObject*>(objectList.get(ip->id));
+	WorldObject *op = static_cast<WorldObject*>(objectList->get(ip->id));
 
 	if (op->drawable == 0)
 		cout << "no drawable adding " << op->modelName << endl;
@@ -208,8 +208,8 @@ void Renderer::renderScene(void)
 
 	// 3d scene
 	timeCycle.calcCurrent(timeCycle.getHour(), timeCycle.getMinute());
-	cam.setNearFar(0.1f, w->farClp);
-	cam.look();	// this sets the projection and modelView matrices
+	cam->setNearFar(0.1f, w->farClp);
+	cam->look();	// this sets the projection and modelView matrices
 
 	gl::state.calculateNormalMat();
 
@@ -224,7 +224,7 @@ void Renderer::renderScene(void)
 	else
 		amb = glm::vec3(w->amb.x, w->amb.y, w->amb.z);
 
-	gl::simplePipe.use();
+	gl::simplePipe->use();
 
 	gl::state.ambientLight = amb;
 	gl::state.texture = 0;
@@ -238,7 +238,7 @@ void Renderer::renderScene(void)
 	glEnable(GL_DEPTH_TEST);
 
 
-	gl::gtaPipe.use();
+	gl::gtaPipe->use();
 
 	gl::state.fogColor.x = w->skyBot.x;
 	gl::state.fogColor.y = w->skyBot.y;
@@ -254,7 +254,7 @@ void Renderer::renderScene(void)
 
 	// the test object
 	if (drawable.hasModel() &&
-	    (drawable.hasTextures() || !renderer.doTextures)) {
+	    (drawable.hasTextures() || !doTextures)) {
 		gl::drawTransparent = false;
 		drawable.draw();
 		gl::drawTransparent = true;
@@ -267,7 +267,7 @@ void Renderer::renderScene(void)
 	transp1RenderList.clear();
 	transp2RenderList.clear();
 
-//	world.cleanUp();
+//	world->cleanUp();
 
 	// Start thread to build render list
 	pthread_t thr;
@@ -312,7 +312,7 @@ void Renderer::renderScene(void)
 	glDisable(GL_CULL_FACE);
 }
 
-void Renderer::init(void)
+Renderer::Renderer(void)
 {
 	doZones = false;
 	doTextures = true;

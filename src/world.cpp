@@ -23,7 +23,7 @@
 
 using namespace std;
 
-World world;
+World *world;
 
 /*
  * WorldSector
@@ -97,7 +97,7 @@ void WorldSector::draw(void)
 void World::buildRenderList(void)
 {
 /*
-	quat camPos = cam.getPosition();
+	quat camPos = cam->getPosition();
 
 	for (uint i = 0; i < islands.size(); i++) {
 		if (islands[i].pointInIsland(camPos)) {
@@ -116,7 +116,7 @@ void World::buildRenderList(void)
 
 	sectors[0].addToRenderList();
 	for (uint i = 1; i < sectors.size(); i++)
-		if (cam.isBoxInFrustum(sectors[i].getMinCorner(),
+		if (cam->isBoxInFrustum(sectors[i].getMinCorner(),
 		                       sectors[i].getMaxCorner()))
 			sectors[i].addToRenderList();
 }
@@ -182,7 +182,7 @@ void World::addInstanceToSectors(Instance *ip)
 		return;
 
 	bool added = false;
-	CollisionModel *col = objectList.get(ip->id)->col;
+	CollisionModel *col = objectList->get(ip->id)->col;
 	if (col == 0) {
 //		cout << ip->name << " has no col\n";
 		sectors[0].addInstance(ip);
@@ -334,7 +334,7 @@ void World::associateLods(void)
 	dummyObj = new WorldObject;
 	dummyObj->col = 0;
 	dummyObj->type = OBJS;
-	dummyObj->id = objectList.getObjectCount()-1;
+	dummyObj->id = objectList->getObjectCount()-1;
 	dummyObj->modelName = "LODDUMMY";
 	dummyObj->textureName = "LODDUMMY";
 	dummyObj->objectCount = 1;
@@ -344,7 +344,7 @@ void World::associateLods(void)
 	else
 		dummyObj->drawDistances.push_back(0);
 	dummyObj->flags = 0;
-	objectList.add(dummyObj);
+	objectList->add(dummyObj);
 
 	for (uint i = 0; i < instances.size(); i++) {
 		Instance *lod = instances[i];
@@ -620,7 +620,7 @@ void Instance::initFromBinEntry(char *data)
 	interior = ints[1];
 	lod = ints[2];
 
-	name = static_cast<WorldObject*>(objectList.get(id))->modelName;
+	name = static_cast<WorldObject*>(objectList->get(id))->modelName;
 
 	if (name.substr(0,3) == "lod")
 		isLod = true;
@@ -642,9 +642,9 @@ void Instance::addToRenderList(void)
 	if (wasAdded)
 		return;
 
-	WorldObject *op = static_cast<WorldObject*>(objectList.get(id));
+	WorldObject *op = static_cast<WorldObject*>(objectList->get(id));
 
-	float dist = cam.distanceTo(position)/renderer.lodMult;
+	float dist = cam->distanceTo(position)/renderer->lodMult;
 	int ai = op->getCorrectAtomic(dist);
 
 	// frustum cull
@@ -666,8 +666,8 @@ void Instance::addToRenderList(void)
 
 	// check for interior (if intr < 0 everything is drawn)
 	int intr;
-	intr = world.getInterior();
-	if (interior != intr && intr >= 0 && !renderer.doCol) {
+	intr = world->getInterior();
+	if (interior != intr && intr >= 0 && !renderer->doCol) {
 		if (game == GTAVC) {
 			if (interior != 13)
 				goto release;
@@ -684,7 +684,7 @@ void Instance::addToRenderList(void)
 
 	// check for time
 	if (op->isTimed && !op->isVisibleAtTime(timeCycle.getHour()) &&
-	    !renderer.doCol)
+	    !renderer->doCol)
 		goto release;
 
 	// request model
@@ -723,9 +723,9 @@ void Instance::addToRenderList(void)
 		cout << name << " this can't be\n";
 
 	if (op->type == ANIM)
-		renderer.addOpaqueObject(this, -1);
+		renderer->addOpaqueObject(this, -1);
 	else
-		renderer.addOpaqueObject(this, ai);
+		renderer->addOpaqueObject(this, ai);
 	return;
 
 release:
@@ -738,14 +738,14 @@ release:
 
 void Instance::addLodToRenderList(void)
 {
-	Instance *ip = world.getInstance(lod);
+	Instance *ip = world->getInstance(lod);
 	if (ip != 0)
 		ip->addToRenderList();
 }
 
 bool Instance::isCulled(void)
 {
-	WorldObject *op = static_cast<WorldObject*>(objectList.get(id));
+	WorldObject *op = static_cast<WorldObject*>(objectList->get(id));
 	if (!op->col)
 		return false;
 	quat bs = op->col->boundingSphere;
@@ -753,16 +753,16 @@ bool Instance::isCulled(void)
 	bs = rotation.getConjugate() * bs * rotation;
 	bs += position;
 	bs.w = op->col->boundingSphere.w;
-	if (cam.isSphereInFrustum(bs))
+	if (cam->isSphereInFrustum(bs))
 		return false;
 	return true;
 }
 
 void Instance::releaseIfInactive(void)
 {
-	WorldObject *op = static_cast<WorldObject*>(objectList.get(id));
+	WorldObject *op = static_cast<WorldObject*>(objectList->get(id));
 
-	float dist = cam.distanceTo(position)/renderer.lodMult;
+	float dist = cam->distanceTo(position)/renderer->lodMult;
 	int ai = op->getCorrectAtomic(dist);
 
 	if (ai < 0 && isActive) {
@@ -816,7 +816,7 @@ void Instance::printInfo(void)
 	     << rotation.y << ", "
 	     << rotation.z << ", "
 	     << rotation.w << endl;
-	WorldObject *op = static_cast<WorldObject*>(objectList.get(id));
+	WorldObject *op = static_cast<WorldObject*>(objectList->get(id));
 	op->printInfo();
 }
 

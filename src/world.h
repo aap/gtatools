@@ -163,6 +163,6 @@ public:
 	World(void);
 };
 
-extern World world;
+extern World *world;
 
 #endif

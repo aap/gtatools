@@ -294,7 +294,7 @@ void Drawable::request(string model, string texdict)
 	strcpy(str, model.c_str());
 	normalJobs.addJob(JobQueue::readDff, this, str);
 	texDict = 0;
-	if (renderer.doTextures)
+	if (renderer->doTextures)
 		texDict = texMan.get(texdict);
 }
 
@@ -318,7 +318,7 @@ int Drawable::loadSynch(string model, string texdict)
 	attachClump(clp);
 
 	texDict = 0;
-	if (renderer.doTextures)
+	if (renderer->doTextures)
 		texDict = texMan.get(texdict, true);
 
 	return 0;
@@ -326,16 +326,24 @@ int Drawable::loadSynch(string model, string texdict)
 
 void Drawable::unload(void)
 {
-	THREADCHECK();
 	if (clump)
 		clump->clear();
 	delete clump;
+	clump = 0;
+	bool gl = false;
 	for (uint i = 0; i < geoList.size(); i++) {
-		if (geoList[i].vbo != 0)
+		if (geoList[i].vbo != 0) {
 			glDeleteBuffers(1, &geoList[i].vbo);
-		if (geoList[i].ibo != 0)
+			gl = true;
+		}
+		if (geoList[i].ibo != 0) {
 			glDeleteBuffers(1, &geoList[i].ibo);
+			gl = true;
+		}
 	}
+	// just for debugging
+	if (gl)
+		THREADCHECK();
 	geoList.clear();
 
 	for (uint i = 0; i < frmList.size(); i++)
@@ -348,9 +356,9 @@ void Drawable::unload(void)
 	texDict = 0;
 
 	// TODO: handle virtual animations
-	//anim = 0;
 	boneToFrame.clear();
 	animRoot = root = 0;
+	overrideAnim = 0;
 	curTime = 0.0f;
 	currentColorStep = 0;
 }
@@ -587,7 +595,7 @@ void Drawable::drawGeometry(int gi)
 			      (GLvoid*) offset);
 	offset += numVertices*3*sizeof(GLfloat);
 	if (g.flags & rw::FLAGS_PRELIT) {
-		if (renderer.doVertexColors) {
+		if (renderer->doVertexColors) {
 			glEnableVertexAttribArray(in_Color);
 			glVertexAttribPointer(in_Color, 4, GL_UNSIGNED_BYTE,
 					      GL_TRUE, 0, (GLvoid*) offset);
@@ -622,7 +630,7 @@ void Drawable::drawGeometry(int gi)
 		glActiveTexture(GL_TEXTURE0);
 		int matid = s.matIndex;
 		string texname = "";
-		if (renderer.doTextures && texDict != 0 &&
+		if (renderer->doTextures && texDict != 0 &&
 		    g.materialList[matid].hasTex) {
 			texname = g.materialList[matid].texture.name;
 			Texture *t = texDict->get(texname);
@@ -644,7 +652,7 @@ void Drawable::drawGeometry(int gi)
 		matCol.y = float(g.materialList[matid].color[1]) / 255.0f;
 		matCol.z = float(g.materialList[matid].color[2]) / 255.0f;
 		matCol.w = float(g.materialList[matid].color[3]) / 255.0f;
-		matCol.w *= renderer.globalAlpha;
+		matCol.w *= renderer->globalAlpha;
 		state.matColor = matCol;
 		state.updateMaterial();
 

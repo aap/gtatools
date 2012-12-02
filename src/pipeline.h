@@ -12,6 +12,8 @@ public:
 	void getVar(const char *name, GLint *var, GLint type);
 	void load(const char *vertsrc, const char *fragsrc);
 	void printLog(GLuint object);
+	Pipeline(const char *vertsrc, const char *fragsrc);
+	~Pipeline(void);
 
 	GLint program;
 	GLint vertshader;

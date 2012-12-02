@@ -32,7 +32,7 @@ void Water::draw(void)
 
 	glVertexAttrib4f(gl::in_Color, 1.0f, 1.0f, 1.0f, 1.0f);
 	glVertexAttrib3f(gl::in_Normal, 0.0f, 0.0f, 0.0f);
-	if (renderer.doTextures)
+	if (renderer->doTextures)
 		glBindTexture(GL_TEXTURE_2D, tex);
 	else
 		glBindTexture(GL_TEXTURE_2D, gl::whiteTex);

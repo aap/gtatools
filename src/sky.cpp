@@ -60,11 +60,11 @@ void Sky::draw(void)
 	glm::mat4 mvSave = gl::state.modelView;
 	glm::mat3 nrmSave = gl::state.normalMat;
 
-	quat campos = cam.getPosition();
+	quat campos = cam->getPosition();
 	gl::state.modelView = glm::translate(gl::state.modelView,
 			glm::vec3(campos.x, campos.y, campos.z));
 	gl::state.modelView = glm::rotate(gl::state.modelView,
-	                                  cam.getYaw()/3.1415f*180.0f,
+	                                  cam->getYaw()/3.1415f*180.0f,
 	                                  glm::vec3(0.0f, 0.0f, 1.0f));
 	gl::state.updateMatrices();
 
