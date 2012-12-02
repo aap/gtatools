@@ -49,6 +49,7 @@ public:
 	bool isBoxInFrustum(quat min, quat max);
 	bool isBoxInFrustumSphere(quat min, quat max);
 	float distanceTo(quat q);
+	float sqDistanceTo(quat q);
 	Camera(void);
 };
 

@@ -232,6 +232,16 @@ void Camera::updateCam()
 */
 }
 
+float Camera::sqDistanceTo(quat q)
+{
+	quat cam(-sin(theta)*sin(phi), sin(theta)*cos(phi), cos(theta));
+	cam *= dist;
+	cam += target;
+
+	cam -= q;
+	return cam.normsq();
+}
+
 float Camera::distanceTo(quat q)
 {
 	quat cam(-sin(theta)*sin(phi), sin(theta)*cos(phi), cos(theta));

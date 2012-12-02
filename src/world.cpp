@@ -340,7 +340,7 @@ void World::associateLods(void)
 	dummyObj->objectCount = 1;
 	if (game == GTA3)
 		// not sure about that one
-		dummyObj->drawDistances.push_back(100);
+		dummyObj->drawDistances.push_back(100*100);
 	else
 		dummyObj->drawDistances.push_back(0);
 	dummyObj->flags = 0;
@@ -644,8 +644,10 @@ void Instance::addToRenderList(void)
 
 	WorldObject *op = static_cast<WorldObject*>(objectList->get(id));
 
-	float dist = cam->distanceTo(position)/renderer->lodMult;
-	int ai = op->getCorrectAtomic(dist);
+//	float dist = cam->distanceTo(position)/renderer->lodMult;
+	float distsq = cam->sqDistanceTo(position)/renderer->lodMult;
+//	int ai = op->getCorrectAtomic(dist);
+	int ai = op->getCorrectAtomic(distsq);
 
 	// frustum cull
 	if (op->canDraw())
@@ -700,7 +702,7 @@ void Instance::addToRenderList(void)
 
 	float drawDist, distDiff;
 	drawDist = op->getDrawDistance(ai);
-	distDiff = drawDist - dist;
+	distDiff = drawDist - distsq;
 
 	if (distDiff < fadeThrshd)
 		setFading(distDiff/fadeThrshd);
@@ -748,12 +750,15 @@ bool Instance::isCulled(void)
 	WorldObject *op = static_cast<WorldObject*>(objectList->get(id));
 	if (!op->col)
 		return false;
-	quat bs = op->col->boundingSphere;
-	bs.w = 0;
-	bs = rotation.getConjugate() * bs * rotation;
-	bs += position;
-	bs.w = op->col->boundingSphere.w;
-	if (cam->isSphereInFrustum(bs))
+	if (boundingSphere.w < 0) {
+		boundingSphere = op->col->boundingSphere;
+		boundingSphere.w = 0;
+		boundingSphere = rotation.getConjugate() * boundingSphere
+		                                         * rotation;
+		boundingSphere += position;
+		boundingSphere.w = op->col->boundingSphere.w;
+	}
+	if (cam->isSphereInFrustum(boundingSphere))
 		return false;
 	return true;
 }
@@ -830,4 +835,5 @@ Instance::Instance(void)
 	isActive = false;
 	isIslandLod = isLod = false;
 	fadingFactor = 1.0f;
+	boundingSphere = quat(-1.0f, -1.0f, -1.0f, -1.0f);
 }

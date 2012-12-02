@@ -91,7 +91,7 @@ void LuaInterpreter(void)
 
 	rl_callback_handler_install(prompt.c_str(), handleLine);
 	while (running)
-		if(poll(&fds, 1, 0) == 1)
+		if(poll(&fds, 1, 500) == 1)
 			rl_callback_read_char();
 	lua_close(L);
 }

@@ -40,7 +40,6 @@ void *lua(void *args);
 void *filereader(void *args);
 pthread_t luathread;
 
-/* Load Gl-independent game files and start threads */
 int main(int argc, char *argv[])
 {
 	progname = argv[0];

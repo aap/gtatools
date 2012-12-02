@@ -158,6 +158,21 @@ public:
 	~ObjectList(void);
 };
 
+inline Model *ObjectList::get(int i)
+{
+	if (i < objectCount && i >= 0)
+		return objects[i];
+	return 0;
+}
+
+inline Model *ObjectList::get(std::string name)
+{
+	for (int i = 0; i < objectCount; i++)
+		if (objects[i] && objects[i]->modelName == name)
+			return objects[i];
+	return 0;
+}
+
 extern ObjectList *objectList;
 
 #endif

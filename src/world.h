@@ -36,6 +36,8 @@ public:
 	quat scale;
 	quat rotation;
 
+	quat boundingSphere;
+
 	int lod;
 	std::vector<int> hires;
 

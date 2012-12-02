@@ -1,27 +1,25 @@
-OBJDIR = obj
-_OBJ = gta.o directory.o world.o camera.o pipeline.o gl.o primitives.o \
-drawable.o objects.o texman.o water.o timecycle.o sky.o lua.o animread.o col.o \
-renderer.o jobqueue.o input.o animation.o
-OBJ = $(patsubst %,$(OBJDIR)/%,$(_OBJ))
-RWDIR=$(HOME)/rwtools
-CC = g++
-CFLAGS = -Wall -Wextra -g -L$(RWDIR) -Wl,-Bstatic -lrwtools \
--Wl,-Bdynamic -lGL -lglfw -lGLEW -lpthread -llua -lreadline -O3
-#-Wl,-Bdynamic -lGL -lGLU -lglut -lGLEW -lpthread -llua -lreadline -O3
-BIN=gta
+SRCDIR = src
+BUILDDIR = build
+SRC := $(wildcard $(SRCDIR)/*.cpp)
+OBJ := $(patsubst $(SRCDIR)/%.cpp,$(BUILDDIR)/%.o,$(SRC))
+DEP := $(patsubst $(SRCDIR)/%.cpp,$(BUILDDIR)/%.d,$(SRC))
+INC = -I$(HOME)/rwtools/src
+CFLAGS = $(INC) -Wall -Wextra -g -O3 -pg
+LINK = $(HOME)/rwtools/librwtools.a\
+  -lGL -lglfw -lGLEW -lpthread -llua -lreadline
+TARGET = gta
 
-build: $(OBJRW) $(OBJ) 
-	$(CC) -o $(BIN) $(OBJ) $(CFLAGS)
-#	$(CC) -o colread src/colread.cpp obj/col.o $(CFLAGS) -I../rwtools/src
+$(TARGET): $(OBJ)
+	$(CXX) $(OBJ) $(LINK) -o $@
 
-$(OBJ) $(OBJDIR)/:
-	cd src && make
+$(BUILDDIR)/%.o: $(SRCDIR)/%.cpp
+	$(CXX) $(CFLAGS) -c $< -o $@
 
-$(OBJRW):
-	cd $(OBJDIRRW)/.. && make
+$(BUILDDIR)/%.d: $(SRCDIR)/%.cpp
+	$(CXX) -MM -MT '$(patsubst $(SRCDIR)/%.cpp,$(BUILDDIR)/%.o,$<)' $(CFLAGS) $< > $@
 
 clean:
-	rm $(OBJDIR)/*
+	rm -f build/* $(TARGET)
 
-install:
-	cp $(BIN) $(HOME)/bin
+-include $(DEP)
+

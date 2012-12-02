@@ -87,6 +87,11 @@ void keypress(int key, int state)
 		} else
 			drawable.printFrames(0, 0);
 		break;
+	case 'I':
+		if (lastSelected == 0)
+			break;
+		world->getInstance(lastSelected)->printInfo();
+		break;
 	default:
 		break;
 	}

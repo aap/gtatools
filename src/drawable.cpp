@@ -46,8 +46,6 @@ void Drawable::attachClump(rw::Clump *clp)
 		rw::Frame &rwf = clp->frameList[i];
 		Frame *f = new Frame;
 
-//		if (i == 0)	// sensible default if there is no hanim
-//			animRoot = f;
 		animRoot = 0;
 
 		f->boneId = rwf.hasHAnim ? rwf.hAnimBoneId : -1;

@@ -182,6 +182,7 @@ void ObjectList::dump(void)
 		}
 }
 
+/*
 Model *ObjectList::get(int i)
 {
 	if (i < objectCount && i >= 0)
@@ -196,6 +197,7 @@ Model *ObjectList::get(string name)
 			return objects[i];
 	return 0;
 }
+*/
 
 void ObjectList::add(Model *o)
 {
@@ -258,8 +260,11 @@ void WorldObject::initFromLine(std::vector<std::string> fields, int blockType)
 	if (lineHasObjectCount)
 		objectCount = atoi(fields[i++].c_str());
 
-	for (uint j = 0; j < objectCount; j++)
-		drawDistances.push_back(atof(fields[i++].c_str()));
+	for (uint j = 0; j < objectCount; j++) {
+		float d = atof(fields[i++].c_str());
+		d *= d;
+		drawDistances.push_back(d);
+	}
 
 	flags = atoi(fields[i++].c_str());
 
