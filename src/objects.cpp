@@ -262,7 +262,7 @@ void WorldObject::initFromLine(std::vector<std::string> fields, int blockType)
 
 	for (uint j = 0; j < objectCount; j++) {
 		float d = atof(fields[i++].c_str());
-		d *= d;
+//		d *= d;
 		drawDistances.push_back(d);
 	}
 
@@ -287,6 +287,8 @@ int WorldObject::getCorrectAtomic(float d)
 
 float WorldObject::getDrawDistance(int atomic)
 {
+	if (atomic < 0)
+		return drawDistances[drawDistances.size()-1];
 	return drawDistances[atomic];
 }
 

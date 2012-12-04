@@ -18,6 +18,7 @@ function cam.getDistance() return __cameraGetDistance() end
 function cam.getTarget() return __cameraGetTarget() end
 function cam.getFov(fov) return __cameraGetFov() end
 function cam.getPosition() return __cameraGetPosition() end
+function cam.Print() return __cameraPrint() end
 function cam.lock(i) return __cameraLock(i) end
 
 --

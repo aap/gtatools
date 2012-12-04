@@ -199,6 +199,8 @@ void handleJoystickInput(int joy)
 	int nButtons = glfwGetJoystickParam(GLFW_JOYSTICK_1, GLFW_BUTTONS);
 	static float *axes = 0;
 	static uchar *buttons = 0;
+	if (nAxes < 3 || nButtons < 6)
+		return;
 	if (!axes) {
 		axes = new float[nAxes];
 		buttons = new uchar[nButtons];

@@ -47,6 +47,13 @@ cam.setYaw(3)
 -- cam.setPitch(5.4859175682068)
 -- cam.setYaw(4.9777021408081)
 
+-- alpha z-fight
+--cam.setTarget(1119.72,-949.591,30.0514)
+--cam.setDistance(10)
+--cam.setYaw(4.71871)
+--cam.setPitch(5.35087)
+
+
 setAnim("walk_player")
 
 function a()

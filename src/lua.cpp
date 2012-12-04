@@ -230,6 +230,17 @@ int cameraLock(lua_State *L)
 	return 0;
 }
 
+int cameraPrint(lua_State *L)
+{
+	quat target = cam->getTarget();
+	cout << "cam.setTarget(" << target.x << "," << target.y
+	     << "," << target.z << ")\n";
+	cout << "cam.setDistance(" << cam->getDistance() << ")\n";
+	cout << "cam.setYaw(" << cam->getYaw() << ")\n";
+	cout << "cam.setPitch(" << cam->getPitch() << ")\n";
+	return 0;
+}
+
 void registerCamera(lua_State *L)
 {
 	lua_register(L, "__cameraPanLR", cameraPanLR);
@@ -249,6 +260,7 @@ void registerCamera(lua_State *L)
 	lua_register(L, "__cameraGetFov", cameraGetFov);
 	lua_register(L, "__cameraGetPosition", cameraGetPosition);
 	lua_register(L, "__cameraLock", cameraLock);
+	lua_register(L, "__cameraPrint", cameraPrint);
 }
 
 /*

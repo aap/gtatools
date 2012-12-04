@@ -25,6 +25,8 @@ using namespace std;
 
 World *world;
 
+#define FADE 40
+
 /*
  * WorldSector
  */
@@ -340,7 +342,7 @@ void World::associateLods(void)
 	dummyObj->objectCount = 1;
 	if (game == GTA3)
 		// not sure about that one
-		dummyObj->drawDistances.push_back(100*100);
+		dummyObj->drawDistances.push_back(100-FADE);
 	else
 		dummyObj->drawDistances.push_back(0);
 	dummyObj->flags = 0;
@@ -350,7 +352,6 @@ void World::associateLods(void)
 		Instance *lod = instances[i];
 		if (!lod->isLod || lod->hires.size() != 0)
 			continue;
-//		cout << "adding dummy for " << lod->name << endl;
 
 		Instance *ip = new Instance;
 
@@ -636,7 +637,7 @@ void Instance::initFromBinEntry(char *data)
 
 void Instance::addToRenderList(void)
 {
-	const float fadeThrshd = 20.0f;
+	const float fadeThrshd = FADE;
 
 	// set by 'addOpaqueObject'
 	if (wasAdded)
@@ -644,10 +645,8 @@ void Instance::addToRenderList(void)
 
 	WorldObject *op = static_cast<WorldObject*>(objectList->get(id));
 
-//	float dist = cam->distanceTo(position)/renderer->lodMult;
-	float distsq = cam->sqDistanceTo(position)/renderer->lodMult;
-//	int ai = op->getCorrectAtomic(dist);
-	int ai = op->getCorrectAtomic(distsq);
+	float dist = cam->distanceTo(position)/renderer->lodMult;
+	int ai = op->getCorrectAtomic(dist);
 
 	// frustum cull
 	if (op->canDraw())
@@ -701,8 +700,8 @@ void Instance::addToRenderList(void)
 	}
 
 	float drawDist, distDiff;
-	drawDist = op->getDrawDistance(ai);
-	distDiff = drawDist - distsq;
+	drawDist = op->getDrawDistance(-1);
+	distDiff = drawDist - dist;
 
 	if (distDiff < fadeThrshd)
 		setFading(distDiff/fadeThrshd);
