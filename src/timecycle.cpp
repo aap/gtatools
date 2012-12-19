@@ -154,7 +154,6 @@ void Weather::readLine(vector<string> fields)
 		            atof(fields[i].c_str()),
 		            atof(fields[i+1].c_str()),
 		            atof(fields[i+2].c_str()));
-		i += 4;
 	}
 
 	amb /= 255.0f;
@@ -180,7 +179,7 @@ void TimeCycle::load(ifstream &f)
 {
 	string line;
 	vector<string> fields;
-	Weather w;
+//	Weather w;
 	int numWeathers;
 	if (game == GTA3)
 		numWeathers = 4;
@@ -253,9 +252,9 @@ void TimeCycle::load(ifstream &f)
 	}
 }
 
-void TimeCycle::calcCurrent(int hour, int minute)
+void TimeCycle::calcCurrent(void)
 {
-	if (hour < 0 && hour >= 24)
+	if (hour < 0 || hour >= 24)
 		return;
 	if (hour == 23)
 		currentWeatherData.mix(weatherList[currentWeather][23],

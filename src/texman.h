@@ -28,6 +28,7 @@ struct TexDictionary {
 	void unload(void);
 	Texture *get(std::string searchName);
 	bool isHierarchyLoaded(void);
+	~TexDictionary(void);
 };
 
 class TexManager
@@ -47,11 +48,12 @@ public:
 	void addGlobal(std::string fileName);
 	void dump(void);
 	TexManager(void);
+	~TexManager(void);
 
 	void dumpLoaded(void);
 };
 
-extern TexManager texMan;
+extern TexManager *texMan;
 
 inline bool TexDictionary::isHierarchyLoaded(void)
 {

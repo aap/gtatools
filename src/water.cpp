@@ -59,7 +59,7 @@ void Water::loadWater(ifstream &f)
 		return;
 	}
 
-	TexDictionary *txd = texMan.requestSynch("particle.txd");
+	TexDictionary *txd = texMan->requestSynch("particle.txd");
 	Texture *t = txd->get("waterclear256");
 	tex = t->tex;
 
@@ -150,7 +150,7 @@ void Water::loadWaterpro(std::ifstream &f)
 
 	float patchSize = 32;
 	float base[2];
-	TexDictionary *txd = texMan.requestSynch("particle.txd");
+	TexDictionary *txd = texMan->requestSynch("particle.txd");
 	if (game == GTA3) {
 		base[0] = -2048;
 		base[1] = -2048;

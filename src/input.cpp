@@ -12,7 +12,8 @@ using namespace std;
 
 namespace gl {
 
-static int ox, oy, mx, my;
+static int lastX, lastY;
+static int clickX, clickY;
 static bool isLDown, isMDown, isRDown;
 static bool isShiftDown, isCtrlDown, isAltDown;
 static uint lastSelected;
@@ -30,16 +31,16 @@ void handleKeyboardInput(void)
 
 	if (glfwGetKey('Y')) {
 		if (isShiftDown)
-			drawable.setTime(drawable.getTime()-0.033333/2.0);
+			drawable.setTime(drawable.getTime()-0.033333);
 		else
-			drawable.setTime(drawable.getTime()+0.033333/2.0);
+			drawable.setTime(drawable.getTime()+0.033333);
 	}
 
 	if (glfwGetKey('U')) {
 		if (isShiftDown)
-			drawable.setOvrTime(drawable.getOvrTime()-0.033333/2.0);
+			drawable.setOvrTime(drawable.getOvrTime()-0.033333);
 		else
-			drawable.setOvrTime(drawable.getOvrTime()+0.033333/2.0);
+			drawable.setOvrTime(drawable.getOvrTime()+0.033333);
 	}
 
 	if (glfwGetKey('W')) {
@@ -56,6 +57,31 @@ void handleKeyboardInput(void)
 			cam->setDistance(cam->getDistance()+dist);
 	}
 
+	int u, r, d, l;
+	u = glfwGetKey(GLFW_KEY_UP);
+	r = glfwGetKey(GLFW_KEY_RIGHT);
+	d = glfwGetKey(GLFW_KEY_DOWN);
+	l = glfwGetKey(GLFW_KEY_LEFT);
+	if (u || r || d || l) {
+		if (isShiftDown)
+			player->setStateRunning();
+		else
+			player->setStateWalking();
+		quat dir =
+			quat(0.0, 1.0, 0.0)*u +
+			quat(1.0, 0.0, 0.0)*r +
+			quat(0.0, -1.0, 0.0)*d +
+			quat(-1.0, 0.0, 0.0)*l;
+		float a = cam->getYaw()/2.0;
+		quat q(cos(a), 0, 0, -sin(a));
+		dir = q.getConjugate() * dir * q;
+		float n;
+		if ((n = dir.norm()) != 0.0)
+			player->frm.setForward(dir/n);
+	} else {
+		player->setStateStop();
+	}
+
 }
 
 void keypress(int key, int state)
@@ -67,6 +93,11 @@ void keypress(int key, int state)
 	case 'Q':
 	case GLFW_KEY_ESC:
 		exitprog();
+		break;
+	case 'M':
+		int x, y;
+		glfwGetMousePos(&x, &y);
+		cout << x << " " << y << endl;
 		break;
 	case 'B':
 		WorldObject *op;
@@ -85,12 +116,15 @@ void keypress(int key, int state)
 			Model *mp = objectList->get(id);
 			mp->drawable->printFrames(0,0);
 		} else
-			drawable.printFrames(0, 0);
+			player->drawable->printFrames(0, 0);
 		break;
 	case 'I':
 		if (lastSelected == 0)
 			break;
 		world->getInstance(lastSelected)->printInfo();
+		break;
+	case 'X':
+		cam->doTarget = !cam->doTarget;
 		break;
 	default:
 		break;
@@ -102,25 +136,18 @@ void mouseButton(int button, int state)
 	int x, y;
 	glfwGetMousePos(&x, &y);
 	if (state == GLFW_PRESS) {
-		if (button == GLFW_MOUSE_BUTTON_LEFT) {
-			ox = mx = x;
-			oy = my = y;
+		lastX = clickX = x;
+		lastY = clickY = y;
+		if (button == GLFW_MOUSE_BUTTON_LEFT)
 			isLDown = true;
-		}
-		if (button == GLFW_MOUSE_BUTTON_MIDDLE) {
-			ox = mx = x;
-			oy = my = y;
+		if (button == GLFW_MOUSE_BUTTON_MIDDLE)
 			isMDown = true;
-		}
-		if (button == GLFW_MOUSE_BUTTON_RIGHT) {
-			ox = mx = x;
-			oy = my = y;
+		if (button == GLFW_MOUSE_BUTTON_RIGHT)
 			isRDown = true;
-		}
 	} else if (state == GLFW_RELEASE) {
 		if (button == GLFW_MOUSE_BUTTON_LEFT) {
 			isLDown = false;
-			if (ox - mx == 0 && oy - my == 0) {
+			if (clickX - x == 0 && clickY - y == 0) {
 				cout << x << " " << y << endl;
 				// read clicked object's index
 				union {
@@ -161,36 +188,70 @@ void mouseButton(int button, int state)
 void mouseMotion(int x, int y)
 {
 	GLfloat dx, dy;
+	static int xoff = 0, yoff = 0;
+	static bool wrappedLast = false;
 
-	ox = mx;
-	oy = my;
-	mx = x;
-	my = y;
-
-	dx = float(ox - mx) / float(width);
-	dy = float(oy - my) / float(height);
-	if (!isShiftDown) {
-		if (isLDown) {
+	dx = float(lastX - x) / float(width);
+	dy = float(lastY - y) / float(height);
+	/* Wrap the mouse if it goes over the window border.
+	 * Unfortunately, after glfwSetMousePos is done, there can be old
+	 * events with an old mouse position,
+	 * hence the check if the pointer was wrapped the last time. */
+	if ((isLDown || isMDown || isRDown) &&
+	    ( x < 0 || y < 0 || x >= width || y >= height)) {
+		if (wrappedLast) {
+			dx = float(lastX-xoff - x) / float(width);
+			dy = float(lastY-yoff - y) / float(height);
+		}
+		xoff = yoff = 0;
+		while (x+xoff >= width) xoff -= width;
+		while (y+yoff >= height) yoff -= height;
+		while (x+xoff < 0) xoff += width;
+		while (y+yoff < 0) yoff += height;
+		glfwSetMousePos(x+xoff, y+yoff);
+		wrappedLast = true;
+	} else {
+		wrappedLast = false;
+		xoff = yoff = 0;
+	}
+	lastX = x+xoff;
+	lastY = y+yoff;
+	if (isLDown) {
+		if (isShiftDown) {
+			cam->turnLR(dx*2.0f);
+			cam->turnUD(-dy*2.0f);
+		} else {
 			cam->setYaw(cam->getYaw()+dx*2.0f);
 			cam->setPitch(cam->getPitch()-dy*2.0f);
 		}
-		if (isMDown) {
+	}
+	if (isMDown) {
+		if (isShiftDown) {
+		} else {
 			cam->panLR(-dx*8.0f);
 			cam->panUD(-dy*8.0f);
 		}
-		if (isRDown) {
+	}
+	if (isRDown) {
+		if (isShiftDown) {
+		} else {
 			cam->setDistance(cam->getDistance()+dx*12.0f);
 		}
-	} else if (isShiftDown) {
-		if (isLDown) {
-			cam->turnLR(dx*2.0f);
-			cam->turnUD(-dy*2.0f);
-		}
-		if (isMDown) {
-		}
-		if (isRDown) {
-		}
 	}
+}
+
+void mouseWheel(int pos)
+{
+	const float dist = 2.0f;
+	static int lastPos = 0;
+
+	int diff = pos - lastPos;
+	lastPos = pos;
+
+	if (isShiftDown)
+		cam->moveInOut(dist*diff);
+	else
+		cam->setDistance(cam->getDistance()-dist*diff);
 }
 
 void handleJoystickInput(int joy)

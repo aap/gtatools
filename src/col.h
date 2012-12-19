@@ -54,6 +54,7 @@ public:
 
 	/* functions */
 	int read(std::ifstream &col);
+	CollisionModel(void);
 };
 
 #endif

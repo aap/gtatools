@@ -1,19 +1,21 @@
 #include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include "gta.h"
 #include "math.h"
+#include "primitives.h"
 #include "pipeline.h"
 #include "drawable.h"
 #include "camera.h"
 
 Camera *cam;
 
-void Camera::look()
+void Camera::look(void)
 {
 	updateCam();
 
 	if (aim)
-		target = aim->getPosition();
+		target = aim->position;
 
 	gl::state.projection = glm::perspective(fov, aspectRatio, n, f);
 	gl::state.modelView = glm::mat4(1.0f);
@@ -28,6 +30,13 @@ void Camera::look()
 	gl::state.modelView = glm::translate(gl::state.modelView,
 	                             glm::vec3(-target.x,-target.y, -target.z));
 	updateFrustum();
+}
+
+void Camera::drawTarget(void)
+{
+	glm::mat4 m = glm::translate(glm::mat4(1.0f),
+		glm::vec3(target.x, target.y, target.z));
+	gl::drawAxes(glm::value_ptr(m));
 }
 
 void Camera::panLR(float d)
@@ -304,9 +313,9 @@ quat Camera::getPosition(void)
 	return pos * dist + target;
 }
 
-void Camera::lock(Drawable *d)
+void Camera::lock(RefFrame *f)
 {
-	aim = d;
+	aim = f;
 }
 
 void Camera::setFov(float f)
@@ -327,6 +336,7 @@ void Camera::setNearFar(float n, float f)
 
 Camera::Camera()
 {
+	doTarget = false;
 	theta = phi = 0.0f;
 	dist = 1.0f;
 	up = quat(0.0f, 0.0f, 1.0f);

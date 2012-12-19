@@ -53,8 +53,20 @@ cam.setYaw(3)
 --cam.setYaw(4.71871)
 --cam.setPitch(5.35087)
 
+cam.setTarget(-138.687,-176.729,16.3685)
+--cam.setTarget(0,0,0)
+cam.setDistance(10)
+--cam.setYaw(3.23602)
+cam.setYaw(0)
+cam.setPitch(4.91531)
 
-setAnim("walk_player")
+if game == GTASA then
+	playerLoad("cesar","cesar")
+else
+	playerLoad("player","player")
+end
+--playerSetAnim("idle_stance")
+--setAnim("walk_gang1")
 
 function a()
 	cam.setTarget(0,0,0)

@@ -69,7 +69,7 @@ void JobQueue::readDff(void *sender, void *data)
 	string name = (char *) data;
 	delete[] (char*)data;
 	ifstream file;
-	if (directory.openFile(file, name) == -1) {
+	if (directory->openFile(file, name) == -1) {
 		cout << "couldn't open " << name << endl;
 		return;
 	}
@@ -85,7 +85,7 @@ void JobQueue::readTxd(void *sender, void *data)
 	string name = (char *) data;
 	delete[] (char*)data;
 	ifstream file;
-	if (directory.openFile(file, name) == -1) {
+	if (directory->openFile(file, name) == -1) {
 		cout << "couldn't open " << name << endl;
 		return;
 	}
@@ -95,7 +95,7 @@ void JobQueue::readTxd(void *sender, void *data)
 	file.close();
 
 	// convert to a sensible format
-	for (uint i = 0; i < txd->texList.size(); i++) {
+	for (size_t i = 0; i < txd->texList.size(); i++) {
 		if (txd->texList[i].platform == rw::PLATFORM_PS2)
 			txd->texList[i].convertFromPS2();
 		if (txd->texList[i].platform == rw::PLATFORM_XBOX)

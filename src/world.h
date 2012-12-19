@@ -102,6 +102,7 @@ public:
 	void addToRenderList(void);
 	void addLodToRenderList(void);
 	void drawZones(void);
+	~Island(void);
 };
 
 class WorldSector
@@ -163,6 +164,7 @@ public:
 	int getInterior(void);
 
 	World(void);
+	~World(void);
 };
 
 extern World *world;

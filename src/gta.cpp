@@ -31,7 +31,6 @@ char *progname;
 int game;
 uint oglThread;
 volatile bool running;
-volatile bool initDone;
 
 int initGame(void);
 void parseDat(ifstream &f);
@@ -39,6 +38,8 @@ void parseDat(ifstream &f);
 void *lua(void *args);
 void *filereader(void *args);
 pthread_t luathread;
+
+Ped *player = 0;
 
 int main(int argc, char *argv[])
 {
@@ -54,7 +55,6 @@ int main(int argc, char *argv[])
 	void *args[] = { (void*) &argc, (void*) argv };
 
 	running = true;
-	initDone = false;
 
 	pthread_t thread1, thread3;
 
@@ -76,7 +76,6 @@ int main(int argc, char *argv[])
 void exitprog(void)
 {
 	running = false;
-	initDone = true;
 	normalJobs.wakeUp();
 }
 
@@ -94,15 +93,31 @@ void *filereader(void *args)
 
 void *lua(void *args)
 {
-	while (initDone == false);
-
-	LuaInterpreter();
+	luaInterpreter();
 //	cout << "return from lua thread\n";
 	return NULL;
 }
 
+void cleanUp(void)
+{
+	SAFE_DELETE(objectList);
+	SAFE_DELETE(directory);
+	SAFE_DELETE(world);
+	SAFE_DELETE(renderer);
+	SAFE_DELETE(cam);
+	SAFE_DELETE(player);
+	SAFE_DELETE(texMan);
+
+	SAFE_DELETE(gl::simplePipe);
+	SAFE_DELETE(gl::gtaPipe);
+
+	drawable.unload();
+}
+
 int initGame(void)
 {
+	directory = new Directory;
+	texMan = new TexManager;
 	world = new World;
 
 	string datFileName = getPath("data/gta.dat");
@@ -153,7 +168,7 @@ int initGame(void)
 			return 1;
 		}
 	}
-	directory.addFromFile(dirFile, imgPath);
+	directory->addFromFile(dirFile, imgPath);
 	dirFile.close();
 
 	// load gta_int.img and player.img
@@ -164,7 +179,7 @@ int initGame(void)
 			cerr << "can't open img/dir file\n";
 			return 1;
 		}
-		directory.addFromFile(dirFile, imgPath);
+		directory->addFromFile(dirFile, imgPath);
 		dirFile.close();
 
 		imgPath = getPath("models/player.img");
@@ -173,7 +188,7 @@ int initGame(void)
 			cerr << "can't open img/dir file\n";
 			return 1;
 		}
-		directory.addFromFile(dirFile, imgPath);
+		directory->addFromFile(dirFile, imgPath);
 		dirFile.close();
 	}
 
@@ -184,19 +199,19 @@ int initGame(void)
 	dirFile.open(dirPath.c_str(), ios::binary);
 	if (!dirFile.fail()) {
 		cout << "found txd archive, loading\n";
-		directory.addFromFile(dirFile, imgPath);
+		directory->addFromFile(dirFile, imgPath);
 		dirFile.close();
 	} else {
 		dirFile.open(imgPath.c_str(), ios::binary);
 		if (!dirFile.fail()) {
 			cout << "found txd archive, loading\n";
-			directory.addFromFile(dirFile, imgPath);
+			directory->addFromFile(dirFile, imgPath);
 			dirFile.close();
 		}
 	}
 
 	// load other files
-	directory.addFile(getPath("models/particle.txd"));
+	directory->addFile(getPath("models/particle.txd"));
 
 	// load default dat file
 	string datFileName2 = getPath("data/default.dat");
@@ -217,6 +232,9 @@ int initGame(void)
 	parseDat(datFile);
 	datFile.close();
 
+
+	player = new Ped;
+	player->reset();
 
 	renderer = new Renderer;
 	cam = new Camera;
@@ -266,6 +284,12 @@ int initGame(void)
 	}
 
 	return 0;
+}
+
+void updateGame(float timeDiff)
+{
+	if (player)
+		player->incTime(timeDiff);
 }
 
 void parseDat(ifstream &f)
@@ -321,17 +345,17 @@ void parseDat(ifstream &f)
 			     fileName.substr(fileName.find_last_of(PSEP_S)+1));
 			inFile.close();
 		} else if (type == "TEXDICTION") {
-			directory.addFile(fileName);
-			texMan.addGlobal(fileName);
+			directory->addFile(fileName);
+			texMan->addGlobal(fileName);
 		} else if (type == "MODELFILE") {
-			directory.addFile(fileName);
+			directory->addFile(fileName);
 		} else if (type == "IMG") {
 			inFile.open(fileName.c_str(), ios::binary);
 			if (inFile.fail()) {
 				cerr << "couldn't open img " << fileName<<endl;
 				exit(1);
 			}
-			directory.addFromFile(inFile, fileName);
+			directory->addFromFile(inFile, fileName);
 			inFile.close();
 		} else if (type == "COLFILE") {
 			island = atoi(fields[1].c_str());
@@ -456,7 +480,7 @@ void correctPathCase(string &fileName)
 	getFields(fileName, PSEP_S, subFolders);
 
 	string pathSoFar = gamePath;
-	for (uint i = 0; i < subFolders.size(); i++) {
+	for (size_t i = 0; i < subFolders.size(); i++) {
 
 		if ((dir = opendir(pathSoFar.c_str())) == 0) {
 			cerr << "couldn't open dir: " << pathSoFar << endl;

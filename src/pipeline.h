@@ -35,10 +35,15 @@ public:
 	glm::mat4 modelView;
 	GLint u_NormalMat;
 	glm::mat3 normalMat;
+/*
 	GLint u_LightPos;
 	glm::vec4 lightPos;
+*/
 	GLint u_LightCol;
 	glm::vec3 lightCol;
+	GLint u_LightDir;
+	glm::vec3 lightDir;
+
 	GLint u_AmbientLight;
 	glm::vec3 ambientLight;
 	GLint u_MatColor;

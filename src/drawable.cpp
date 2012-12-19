@@ -20,6 +20,16 @@
 using namespace std;
 using namespace gl;
 
+void dumpmat(const float *m)
+{
+	cout.precision(5);
+	cout << std::fixed;
+	cout << m[0] << " " << m[4] << " " << m[8] << " " << m[12] << endl;
+	cout << m[1] << " " << m[5] << " " << m[9] << " " << m[13] << endl;
+	cout << m[2] << " " << m[6] << " " << m[10] << " " << m[14] << endl;
+	cout << m[3] << " " << m[7] << " " << m[11] << " " << m[15] << endl;
+}
+
 void Drawable::printFrames(int level, Frame *r)
 {
 	for (int i = 0; i < level; i++)
@@ -28,12 +38,38 @@ void Drawable::printFrames(int level, Frame *r)
 		r = root;
 		cout << endl;
 	}
-	cout << r->name << dec << " " << r->parent << " " <<
+	cout << r->name << dec << " " << //(r->parent != 0) << " " <<
 	        r->boneId << " " << r->geo;
 	if (r == animRoot)
 		cout << "    <--";
+	if (r == skin)
+		cout << "    <==";
 	cout << endl;
-	for (uint i = 0; i < r->children.size(); i++)
+
+/*
+	dumpmat(glm::value_ptr(r->defMat));
+	cout << "---- ^ def\n";
+	dumpmat(glm::value_ptr(r->modelMat));
+	cout << "---- ^ modelmat\n";
+	dumpmat(glm::value_ptr(r->ltm));
+	cout << "---- ^ ltm\n";
+	dumpmat(glm::value_ptr(r->boneMat));
+	cout << "---- ^ bonemat\n";
+	dumpmat(glm::value_ptr(glm::inverse(r->boneInverseMat)));
+	cout << "---- ^ boneinvinvmat\n";
+	dumpmat(glm::value_ptr(r->boneInverseMat));
+	cout << "---- ^ boneinvmat\n";
+	dumpmat(glm::value_ptr(r->ltm*r->boneInverseMat));
+	cout << "---- ^ **\n";
+	cout << endl;
+*/
+
+/*
+	for (int i = 0; i < level; i++)
+		cout << "  ";
+	cout << r->pos[0] << " " << r->pos[1] << " " << r->pos[2] << endl;
+*/
+	for (size_t i = 0; i < r->children.size(); i++)
 		printFrames(level+1, r->children[i]);
 }
 
@@ -41,10 +77,12 @@ void Drawable::attachClump(rw::Clump *clp)
 {
 	THREADCHECK();
 	// frames
-	uint frmsize = clp->frameList.size();
+	size_t frmsize = clp->frameList.size();
 	for (uint i = 0; i < frmsize; i++) {
 		rw::Frame &rwf = clp->frameList[i];
 		Frame *f = new Frame;
+
+		f->dotransform = true;
 
 		animRoot = 0;
 
@@ -66,7 +104,6 @@ void Drawable::attachClump(rw::Clump *clp)
 		f->defMat = f->modelMat;
 
 		f->boneMat = glm::mat4(1.0f);
-//		f->boneMat = f->modelMat;
 		f->boneInverseMat = glm::mat4(1.0f);
 
 		f->name = rwf.name;
@@ -88,7 +125,7 @@ void Drawable::attachClump(rw::Clump *clp)
 			animRoot = f;
 			for (uint j = 0; j < rwf.hAnimBoneCount; j++) {
 				bool found = false;
-				for (uint k=0;k < clp->frameList.size();k++) {
+				for (size_t k=0;k < clp->frameList.size();k++) {
 					rw::Frame &rwf2 = clp->frameList[k];
 					if (rwf2.hAnimBoneId ==
 					    rwf.hAnimBoneIds[j]) {
@@ -108,18 +145,18 @@ void Drawable::attachClump(rw::Clump *clp)
 	}
 	if (animRoot == 0) {
 		animRoot = root;
-		if (root->children.size())
+		if (!root->children.empty())
 			animRoot = root->children[0];
 	}
 
 	// geometries
 	GLuint vbo, ibo;
 	GLint size;
-	for (uint i = 0; i < clp->geometryList.size(); i++) {
+	for (size_t i = 0; i < clp->geometryList.size(); i++) {
 		rw::Geometry &rwg = clp->geometryList[i];
 		Geometry geo;
 
-		for (uint j = 0; j < rwg.materialList.size(); j++) {
+		for (size_t j = 0; j < rwg.materialList.size(); j++) {
 			rw::Material &m = rwg.materialList[j];
 			if (m.hasTex)
 				stringToLower(m.texture.name);
@@ -143,10 +180,15 @@ void Drawable::attachClump(rw::Clump *clp)
 		glBufferData(GL_ARRAY_BUFFER, size, 0, GL_STATIC_DRAW);
 
 		GLfloat *vertices = &rwg.vertices[0];
+		GLfloat *normals = &rwg.normals[0];
 		geo.isSkinned = rwg.hasSkin;
 		if (geo.isSkinned) {
 			geo.vertices = rwg.vertices;
 			vertices = &geo.vertices[0];
+			if (rwg.flags & rw::FLAGS_NORMALS) {
+				geo.normals = rwg.normals;
+				normals = &rwg.normals[0];
+			}
 
 			if (rwg.boneCount != boneToFrame.size())
 				cerr << "error: bone count doesn't match\n";
@@ -194,7 +236,7 @@ void Drawable::attachClump(rw::Clump *clp)
 		if (rwg.flags & rw::FLAGS_NORMALS) {
 			glBufferSubData(GL_ARRAY_BUFFER, offset,
 					numVertices*3*sizeof(GLfloat),
-			                &rwg.normals[0]);
+			                normals);
 			offset += numVertices*3*sizeof(GLfloat);
 		}
 		if (rwg.flags & rw::FLAGS_TEXTURED ||
@@ -209,12 +251,12 @@ void Drawable::attachClump(rw::Clump *clp)
 		glBindBuffer(GL_ARRAY_BUFFER, ibo);
 
 		GLint size = 0;
-		for (uint j = 0; j < rwg.splits.size(); j++)
+		for (size_t j = 0; j < rwg.splits.size(); j++)
 			size += rwg.splits[j].indices.size()*sizeof(rw::uint32);
 		glBufferData(GL_ARRAY_BUFFER, size, 0, GL_STATIC_DRAW);
 
 		offset = 0;
-		for (uint j = 0; j < rwg.splits.size(); j++) {
+		for (size_t j = 0; j < rwg.splits.size(); j++) {
 			rw::Split &s = rwg.splits[j];
 			glBufferSubData(GL_ARRAY_BUFFER,
 				        offset,
@@ -230,13 +272,12 @@ void Drawable::attachClump(rw::Clump *clp)
 	}
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-
 	// atomics
 	//
 	// reorder so number of object according to item definition matches
 	// number of atomic (based on suffix '_L[012]' in frame name)
 	vector<int> tmpList;
-	for (uint i = 0; i < clp->atomicList.size(); i++) {
+	for (size_t i = 0; i < clp->atomicList.size(); i++) {
 		rw::Atomic &atm = clp->atomicList[i];
 		Frame *f = frmList[atm.frameIndex];
 		f->geo = atm.geometryIndex;
@@ -258,6 +299,12 @@ void Drawable::attachClump(rw::Clump *clp)
 	}
 	atomicList.insert(atomicList.end(), tmpList.begin(), tmpList.end());
 
+	for (size_t i = 0; i < frmList.size(); i++) {
+		if (frmList[i]->geo >= 0)
+			if (geoList[frmList[i]->geo].isSkinned)
+				skin =frmList[i];
+	}
+
 	clump = clp;
 
 	updateFrames(root);
@@ -267,6 +314,7 @@ void Drawable::attachClump(rw::Clump *clp)
 void Drawable::attachAnim(Animation *a)
 {
 	manim.attachAnims(a, 0, 1.0f);
+	setTime(0.0);
 	cout << "attached animation " << a->name << endl;
 	cout << manim.endTime << " seconds\n";
 }
@@ -274,6 +322,7 @@ void Drawable::attachAnim(Animation *a)
 void Drawable::attachMixedAnim(Animation *a, Animation *b, float f)
 {
 	manim.attachAnims(a, b, f);
+	setTime(0.0);
 	cout << "attached animations " << a->name << " " << b->name << endl;
 	cout << manim.endTime << " seconds\n";
 }
@@ -293,7 +342,7 @@ void Drawable::request(string model, string texdict)
 	normalJobs.addJob(JobQueue::readDff, this, str);
 	texDict = 0;
 	if (renderer->doTextures)
-		texDict = texMan.get(texdict);
+		texDict = texMan->get(texdict);
 }
 
 void Drawable::release(void)
@@ -306,7 +355,7 @@ int Drawable::loadSynch(string model, string texdict)
 	ifstream dff;
 
 	rw::Clump *clp = new rw::Clump;
-	if (directory.openFile(dff, model) == -1) {
+	if (directory->openFile(dff, model) == -1) {
 		cout << "couldn't open " << model << endl;
 		return -1;
 	}
@@ -317,50 +366,10 @@ int Drawable::loadSynch(string model, string texdict)
 
 	texDict = 0;
 	if (renderer->doTextures)
-		texDict = texMan.get(texdict, true);
+		texDict = texMan->get(texdict, true);
 
 	return 0;
 }
-
-void Drawable::unload(void)
-{
-	if (clump)
-		clump->clear();
-	delete clump;
-	clump = 0;
-	bool gl = false;
-	for (uint i = 0; i < geoList.size(); i++) {
-		if (geoList[i].vbo != 0) {
-			glDeleteBuffers(1, &geoList[i].vbo);
-			gl = true;
-		}
-		if (geoList[i].ibo != 0) {
-			glDeleteBuffers(1, &geoList[i].ibo);
-			gl = true;
-		}
-	}
-	// just for debugging
-	if (gl)
-		THREADCHECK();
-	geoList.clear();
-
-	for (uint i = 0; i < frmList.size(); i++)
-		delete frmList[i];
-	frmList.clear();
-	atomicList.clear();
-
-	if (texDict)
-		texMan.release(texDict->fileName);
-	texDict = 0;
-
-	// TODO: handle virtual animations
-	boneToFrame.clear();
-	animRoot = root = 0;
-	overrideAnim = 0;
-	curTime = 0.0f;
-	currentColorStep = 0;
-}
-
 
 float Drawable::getOvrTime(void)
 {
@@ -386,25 +395,29 @@ float Drawable::getTime(void)
 	return curTime;
 }
 
-void Drawable::setTime(float t)
+bool Drawable::setTime(float t)
 {
 	if (manim.endTime <= 0.0)
-		return;
+		return false;
 	curTime = t;
-	while (curTime > manim.endTime)
+	bool skipped = false;
+	while (curTime > manim.endTime) {
 		curTime -= manim.endTime;
-	while (curTime < 0.0f)
+		skipped = true;
+	}
+	while (curTime < 0.0f) {
 		curTime += manim.endTime;
+		skipped = true;
+	}
 	manim.apply(curTime/manim.endTime, animRoot);
 	updateFrames(animRoot);
 	updateGeometries();
+	return skipped;
 }
 
-// TODO: normals
 void Drawable::updateGeometries(void)
 {
-//	return;
-	for (uint i = 0; i < geoList.size(); i++) {
+	for (size_t i = 0; i < geoList.size(); i++) {
 		Geometry &g = geoList[i];
 		rw::Geometry &rwg = clump->geometryList[i];
 
@@ -413,11 +426,7 @@ void Drawable::updateGeometries(void)
 
 		uint indices[4];
 		float weights[4];
-		for (uint j = 0; j < g.vertices.size()/3; j++) {
-			glm::vec4 v(rwg.vertices[j*3+0],
-			            rwg.vertices[j*3+1],
-			            rwg.vertices[j*3+2], 1.0f);
-
+		for (size_t j = 0; j < g.vertices.size()/3; j++) {
 			indices[0] = rwg.vertexBoneIndices[j]&0xFF;
 			indices[1] = (rwg.vertexBoneIndices[j]&0xFF00)>>8;
 			indices[2] = (rwg.vertexBoneIndices[j]&0xFF0000)>>16;
@@ -438,11 +447,26 @@ void Drawable::updateGeometries(void)
 			m += frmList[boneToFrame[indices[3]]]->boneMat *
 			     weights[3];
 
+			// Vertices
+			glm::vec4 v(rwg.vertices[j*3+0],
+			            rwg.vertices[j*3+1],
+			            rwg.vertices[j*3+2], 1.0f);
 			v = m * v;
-
 			g.vertices[j*3+0] = v.x;
 			g.vertices[j*3+1] = v.y;
 			g.vertices[j*3+2] = v.z;
+
+			// Normals
+			// I hope, we don't have to care about scaling
+			if (rwg.flags & rw::FLAGS_NORMALS) {
+				glm::vec4 n(rwg.normals[j*3+0],
+					    rwg.normals[j*3+1],
+					    rwg.normals[j*3+2], 0.0f);
+				n = m * n;
+				g.normals[j*3+0] = n.x;
+				g.normals[j*3+1] = n.y;
+				g.normals[j*3+2] = n.z;
+			}
 		}
 		g.dirty = true;
 	}
@@ -455,15 +479,17 @@ void Drawable::updateFrames(Frame *f)
 	else
 		f->ltm = f->modelMat;
 
-	// I'm very unsure about this, it seems to work for all cases, though.
-	if (f->parent && f->parent->boneId != -1 &&
-	   //this seems like a hack, I don't know, how to do it correctly
-	   !(f->parent->geo >= 0 && f->parent == animRoot))
-		f->boneMat = f->parent->boneMat * f->modelMat;
-	else if (f->boneId != -1)
-		f->boneMat = f->modelMat;
+	// urgh, probably better do bone matrices per skin
+	if (f->boneId != -1) {
+		if (f->parent &&
+		    (f->geo < 0 || f->geo >= 0 && !geoList[f->geo].isSkinned))
+			f->boneMat = f->parent->boneMat * f->modelMat;
+		// this is a guess, but it seems to work
+		else
+			f->boneMat = glm::mat4(1.0);
+	}
 
-	for (uint i = 0; i < f->children.size(); i++)
+	for (size_t i = 0; i < f->children.size(); i++)
 		updateFrames(f->children[i]);
 
 	if (f->boneId != -1)
@@ -473,7 +499,7 @@ void Drawable::updateFrames(Frame *f)
 void Drawable::setVertexColors(void)
 {
 	THREADCHECK();
-	for (uint i = 0; i < clump->geometryList.size(); i++) {
+	for (size_t i = 0; i < clump->geometryList.size(); i++) {
 		rw::Geometry &rwg = clump->geometryList[i];
 		Geometry &geo = geoList[i];
 
@@ -482,7 +508,7 @@ void Drawable::setVertexColors(void)
 		// 0.0 is day, 1.0 is night
 		float a = timeCycle.getColorStep() / 5.0f;
 
-		for (uint j = 0; j < rwg.nightColors.size(); j++)
+		for (size_t j = 0; j < rwg.nightColors.size(); j++)
 			geo.vertexColors[j] = rwg.nightColors[j]*a + 
 			                      rwg.vertexColors[j]*(1-a);
 
@@ -504,7 +530,7 @@ void Drawable::draw(void)
 	if (currentColorStep != timeCycle.getColorStep())
 		setVertexColors();
 
-	if (frmList.size() == 0)
+	if (frmList.empty())
 		return;
 //	drawFrame(root, true, true);
 	drawFrame(root, true, false);
@@ -529,39 +555,32 @@ void Drawable::drawFrame(Frame *f, bool recurse, bool transform)
 	glm::mat4 mvSave = gl::state.modelView;
 	glm::mat3 nrmSave = gl::state.normalMat;
 
-	if (transform)
-//	if (f->parent != root)
-//	if (transform && (f->geo < 0 ||
-//	    (f->geo >= 0 && !geoList[f->geo].isSkinned)))
+	if (transform && f->dotransform)
 //		gl::state.modelView *= f->ltm;
 		gl::state.modelView *= f->modelMat;
 
 	gl::state.calculateNormalMat();
 	gl::state.updateMatrices();
 
-	// this also hides the dam in liberty city
-//	if (!strstr(f->name.c_str(), "chassis_vlo") &&
-//	    !strstr(f->name.c_str(), "_dam")) {
-		if (f->geo != -1) {
-			drawGeometry(f->geo);
-//			glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
-//			gl::drawSphere(0.1f, 10, 10);
-		} else {
-//			THREADCHECK();
-//			glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
-//			gl::drawSphere(0.1f, 10, 10);
-		}
-//	}
+	if (f->geo >= 0)
+		drawGeometry(f->geo);
+//	else {
+	if (0) {
+		glVertexAttrib4f(in_Color, 1.0f, 1.0f, 1.0f, 1.0f);
+		if (f == animRoot)
+			glVertexAttrib4f(in_Color, 1.0f, 0.0f, 0.0f, 1.0f);
+		glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
+		gl::drawSphere(0.1f, 10, 10);
+	}
 
 	if (recurse)
-		for (uint i = 0; i < f->children.size(); i++)
+		for (size_t i = 0; i < f->children.size(); i++)
 //			drawFrame(f->children[i], true, transform);
 			drawFrame(f->children[i], true, true);
 
 	gl::state.modelView = mvSave;
 	gl::state.normalMat = nrmSave;
 	gl::state.updateMatrices();
-
 }
 
 void Drawable::drawGeometry(int gi)
@@ -585,7 +604,6 @@ void Drawable::drawGeometry(int gi)
 		glBufferSubData(GL_ARRAY_BUFFER, 0,
 		                geoList[gi].vertices.size()*sizeof(GLfloat),
 		                &geoList[gi].vertices[0]);
-		geoList[gi].dirty = false;
 	}
 	glEnableVertexAttribArray(in_Vertex);
 	GLint offset = 0;
@@ -601,6 +619,11 @@ void Drawable::drawGeometry(int gi)
 		offset += numVertices*4*sizeof(GLubyte);
 	}
 	if (g.flags & rw::FLAGS_NORMALS) {
+		if (geoList[gi].dirty)
+			glBufferSubData(GL_ARRAY_BUFFER, offset,
+					geoList[gi].normals.size()*
+			                                    sizeof(GLfloat),
+					&geoList[gi].normals[0]);
 		glEnableVertexAttribArray(in_Normal);
 		glVertexAttribPointer(in_Normal, 3, GL_FLOAT,
 				      GL_FALSE, 0, (GLvoid*) offset);
@@ -613,6 +636,7 @@ void Drawable::drawGeometry(int gi)
 				      GL_FALSE, 0, (GLvoid*) offset);
 		offset += numVertices*2*sizeof(GLfloat);
 	}
+	geoList[gi].dirty = false;
 
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, geoList[gi].ibo);
@@ -620,7 +644,7 @@ void Drawable::drawGeometry(int gi)
 		      GL_TRIANGLE_STRIP : GL_TRIANGLES;
 	offset = 0;
 
-	for (uint j = 0; j < g.splits.size(); j++) {
+	for (size_t j = 0; j < g.splits.size(); j++) {
 		rw::Split s = g.splits[j];
 		bool isTransparent = false;
 
@@ -681,7 +705,7 @@ void Drawable::drawGeometry(int gi)
 			glVertexAttrib4f(in_Color, 0.8f, 0.8f, 0.8f, 1.0f);
 			glLineWidth(2);
 			int add = (mode == rw::FACETYPE_STRIP) ? 1 : 3;
-			for (uint i = 0; i < s.indices.size()-2; i += add) {
+			for (size_t i = 0; i < s.indices.size()-2; i += add) {
 				glDrawElements(GL_LINE_LOOP, 3, GL_UNSIGNED_INT,
 					       (GLvoid*)
 				               (offset*sizeof(rw::uint32)));
@@ -717,9 +741,29 @@ quat Drawable::getPosition(void)
 	return quat(r->pos[0], r->pos[1], r->pos[2]);
 }
 
+quat Drawable::getMinPosition(void)
+{
+	quat q = manim.getPosition(0, animRoot->name);
+	return q;
+}
+
+quat Drawable::getMaxPosition(void)
+{
+	quat q = manim.getPosition(manim.endTime+1, animRoot->name);
+	return q;
+}
+
+Frame *Drawable::getFrame(string name)
+{
+	for (size_t i = 0; i < frmList.size(); i++)
+		if (frmList[i]->name == name)
+			return frmList[i];
+	return 0;
+}
+
 void Drawable::resetFrames(void)
 {
-	for (uint i = 0; i < frmList.size(); i++) {
+	for (size_t i = 0; i < frmList.size(); i++) {
 		frmList[i]->pos = frmList[i]->defPos;
 		frmList[i]->modelMat = frmList[i]->defMat;
 	}
@@ -744,11 +788,53 @@ void Drawable::dumpClump(bool detailed)
 
 Drawable::Drawable(void)
 {
+	curTime = 0.0;
+	curOvrTime = 0.0;
+	currentColorStep = 0;
 	clump = 0;
 	texDict = 0;
 	root = 0;
 	animRoot = 0;
 	overrideAnim = 0;
+}
+
+void Drawable::unload(void)
+{
+	if (clump)
+		clump->clear();
+	delete clump;
+	clump = 0;
+	bool gl = false;
+	for (size_t i = 0; i < geoList.size(); i++) {
+		if (geoList[i].vbo != 0) {
+			glDeleteBuffers(1, &geoList[i].vbo);
+			gl = true;
+		}
+		if (geoList[i].ibo != 0) {
+			glDeleteBuffers(1, &geoList[i].ibo);
+			gl = true;
+		}
+	}
+	// just for debugging
+	if (gl)
+		THREADCHECK();
+	geoList.clear();
+
+	for (size_t i = 0; i < frmList.size(); i++)
+		delete frmList[i];
+	frmList.clear();
+	atomicList.clear();
+
+	if (texDict)
+		texMan->release(texDict->fileName);
+	texDict = 0;
+
+	// TODO: handle virtual animations
+	boneToFrame.clear();
+	animRoot = root = 0;
+	overrideAnim = 0;
+	curTime = 0.0f;
+	currentColorStep = 0;
 }
 
 Drawable::~Drawable(void)

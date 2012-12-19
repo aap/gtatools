@@ -3,26 +3,28 @@
 #include <readline/history.h>
 
 #include <sys/poll.h>
+#include <unistd.h>
 
 #include "gta.h"
+#include "lua.h"
 #include "gl.h"
 #include "camera.h"
+#include "objects.h"
 #include "world.h"
 #include "renderer.h"
 #include "jobqueue.h"
 #include "drawable.h"
 #include "animation.h"
 
-#include "lua.h"
-
 using namespace std;
 
 int gettop(lua_State *L);
+void registerGeneral(lua_State *L);
 void registerCamera(lua_State *L);
 void registerWorld(lua_State *L);
 void registerGl(lua_State *L);
 
-static lua_State *L;
+static lua_State *L = 0;
 static string prompt;
 
 void handleLine(char *s)
@@ -69,7 +71,26 @@ void handleLine(char *s)
 	rl_callback_handler_install(prompt.c_str(), handleLine);
 }
 
-void LuaInterpreter(void)
+void luaInit(void)
+{
+//	while (L == 0);
+	registerCamera(L);
+	registerWorld(L);
+	registerGl(L);
+	registerGeneral(L);
+
+	luaL_dofile(L, "rc.lua");
+	if (game == GTA3)
+		luaL_dostring(L, "game = GTA3");
+	else if (game == GTAVC)
+		luaL_dostring(L, "game = GTAVC");
+	else if (game == GTASA)
+		luaL_dostring(L, "game = GTASA");
+
+	luaL_dofile(L, "init.lua");
+}
+
+void luaInterpreter(void)
 {
 	struct pollfd fds;
 	fds.fd = 0;
@@ -80,14 +101,6 @@ void LuaInterpreter(void)
 	luaL_openlibs(L);
 
 	lua_register(L, "gettop", gettop);
-
-	if (running) {
-		registerCamera(L);
-		registerWorld(L);
-		registerGl(L);
-
-		luaL_dofile(L, "rc.lua");
-	}
 
 	rl_callback_handler_install(prompt.c_str(), handleLine);
 	while (running)
@@ -100,6 +113,114 @@ int gettop(lua_State *L)
 {
 	lua_pushnumber(L, lua_gettop(L));
 	return 1;
+}
+
+/*
+ * General
+ */
+
+int setMixedAnim(lua_State *L)
+{
+	string arg1 = luaL_checkstring(L, 1);
+	string arg2 = luaL_checkstring(L, 2);
+	float arg3 = luaL_checknumber(L, 3);
+	int ind1 = -1, ind2 = -1;
+	for (size_t i = 0; i < gl::anpk.animList.size(); i++) {
+		if (gl::anpk.animList[i].name == arg1)
+			ind1 = i;
+		if (gl::anpk.animList[i].name == arg2)
+			ind2 = i;
+	}
+	if (ind1 != -1 && ind2 != -1)
+		drawable.attachMixedAnim(&gl::anpk.animList[ind1],
+		                         &gl::anpk.animList[ind2],
+		                         arg3);
+	return 0;
+}
+
+int playerSetAnim(lua_State *L)
+{
+	string arg = luaL_checkstring(L, 1);
+	player->setAnim(arg);
+	return 0;
+}
+
+int setAnim(lua_State *L)
+{
+	string arg = luaL_checkstring(L, 1);
+	for (size_t i = 0; i < gl::anpk.animList.size(); i++) {
+		if (gl::anpk.animList[i].name == arg) {
+			drawable.attachAnim(&gl::anpk.animList[i]);
+			break;
+		}
+	}
+	return 0;
+}
+
+int setOvrAnim(lua_State *L)
+{
+	string arg = luaL_checkstring(L, 1);
+	for (size_t i = 0; i < gl::anpk.animList.size(); i++) {
+		if (gl::anpk.animList[i].name == arg) {
+			drawable.attachOverrideAnim(&gl::anpk.animList[i]);
+			break;
+		}
+	}
+	return 0;
+}
+
+int listAnims(lua_State *)
+{
+	for (size_t i = 0; i < gl::anpk.animList.size(); i++)
+		cout << gl::anpk.animList[i].name << endl;
+	return 0;
+}
+
+int resetDrawable(lua_State *)
+{
+	drawable.resetFrames();
+	return 0;
+}
+
+int luausleep(lua_State *L)
+{
+	int i = luaL_checkinteger(L, 1);
+	usleep(i);
+	return 0;
+}
+
+int playerLoad(lua_State *L)
+{
+	string arg1 = luaL_checkstring(L, 1);
+	string arg2 = luaL_checkstring(L, 2);
+	player->modelName = arg1;
+	player->textureName = arg2;
+	player->loadSynch();
+	return 0;
+} 
+
+int playerSetFrameTrans(lua_State *L)
+{
+	string name = luaL_checkstring(L, 1);
+	int trans = luaL_checkinteger(L, 2);
+	Frame *f = player->drawable->getFrame(name);
+	if (f != 0)
+		f->dotransform = trans;
+	return 0;
+}
+
+void registerGeneral(lua_State *L)
+{
+	lua_register(L, "setAnim", setAnim);
+	lua_register(L, "setOvrAnim", setOvrAnim);
+	lua_register(L, "setMixedAnim", setMixedAnim);
+	lua_register(L, "listAnims", listAnims);
+	lua_register(L, "resetDrawable", resetDrawable);
+	lua_register(L, "usleep", luausleep);
+
+	lua_register(L, "playerLoad", playerLoad);
+	lua_register(L, "playerSetAnim", playerSetAnim);
+	lua_register(L, "playerSetFrameTrans", playerSetFrameTrans);
 }
 
 /*
@@ -224,13 +345,13 @@ int cameraLock(lua_State *L)
 {
 	int i = luaL_checkinteger(L, 1);
 	if (i)
-		cam->lock(&drawable);
+		cam->lock(&player->frm);
 	else
 		cam->lock(0);
 	return 0;
 }
 
-int cameraPrint(lua_State *L)
+int cameraPrint(lua_State *)
 {
 	quat target = cam->getTarget();
 	cout << "cam.setTarget(" << target.x << "," << target.y
@@ -394,63 +515,6 @@ int rendererGetLodMult(lua_State *L)
 	return 1;
 }
 
-
-int setMixedAnim(lua_State *L)
-{
-	string arg1 = luaL_checkstring(L, 1);
-	string arg2 = luaL_checkstring(L, 2);
-	float arg3 = luaL_checknumber(L, 3);
-	int ind1 = -1, ind2 = -1;
-	for (uint i = 0; i < gl::anpk.animList.size(); i++) {
-		if (gl::anpk.animList[i].name == arg1)
-			ind1 = i;
-		if (gl::anpk.animList[i].name == arg2)
-			ind2 = i;
-	}
-	if (ind1 != -1 && ind2 != -1)
-		drawable.attachMixedAnim(&gl::anpk.animList[ind1],
-		                         &gl::anpk.animList[ind2],
-		                         arg3);
-	return 0;
-}
-
-int setAnim(lua_State *L)
-{
-	string arg = luaL_checkstring(L, 1);
-	for (uint i = 0; i < gl::anpk.animList.size(); i++) {
-		if (gl::anpk.animList[i].name == arg) {
-			drawable.attachAnim(&gl::anpk.animList[i]);
-			break;
-		}
-	}
-	return 0;
-}
-
-int setOvrAnim(lua_State *L)
-{
-	string arg = luaL_checkstring(L, 1);
-	for (uint i = 0; i < gl::anpk.animList.size(); i++) {
-		if (gl::anpk.animList[i].name == arg) {
-			drawable.attachOverrideAnim(&gl::anpk.animList[i]);
-			break;
-		}
-	}
-	return 0;
-}
-
-int listAnims(lua_State *L)
-{
-	for (uint i = 0; i < gl::anpk.animList.size(); i++)
-		cout << gl::anpk.animList[i].name << endl;
-	return 0;
-}
-
-int resetDrawable(lua_State *L)
-{
-	drawable.resetFrames();
-	return 0;
-}
-
 void registerGl(lua_State *L)
 {
 	lua_register(L, "__rendererSetDoTextures", rendererSetDoTextures);
@@ -469,9 +533,4 @@ void registerGl(lua_State *L)
 	lua_register(L, "__rendererGetDoBFC", rendererGetDoBFC);
 	lua_register(L, "__rendererSetLodMult", rendererSetLodMult);
 	lua_register(L, "__rendererGetLodMult", rendererGetLodMult);
-	lua_register(L, "setAnim", setAnim);
-	lua_register(L, "setOvrAnim", setOvrAnim);
-	lua_register(L, "setMixedAnim", setMixedAnim);
-	lua_register(L, "listAnims", listAnims);
-	lua_register(L, "resetDrawable", resetDrawable);
 }

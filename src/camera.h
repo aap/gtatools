@@ -1,7 +1,7 @@
 #ifndef GTA_CAMERA_H
 #define GTA_CAMERA_H
 #include "math.h"
-#include "drawable.h"
+#include "gl.h"
 
 class Camera
 {
@@ -16,8 +16,10 @@ private:
 	quat planes[6];
 	quat frustumSphere;
 
-	Drawable *aim;
+	RefFrame *aim;
 public:
+	bool doTarget;
+
 	void panLR(float d);
 	void panUD(float d);
 	void turnLR(float phi);
@@ -41,9 +43,10 @@ public:
 
 	quat getPosition(void);
 
-	void lock(Drawable *d);
+	void lock(RefFrame *f);
 
 	void look(void);
+	void drawTarget(void);
 	bool isPointInFrustum(quat p);
 	bool isSphereInFrustum(quat s);
 	bool isBoxInFrustum(quat min, quat max);

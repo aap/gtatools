@@ -78,7 +78,7 @@ quat WorldSector::getMaxCorner(void)
 
 void WorldSector::addToRenderList(void)
 {
-	for (uint i = 0; i < instances.size(); i++)
+	for (size_t i = 0; i < instances.size(); i++)
 		instances[i]->addToRenderList();
 }
 
@@ -101,7 +101,7 @@ void World::buildRenderList(void)
 /*
 	quat camPos = cam->getPosition();
 
-	for (uint i = 0; i < islands.size(); i++) {
+	for (size_t i = 0; i < islands.size(); i++) {
 		if (islands[i].pointInIsland(camPos)) {
 			activeIsland = i;
 			break;
@@ -110,14 +110,14 @@ void World::buildRenderList(void)
 
 	islands[0].addToRenderList();
 	islands[activeIsland].addToRenderList();
-	for (uint i = 0; i < islands.size(); i++) {
+	for (size_t i = 0; i < islands.size(); i++) {
 		if (i != activeIsland)
 			islands[i].addLodToRenderList();
 	}
 */
 
 	sectors[0].addToRenderList();
-	for (uint i = 1; i < sectors.size(); i++)
+	for (size_t i = 1; i < sectors.size(); i++)
 		if (cam->isBoxInFrustum(sectors[i].getMinCorner(),
 		                       sectors[i].getMaxCorner()))
 			sectors[i].addToRenderList();
@@ -125,14 +125,14 @@ void World::buildRenderList(void)
 
 void World::cleanUp(void)
 {
-	for (uint i = 0; i < instances.size(); i++)
+	for (size_t i = 0; i < instances.size(); i++)
 		instances[i]->releaseIfInactive();
-//	texMan.dumpLoaded();
+//	texMan->dumpLoaded();
 }
 
 void World::drawZones(void)
 {
-	for (uint i = 0; i < islands.size(); i++)
+	for (size_t i = 0; i < islands.size(); i++)
 		islands[i].drawZones();
 }
 
@@ -153,7 +153,7 @@ void World::readIpl(ifstream &in, string iplName)
 	int i = 0;
 	sprintf(num, "%d", i);
 	binName = iplName + num + ".ipl";
-	while (directory.openFile(binFile, binName) == 0) {
+	while (directory->openFile(binFile, binName) == 0) {
 		readBinIpl(binFile);
 		binFile.close();
 		i++;
@@ -165,14 +165,14 @@ void World::readIpl(ifstream &in, string iplName)
 void World::addInstance(Instance *i)
 {
 	instances.push_back(i);
-	uint k = instances.size()-1;
+	size_t k = instances.size()-1;
 	instances[k]->index = k;
 	indices.push_back(ind++);
 }
 
 void World::populateIslands(void)
 {
-	for (uint i = 0; i < instances.size(); i++) {
+	for (size_t i = 0; i < instances.size(); i++) {
 		addInstanceToIsland(instances[i]);
 		addInstanceToSectors(instances[i]);
 	}
@@ -194,7 +194,7 @@ void World::addInstanceToSectors(Instance *ip)
 	quat p1 = col->min + ip->position;
 	quat p2 = col->max + ip->position;
 	// Add an instance to a sector if it's inside or intersecting.
-	for (uint i = 1; i < sectors.size(); i++) {
+	for (size_t i = 1; i < sectors.size(); i++) {
 		if (sectors[i].intersectBox(p1, p2) != OUTSIDE) {
 			sectors[i].addInstance(ip);
 			added = true;
@@ -219,7 +219,7 @@ void World::addInstanceToIsland(Instance *i)
 		dist = 500.0f;
 	// add instance to the appropriate island; if none is found,
 	// add to the default island (0)
-	uint j;
+	size_t j;
 	for (j = 1; j < islands.size(); j++)
 		if (i->isIslandLod) {
 			if (islands[j].pointInIsland(i->position)) {
@@ -296,7 +296,7 @@ void World::readTextIpl(ifstream &in)
 			Zone *z = new Zone;
 			z->initFromLine(fields);
 
-			if (uint(z->islandNum) >= islands.size())
+			if (size_t(z->islandNum) >= islands.size())
 				islands.resize(z->islandNum+1);
 
 			if (z->type == 3)
@@ -312,7 +312,7 @@ void World::associateLods(void)
 	int base = 0;
 
 	/* Associate every instance with its LOD and vice versa */
-	for (uint i = 0; i < instances.size(); i++) {
+	for (size_t i = 0; i < instances.size(); i++) {
 		Instance *ip = instances[i];
 		if (indices[i] == 0)
 			base = i;
@@ -342,15 +342,15 @@ void World::associateLods(void)
 	dummyObj->objectCount = 1;
 	if (game == GTA3)
 		// not sure about that one
-		dummyObj->drawDistances.push_back(100-FADE);
+		dummyObj->drawDistances.push_back(60);
 	else
 		dummyObj->drawDistances.push_back(0);
 	dummyObj->flags = 0;
 	objectList->add(dummyObj);
 
-	for (uint i = 0; i < instances.size(); i++) {
+	for (size_t i = 0; i < instances.size(); i++) {
 		Instance *lod = instances[i];
-		if (!lod->isLod || lod->hires.size() != 0)
+		if (!lod->isLod || !lod->hires.empty())
 			continue;
 
 		Instance *ip = new Instance;
@@ -366,7 +366,7 @@ void World::associateLods(void)
 
 		addInstance(ip);
 
-		uint ind = instances.size()-1;
+		size_t ind = instances.size()-1;
 		lod->hires.push_back(ind);
 	}
 
@@ -396,7 +396,7 @@ void World::initSectors(quat start, quat end, int count)
 
 void World::drawSectors(void)
 {
-	for (uint i = 1; i < sectors.size(); i++)
+	for (size_t i = 1; i < sectors.size(); i++)
 		sectors[i].draw();
 }
 
@@ -419,7 +419,7 @@ int World::getLod(Instance *ip)
 	float bestD = 1000000;
 	int bestLod = -1;
 
-	for (uint i = 0; i < instances.size(); i++) {
+	for (size_t i = 0; i < instances.size(); i++) {
 		Instance *inst = instances[i];
 		if (inst->name == lodName1 || inst->name == lodName1) {
 			float d =
@@ -458,19 +458,28 @@ World::World(void)
 	interior = 0;
 }
 
+World::~World(void)
+{
+	for (size_t i = 0; i < instances.size(); i++)
+		delete instances[i];
+	instances.clear();
+	islands.clear();
+	sectors.clear();
+}
+
 /*
  * Island
  */
 
 void Island::addToRenderList(void)
 {
-	for (uint i = 0; i < instances.size(); i++)
+	for (size_t i = 0; i < instances.size(); i++)
 		instances[i]->addToRenderList();
 }
 
 void Island::addLodToRenderList(void)
 {
-	for (uint i = 0; i < islandLods.size(); i++)
+	for (size_t i = 0; i < islandLods.size(); i++)
 		islandLods[i]->addToRenderList();
 }
 
@@ -482,7 +491,7 @@ void Island::drawZones(void)
 	glAlphaFunc(GL_GREATER, 0.0);
 	glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
 
-	for (uint i = 0; i < islandZones.size(); i++) {
+	for (size_t i = 0; i < islandZones.size(); i++) {
 		if (islandZones[i]->islandNum == 1)
 			glVertexAttrib4f(gl::in_Color, 1.0f, 0.0f, 0.0f, 0.5f);
 		else if (islandZones[i]->islandNum == 2)
@@ -498,7 +507,7 @@ void Island::drawZones(void)
 
 bool Island::sphereInIsland(quat p, float r)
 {
-	for (uint i = 0; i < islandZones.size(); i++)
+	for (size_t i = 0; i < islandZones.size(); i++)
 		if (islandZones[i]->sphereInZone(p, r))
 			return true;
 	return false;
@@ -506,10 +515,20 @@ bool Island::sphereInIsland(quat p, float r)
 
 bool Island::pointInIsland(quat p)
 {
-	for (uint i = 0; i < islandZones.size(); i++)
+	for (size_t i = 0; i < islandZones.size(); i++)
 		if (islandZones[i]->pointInZone(p))
 			return true;
 	return false;
+}
+
+Island::~Island(void)
+{
+	for (size_t i = 0; i < zones.size(); i++)
+		delete zones[i];
+	for (size_t i = 0; i < islandZones.size(); i++)
+		delete islandZones[i];
+	zones.clear();
+	islandZones.clear();
 }
 
 /*
@@ -645,7 +664,7 @@ void Instance::addToRenderList(void)
 
 	WorldObject *op = static_cast<WorldObject*>(objectList->get(id));
 
-	float dist = cam->distanceTo(position)/renderer->lodMult;
+	float dist = cam->distanceTo(position)/renderer->lodMult - fadeThrshd;
 	int ai = op->getCorrectAtomic(dist);
 
 	// frustum cull
@@ -740,7 +759,7 @@ release:
 void Instance::addLodToRenderList(void)
 {
 	Instance *ip = world->getInstance(lod);
-	if (ip != 0)
+	if (ip)
 		ip->addToRenderList();
 }
 
@@ -827,6 +846,8 @@ void Instance::printInfo(void)
 Instance::Instance(void)
 {
 	lod = -1;
+	index = 0;
+	id = 0;
 	interior = 0;
 	scale = quat(1.0f, 1.0f, 1.0f);
 	isHidden = false;

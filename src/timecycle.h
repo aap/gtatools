@@ -54,7 +54,7 @@ private:
 
 public:
 	void load(std::ifstream &f);
-	void calcCurrent(int hour, int minute);
+	void calcCurrent(void);
 	Weather *getCurrentWeatherData(void);
 	int getHour(void);
 	int getMinute(void);

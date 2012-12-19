@@ -110,19 +110,6 @@ int initGl(void)
 	return 0;
 }
 
-void cleanUp(void)
-{
-	delete objectList;
-	delete world;
-	delete renderer;
-	delete cam;
-
-	delete simplePipe;
-	delete gtaPipe;
-
-	drawable.unload();
-}
-
 void *opengl(void *args)
 {
 	void **a = (void**)args;
@@ -161,9 +148,14 @@ void *opengl(void *args)
 
 	glfwSetMouseButtonCallback(mouseButton);
 	glfwSetMousePosCallback(mouseMotion);
+	glfwSetMouseWheelCallback(mouseWheel);
 	glfwSetKeyCallback(keypress);
 	glfwSetWindowSizeCallback(resize);
-//	glfwEnable(GLFW_KEY_REPEAT);
+
+	string fileName = getPath("anim/ped.ifp");
+	ifstream f(fileName.c_str(), ios::binary);
+	anpk.read(f);
+	f.close();
 
 	// Load the test object
 	if (*argc >= 4) {
@@ -192,33 +184,41 @@ void *opengl(void *args)
 		if (drawable.loadSynch(dff, txd) == -1)
 			exit(1);
 
-		string fileName = getPath("anim/ped.ifp");
-		ifstream f(fileName.c_str(), ios::binary);
-		anpk.read(f);
-		f.close();
-
 		if (*argc >= 5)
-			for (uint i = 0; i < anpk.animList.size(); i++)
+			for (size_t i = 0; i < anpk.animList.size(); i++)
 				if (anpk.animList[i].name == argv[4]) {
 					drawable.attachAnim(&anpk.animList[i]);
 					break;
 				}
 	}
 
-	initDone = true;
+	luaInit();
 
 /*
 	int ret = glfwGetJoystickParam(GLFW_JOYSTICK_1, GLFW_PRESENT);
 	cout << "joystick: " << ret << endl;
 */
 
+	int frm = 0;
+	clock_t startTime = clock();
+	clock_t lastTime, time;
+	lastTime = clock();
 	while (running) {
+		time = clock();
 		handleKeyboardInput();
 		handleJoystickInput(GLFW_JOYSTICK_1);
+		updateGame((time - lastTime)*1.0/CLOCKS_PER_SEC);
 
 		renderer->renderScene();
 
 		glfwSwapBuffers();
+		lastTime = time;
+		frm++;
+		if ((time - startTime) >= CLOCKS_PER_SEC) {
+//			cout << frm << " fps\n";
+			frm = 0;
+			startTime = time;
+		}
 	}
 
 	cleanUp();
@@ -228,4 +228,62 @@ void *opengl(void *args)
 	return NULL;
 }
 
+}
+
+void RefFrame::update(void)
+{
+	right = forward.wedge(up);
+	up = right.wedge(forward);
+
+	glm::vec4 x, y, z, w;
+	x.x = right.x; x.y = right.y; x.z = right.z; x.w = 0;
+	y.x = forward.x; y.y = forward.y; y.z = forward.z; y.w = 0;
+	z.x = up.x; z.y = up.y; z.z = up.z; z.w = 0;
+	w.x = position.x; w.y = position.y; w.z = position.z; w.w = 1;
+	mat = glm::mat4(x, y, z, w);
+}
+
+void RefFrame::move(quat p1, quat p2)
+{
+	quat diff = p2 - p1;
+	float a = acos(forward.y)/2;
+	quat axis = forward.wedge(quat(0.0, 1.0, 0.0));
+	if (axis.z == 0) {
+		if (forward.y == 1)
+			a = 0;
+		else
+			a = PI/2;
+		axis = quat(0.0, 0.0, 1.0);
+	}
+	axis.normalize();
+	quat q(cos(a), sin(a)*axis.x, sin(a)*axis.y, sin(a)*axis.z);
+	diff = q.getConjugate() * diff * q;
+	position += diff;
+	update();
+}
+
+void RefFrame::moveForward(float d)
+{
+	position += forward*d;
+	update();
+}
+
+void RefFrame::rotate(float r)
+{
+	r /= 2;
+	quat q(cos(r), sin(r)*up.x, sin(r)*up.y, sin(r)*up.z);
+	forward = q.getConjugate() * forward * q;
+	update();
+}
+
+void RefFrame::setForward(quat f)
+{
+	forward = f;
+	update();
+}
+
+void RefFrame::setHeading(float r)
+{
+	forward = quat(0, sin(r), cos(r), 0);
+	update();
 }

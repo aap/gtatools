@@ -77,6 +77,7 @@ public:
 	float endTime;
 	void attachAnims(Animation *a, Animation *b, float f);
 	void apply(float t, Frame *f);
+	quat getPosition(float f, std::string s);
 
 	MixedAnimation(void);
 	MixedAnimation(Animation *a, Animation *b, float f);

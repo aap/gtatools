@@ -1,6 +1,8 @@
 #ifndef GTA_GTA_H
 #define GTA_GTA_H
 
+#define GLIBCXX_FORCE_NEW
+
 #ifdef _WIN32
   #include <windows.h>
   #undef ERROR // error in glm
@@ -21,6 +23,9 @@
 		cout << __PRETTY_FUNCTION__ << endl;\
 	}
 
+#define SAFE_DELETE(p)\
+	delete p; p = 0;
+
 enum {
 	GTA3 = 1,
 	GTAVC = 2,
@@ -34,11 +39,15 @@ extern char *progname;
 extern std::string gamePath;
 extern int game;
 extern volatile bool running;
-extern volatile bool initDone;
 extern uint oglThread;
 
+class Ped;
+extern Ped *player;
+
 void exitprog(void);
+void cleanUp(void);
 int initGame(void);
+void updateGame(float timeDiff);
 
 bool isPointInBox(quat p, quat corner1, quat corner2);
 bool isSphereInBox(quat p, quat corner1, quat corner2);

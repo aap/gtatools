@@ -271,3 +271,8 @@ int CollisionModel::read(ifstream &in)
 //	cout << hex << in.tellg() << endl << endl;
 	return 0;
 }
+
+CollisionModel::CollisionModel(void)
+: island(-1)
+{
+}

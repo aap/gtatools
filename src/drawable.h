@@ -32,6 +32,9 @@ struct Frame {
 
 	int geo;
 	int index;
+
+
+	bool dotransform;
 };
 
 struct Geometry {
@@ -42,7 +45,7 @@ struct Geometry {
 
 	bool isSkinned;
 	std::vector<GLfloat> vertices;
-
+	std::vector<GLfloat> normals;
 	std::vector<GLubyte> vertexColors;
 };
 
@@ -62,6 +65,7 @@ private:
 	MixedAnimation manim;
 	Animation *overrideAnim;
 	Frame *animRoot;
+	Frame *skin;
 	std::vector<uint> boneToFrame;
 	float curTime;
 	float curOvrTime;
@@ -89,13 +93,16 @@ public:
 	void drawFrame(Frame *f, bool recurse, bool transform);
 	void setVertexColors(void);
 	float getTime(void);
-	void setTime(float t);
+	bool setTime(float t);
 	float getOvrTime(void);
 	void setOvrTime(float t);
 	void resetFrames(void);
 	bool hasModel(void);
 	bool hasTextures(void);
 	quat getPosition(void);
+	quat getMinPosition(void);
+	quat getMaxPosition(void);
+	Frame *getFrame(std::string name);
 
 	void printFrames(int level, Frame *r);
 	void dumpClump(bool detailed);

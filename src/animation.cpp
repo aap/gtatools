@@ -78,14 +78,57 @@ void MixedAnimation::apply(float t, ::Frame *f)
 		f->modelMat[3][1] = f->pos.y;
 		f->modelMat[3][2] = f->pos.z;
 	}
-	for (uint i = 0; i < f->children.size(); i++)
+	for (size_t i = 0; i < f->children.size(); i++)
 		apply(t, f->children[i]);
+}
+
+quat MixedAnimation::getPosition(float f, std::string name)
+{
+	quat pos(0.0, 0.0, 0.0);
+/*
+	if (anim1 == 0)
+		return pos;
+	if (anim2 == 0)
+		return pos;
+*/
+	KeyFrame kf1, kf2;
+	anim1->getKeyframe(f, name, kf1);
+//	anim2->getKeyframe(f, name, kf2);
+	if (kf1.type == KRT0 || kf1.type == KRTS) {
+		pos.x = kf1.pos.x;
+		pos.y = kf1.pos.y;
+		pos.z = kf1.pos.z;
+	}
+
+/*
+	// if the first frame is invalid, swap frame 1 and 2
+	if (kf1.type == 0) {
+		kf1 = kf2;
+		kf2.type = 0;
+	}
+	if (kf1.type != 0 && kf2.type == 0) {
+		if (kf1.type == KRT0 || kf1.type == KRTS) {
+			pos.x = kf1.pos.x;
+			pos.y = kf1.pos.y;
+			pos.z = kf1.pos.z;
+		}
+	} else if (kf1.type != 0 && kf2.type != 0) {
+		if (kf1.type == KRT0 || kf1.type == KRTS) {
+			quat p = kf1.pos*mixFactor + kf2.pos*(1.0f-mixFactor);
+			pos.x = p.x;
+			pos.y = p.y;
+			pos.z = p.z;
+		}
+	}
+*/
+	return pos;
 }
 
 MixedAnimation::MixedAnimation(void)
 {
 	anim1 = anim2 = 0;
 	mixFactor = 0.0f;
+	endTime = 0.0f;
 }
 
 MixedAnimation::MixedAnimation(Animation *a, Animation *b, float f)
@@ -104,7 +147,7 @@ void AnimPackage::clear(void)
 
 void Animation::getKeyframe(float t, string name, KeyFrame &kf)
 {
-	uint oi;
+	size_t oi;
 	// TODO: probably too slow
 	for (oi = 0; oi < objList.size(); oi++)
 		if (objList[oi].name == name)
@@ -142,7 +185,7 @@ void Animation::apply(float t, ::Frame *f, bool recurse)
 	}
 
 	if (recurse)
-		for (uint i = 0; i < f->children.size(); i++)
+		for (size_t i = 0; i < f->children.size(); i++)
 			apply(t, f->children[i], recurse);
 }
 
@@ -159,7 +202,7 @@ void AnimObj::interpolate(float t, KeyFrame &key)
 		return;
 	}
 
-	uint i;
+	size_t i;
 	for (i = 0; i < frmList.size(); i++)
 		if (t < frmList[i].timeKey)
 			break;

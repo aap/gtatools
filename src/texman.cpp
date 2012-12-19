@@ -15,7 +15,7 @@ using namespace std;
 
 #include <ctime>
 
-TexManager texMan;
+TexManager *texMan;
 
 /*
  * TexManager
@@ -23,7 +23,7 @@ TexManager texMan;
 
 void TexManager::dumpLoaded(void)
 {
-	for (uint i = 0; i < txdList.size(); i++) {
+	for (size_t i = 0; i < txdList.size(); i++) {
 		if (txdList[i]->isLoaded)
 			cout << txdList[i]->fileName << endl;
 	}
@@ -109,7 +109,7 @@ uint TexManager::add(string fileName, bool load, bool synch)
 	if (load)
 		txd->load(synch);
 
-	if (txdList.size() > 0) {
+	if (!txdList.empty()) {
 		int min, max, mid;
 		min = 1; max = txdList.size() - 1;
 
@@ -158,7 +158,7 @@ void TexManager::addGlobal(std::string fileName)
 
 Texture *TexManager::getGlobalTex(std::string texName)
 {
-	for (uint i = 0; i < globalTxdList.size(); i++) {
+	for (size_t i = 0; i < globalTxdList.size(); i++) {
 		TexDictionary *txd = globalTxdList[i];
 		if (!txd->isLoaded)
 			txd->load(true);
@@ -171,14 +171,14 @@ Texture *TexManager::getGlobalTex(std::string texName)
 
 void TexManager::dump(void)
 {
-	for (uint i = 0; i < txdList.size(); i++) {
+	for (size_t i = 0; i < txdList.size(); i++) {
 		cout << txdList[i]->fileName<<" "<<txdList[i]->isLoaded << endl;
 		if (txdList[i]->parent)
 			cout << " " << txdList[i]->parent->fileName << " " <<
 				txdList[i]->parent->isLoaded << endl;
 	}
 	cout << "globals:\n";
-	for (uint i = 0; i < globalTxdList.size(); i++) {
+	for (size_t i = 0; i < globalTxdList.size(); i++) {
 		cout << globalTxdList[i]->fileName<<" "<<globalTxdList[i]->isLoaded << endl;
 	}
 }
@@ -190,6 +190,16 @@ TexManager::TexManager(void)
 	txdList.push_back(t);
 }
 
+TexManager::~TexManager(void)
+{
+	for (size_t i = 0; i < txdList.size(); i++)
+		delete txdList[i];
+	for (size_t i = 0; i < globalTxdList.size(); i++)
+		delete globalTxdList[i];
+	txdList.clear();
+	globalTxdList.clear();
+}
+
 /*
  * TexDictionary
  */
@@ -199,14 +209,14 @@ Texture *TexDictionary::get(string texName)
 	// try to find texture
 	// if not found, try parent
 	// if still not found, try global texture
-	for (uint i = 0; i < texList.size(); i++)
+	for (size_t i = 0; i < texList.size(); i++)
 		if (texList[i].name == texName)
 			return &texList[i];
 	Texture *t = 0;
 	if (parent)
 		t = parent->get(texName);
 	if (t == 0 && !isGlobal)
-		t = texMan.getGlobalTex(texName);
+		t = texMan->getGlobalTex(texName);
 	return t;
 }
 
@@ -222,7 +232,7 @@ int TexDictionary::load(bool synch)
 		return 0;
 	}
 	ifstream txdf;
-	if (directory.openFile(txdf, fileName) == -1) {
+	if (directory->openFile(txdf, fileName) == -1) {
 		cout << "couldn't open " << fileName << endl;
 		return -1;
 	}
@@ -231,7 +241,7 @@ int TexDictionary::load(bool synch)
 	txdf.close();
 
 	// convert to a sensible format
-	for (uint i = 0; i < txd->texList.size(); i++) {
+	for (size_t i = 0; i < txd->texList.size(); i++) {
 		if (txd->texList[i].platform == rw::PLATFORM_PS2)
 			txd->texList[i].convertFromPS2();
 		if (txd->texList[i].platform == rw::PLATFORM_XBOX)
@@ -249,8 +259,7 @@ void TexDictionary::attachTxd(rw::TextureDictionary *txd)
 {
 	THREADCHECK();
 	glActiveTexture(GL_TEXTURE0);
-//	cout << fileName << endl;
-	for (uint i = 0; i < txd->texList.size(); i++) {
+	for (size_t i = 0; i < txd->texList.size(); i++) {
 		rw::NativeTexture &nt = txd->texList[i];
 		Texture t;
 		t.name = nt.name;
@@ -265,7 +274,7 @@ void TexDictionary::attachTxd(rw::TextureDictionary *txd)
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-		clock_t oldtime = clock();
+//		clock_t oldtime = clock();
 		if ((nt.rasterFormat & rw::RASTER_MASK) == rw::RASTER_8888 ||
 		    !(nt.rasterFormat & (rw::RASTER_PAL8 | rw::RASTER_PAL4))) {
 			glTexImage2D(GL_TEXTURE_2D, 0, 4,
@@ -282,16 +291,13 @@ void TexDictionary::attachTxd(rw::TextureDictionary *txd)
 			glDeleteTextures(1, &t.tex);
 			t.tex = 0;
 		}
-		clock_t newtime = clock();
-		double diff = (newtime-oldtime) * 1000/CLOCKS_PER_SEC;
-//		cout << "texload: " << diff << " "
-//		     << (nt.width[0]*nt.height[0]*4) << " " << hex << (uint) &nt.texels[0][0] << endl;
+//		clock_t newtime = clock();
+//		double diff = (newtime-oldtime) * 1000/CLOCKS_PER_SEC;
 
 		texList.push_back(t);
 	}
-//	cout << endl;
 	glBindTexture(GL_TEXTURE_2D, 0);
-	txd->clear();	// TODO: Why doesn't the deconstructor do this?
+//	txd->clear();	// TODO: Why doesn't the deconstructor do this?
 	delete txd;
 	isLoaded = true;
 	isLoading = false;
@@ -300,7 +306,7 @@ void TexDictionary::attachTxd(rw::TextureDictionary *txd)
 void TexDictionary::unload(void)
 {
 	THREADCHECK();
-	for (uint i = 0; i < texList.size(); i++)
+	for (size_t i = 0; i < texList.size(); i++)
 		glDeleteTextures(1, &texList[i].tex);
 	texList.clear();
 	isLoaded = false;
@@ -312,3 +318,11 @@ bool TexDictionary::isHierarchyLoaded(void)
 	return parent ? (isLoaded && parent->isHierarchyLoaded()) : isLoaded;
 }
 */
+
+TexDictionary::~TexDictionary(void)
+{
+	THREADCHECK();
+	for (size_t i = 0; i < texList.size(); i++)
+		glDeleteTextures(1, &texList[i].tex);
+	texList.clear();
+}

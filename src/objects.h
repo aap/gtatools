@@ -6,6 +6,7 @@
 #include "gta.h"
 #include "math.h"
 #include "drawable.h"
+#include "gl.h"
 
 class CollisionModel;
 
@@ -55,6 +56,7 @@ public:
 public:
 	bool canDraw(void);
 	void load(void);
+	void loadSynch(void);
 	void unload(void);
 	void drawCol(void);
 	void drawBoundingSphere(void);
@@ -80,6 +82,19 @@ private:
 	std::string voice1, voice2;
 public:
 	void initFromLine(std::vector<std::string> fields);
+
+
+	int state;
+	quat lastPos;
+	RefFrame frm;
+	void draw(void);
+	void setAnim(std::string an);
+	void reset(void);
+	void incTime(float t);
+	void setStateWalking(void);
+	void setStateRunning(void);
+	void setStateStop(void);
+	pthread_mutex_t animmut;
 };
 
 // car

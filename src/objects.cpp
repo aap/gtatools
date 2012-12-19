@@ -99,7 +99,7 @@ void ObjectList::readIde(ifstream &in)
 			stringToLower(parent);
 			child += ".txd";
 			parent += ".txd";
-			texMan.addParentInfo(child, parent);
+			texMan->addParentInfo(child, parent);
 		}
 	} while(!in.eof());
 }
@@ -110,13 +110,13 @@ void ObjectList::findAndReadCol(string fileName)
 	fileName = fileName.substr(0, fileName.size()-4);
 
 	ifstream f;
-	if (directory.openFile(f, fileName+".col") == -1) {
+	if (directory->openFile(f, fileName+".col") == -1) {
 		string fileName2;
 		char num[4];
 		int i = 1;
 		sprintf(num, "_%d", i);
 		fileName2 = fileName + num + ".col";
-		while (directory.openFile(f, fileName2) == 0) {
+		while (directory->openFile(f, fileName2) == 0) {
 			readCol(f);
 			f.close();
 			i++;
@@ -126,7 +126,7 @@ void ObjectList::findAndReadCol(string fileName)
 		i = 1;
 		sprintf(num, "%d", i);
 		fileName2 = fileName + num + ".col";
-		while (directory.openFile(f, fileName2) == 0) {
+		while (directory->openFile(f, fileName2) == 0) {
 			readCol(f);
 			f.close();
 			i++;
@@ -156,7 +156,7 @@ void ObjectList::readCol(ifstream &in, int island)
 void ObjectList::associateCols(void)
 {
 	Model *mp;
-	for (uint i = 0; i < cols.size(); i++) {
+	for (size_t i = 0; i < cols.size(); i++) {
 		mp = get(cols[i]->name);
 		if (mp == 0) {
 //			cout << "no model found for col "<<cols[i]->name<<endl;
@@ -168,7 +168,7 @@ void ObjectList::associateCols(void)
 
 void ObjectList::dumpCols(void)
 {
-	for (uint i = 0; i < cols.size(); i++)
+	for (size_t i = 0; i < cols.size(); i++)
 		cout << cols[i]->name << endl;
 }
 
@@ -227,6 +227,9 @@ ObjectList::~ObjectList(void)
 	for (int i = 0; i < objectCount; i++)
 		delete objects[i];
 	delete[] objects;
+	for (size_t i = 0; i < cols.size(); i++)
+		delete cols[i];
+	cols.clear();
 	objectCount = 0;
 	objects = 0;
 }
@@ -278,7 +281,7 @@ void WorldObject::initFromLine(std::vector<std::string> fields, int blockType)
 
 int WorldObject::getCorrectAtomic(float d)
 {
-	for (uint i = 0; i < drawDistances.size(); i++) {
+	for (size_t i = 0; i < drawDistances.size(); i++) {
 		if (d <= drawDistances[i])
 			return i;
 	}
@@ -317,7 +320,7 @@ void WorldObject::printInfo(void)
 	if (type == ANIM)
 		cout << animationName << ", ";
 	cout << drawDistances.size() << ", ";
-	for (uint i = 0; i < drawDistances.size(); i++)
+	for (size_t i = 0; i < drawDistances.size(); i++)
 		cout << drawDistances[i] << ", ";
 	cout << flags << ", ";
 	if (type == TOBJ) {
@@ -330,44 +333,11 @@ void WorldObject::printInfo(void)
 
 WorldObject::WorldObject(void)
 {
+	objectCount = 0;
+	flags = 0;
+	timeOn = 0;
+	timeOff = 0;
 	isTimed = false;
-}
-
-/*
- * Ped
- */
-
-void Ped::initFromLine(std::vector<std::string> fields)
-{
-	int i = 0;
-	type = PEDS;
-	id = atoi(fields[i++].c_str());
-	modelName = fields[i++];
-	textureName = fields[i++];
-	defaultPedType = fields[i++];
-	behaviour = fields[i++];
-	animGroup = fields[i++];
-	stringToLower(modelName);
-	stringToLower(textureName);
-	stringToLower(defaultPedType);
-	stringToLower(behaviour);
-	stringToLower(animGroup);
-	carsCanDrive = atoi(fields[i++].c_str());
-
-	if (fields.size() >= 10) {	// vc and sa
-		animFile = fields[i++];
-		stringToLower(animFile);
-		radio1 = atoi(fields[i++].c_str());
-		radio2 = atoi(fields[i++].c_str());
-	}
-	if (fields.size() >= 13) {	// sa
-		voiceArchive = fields[i++];
-		voice1 = fields[i++];
-		voice2 = fields[i++];
-		stringToLower(voiceArchive);
-		stringToLower(voice1);
-		stringToLower(voice2);
-	}
 }
 
 /*
@@ -460,7 +430,7 @@ void Model::drawCol(void)
 
 	vector<GLfloat> verts;
 	GLuint vbo;
-	for (uint i = 0; i < col->faces.size(); i++) {
+	for (size_t i = 0; i < col->faces.size(); i++) {
 		verts.push_back(col->vertices[col->faces[i].a*3+0]);
 		verts.push_back(col->vertices[col->faces[i].a*3+1]);
 		verts.push_back(col->vertices[col->faces[i].a*3+2]);
@@ -507,7 +477,7 @@ void Model::drawCol(void)
 	glDeleteBuffers(1, &vbo);
 
 	// draw boxes
-	for (uint i = 0; i < col->boxes.size(); i++) {
+	for (size_t i = 0; i < col->boxes.size(); i++) {
 		gl::state.matColor = color;
 		gl::state.updateMaterial();
 		gl::drawCube2(col->boxes[i].min, col->boxes[i].max);
@@ -533,6 +503,13 @@ void Model::load(void)
 	if (drawable == 0)
 		cout << "panic: no more memory\n";
 	drawable->request(modelName+".dff", textureName+".txd");
+	isFreshlyLoaded = true;
+}
+
+void Model::loadSynch(void)
+{
+	drawable = new Drawable;
+	drawable->loadSynch(modelName+".dff", textureName+".txd");
 	isFreshlyLoaded = true;
 }
 
@@ -574,7 +551,6 @@ Model::Model(void)
 
 Model::~Model(void)
 {
-	delete drawable;
-	// TODO: add ref count for cols
-//	delete col;
+	if (drawable)
+		delete drawable;
 }

@@ -30,7 +30,7 @@ volatile bool threadFinished;
 
 clock_t oldtime;
 
-static void *buildListThread(void *args)
+static void *buildListThread(void *)
 {
 	world->buildRenderList();
 	oldtime = clock();
@@ -42,7 +42,7 @@ void Renderer::renderOpaque(void)
 {
 	THREADCHECK();
 	gl::drawTransparent = false;
-	for (uint i = 0; i < opaqueRenderList.size(); i++) {
+	for (size_t i = 0; i < opaqueRenderList.size(); i++) {
 		Instance *ip = opaqueRenderList[i].inst;
 		WorldObject *op =
 			static_cast<WorldObject*>(objectList->get(ip->id));
@@ -101,8 +101,8 @@ next:
 void Renderer::renderTransp1(void)
 {
 	THREADCHECK();
-	gl::drawTransparent = true;
-	for (uint i = 0; i < transp1RenderList.size(); i++) {
+ 	gl::drawTransparent = true;
+	for (size_t i = 0; i < transp1RenderList.size(); i++) {
 		Instance *ip = transp1RenderList[i].inst;
 		WorldObject *op =
 			static_cast<WorldObject*>(objectList->get(ip->id));
@@ -132,7 +132,7 @@ void Renderer::renderTransp2(void)
 {
 	THREADCHECK();
 	gl::drawTransparent = true;
-	for (uint i = 0; i < transp2RenderList.size(); i++) {
+	for (size_t i = 0; i < transp2RenderList.size(); i++) {
 		Instance *ip = transp2RenderList[i].inst;
 		WorldObject *op =
 			static_cast<WorldObject*>(objectList->get(ip->id));
@@ -204,19 +204,19 @@ void Renderer::renderScene(void)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
 	        GL_STENCIL_BUFFER_BIT);
 
+	timeCycle.calcCurrent();
 	Weather *w = timeCycle.getCurrentWeatherData();
 
 	// 3d scene
-	timeCycle.calcCurrent(timeCycle.getHour(), timeCycle.getMinute());
 	cam->setNearFar(0.1f, w->farClp);
 	cam->look();	// this sets the projection and modelView matrices
 
 	gl::state.calculateNormalMat();
 
-//	not used at the moment
-//	glm::vec4 lightPos = glm::vec4(5.0f, 5.0f, 3.0f, 1.0f);
-//	lightPos = gl::state.modelView * lightPos;
 	gl::state.lightCol = glm::vec3(1.0f, 1.0f, 1.0f);
+	glm::vec4 lightDir = glm::vec4(1.0f, 1.0f, -1.0f, 0.0f);
+	lightDir = gl::state.modelView * glm::normalize(lightDir);
+	gl::state.lightDir = glm::vec3(lightDir);
 
 	glm::vec3 amb;
 	if (doTrails)
@@ -231,12 +231,14 @@ void Renderer::renderScene(void)
 	gl::state.updateAll();
 	glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
 
-//	gl::drawAxes(glm::value_ptr(gl::state.modelView));
-
 	glDisable(GL_DEPTH_TEST);
 	sky.draw();
 	glEnable(GL_DEPTH_TEST);
 
+	if (cam->doTarget) {
+		gl::drawAxes(glm::value_ptr(player->frm.mat));
+		cam->drawTarget();
+	}
 
 	gl::gtaPipe->use();
 
@@ -260,6 +262,7 @@ void Renderer::renderScene(void)
 		gl::drawTransparent = true;
 		drawable.draw();
 	}
+	player->draw();
 
 	// the world
 
@@ -275,23 +278,11 @@ void Renderer::renderScene(void)
 	if (pthread_create(&thr, NULL, buildListThread, NULL) != 0)
 		cout << "pthread failed\n";
 
-	// While we're waiting, load requested objects
-//	while (!threadFinished)
-//		objMan.loadSingleObject();
-
 	while (glJobs.processJob())
 		if (threadFinished)
 			break;
-//	clock_t newtime = clock();
-//	double diff = (newtime-oldtime) * 1000/CLOCKS_PER_SEC;
-//	cout << diff << endl;
 
-	// This shouldn't really be necessary, but somehow pthread_create
-	// fails at some point when I don't put this line here.
 	pthread_join(thr, NULL);
-
-//	while (objMan.unloadSingleObject())
-//		;
 
 	// Everything is done now, draw!
 	if (doBFC)
@@ -322,4 +313,5 @@ Renderer::Renderer(void)
 	doTrails = false;
 	doBFC = false;
 	lodMult = 1.0f;
+	globalAlpha = 1.0f;
 }

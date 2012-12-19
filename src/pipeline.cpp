@@ -44,8 +44,9 @@ void State::updateMaterial(void)
 void State::updateLight(void)
 {
 	THREADCHECK();
-	glUniform4fv(u_LightPos, 1, glm::value_ptr(lightPos));
+//	glUniform4fv(u_LightPos, 1, glm::value_ptr(lightPos));
 	glUniform3fv(u_LightCol, 1, glm::value_ptr(lightCol));
+	glUniform3fv(u_LightDir, 1, glm::value_ptr(lightDir));
 	glUniform3fv(u_AmbientLight, 1, glm::value_ptr(ambientLight));
 }
 
@@ -104,8 +105,9 @@ void Pipeline::use(void)
 	getVar("u_Projection", &state.u_Projection, 1);
 	getVar("u_ModelView", &state.u_ModelView, 1);
 	getVar("u_NormalMat", &state.u_NormalMat, 1);
-	getVar("u_LightPos", &state.u_LightPos, 1);
+//	getVar("u_LightPos", &state.u_LightPos, 1);
 	getVar("u_LightCol", &state.u_LightCol, 1);
+	getVar("u_LightDir", &state.u_LightDir, 1);
 	getVar("u_AmbientLight", &state.u_AmbientLight, 1);
 	getVar("u_MatColor", &state.u_MatColor, 1);
 

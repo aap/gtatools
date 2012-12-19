@@ -8,8 +8,9 @@ attribute vec2 in_TexCoord;
 uniform mat4 u_Projection;
 uniform mat4 u_ModelView;
 uniform mat3 u_NormalMat;
-uniform vec4 u_LightPos;
+//uniform vec4 u_LightPos;
 uniform vec3 u_LightCol;
+uniform vec3 u_LightDir;
 uniform vec3 u_AmbientLight;
 uniform vec4 u_MatColor;
 
@@ -26,8 +27,8 @@ void main(void)
 		vec3 N = normalize(u_NormalMat * in_Normal);
 		float L = max(0.0, dot(N, normalize(u_LightPos.xyz - V.xyz)));
 */
-		vec3 N = in_Normal;
-		float L = max(0.0, dot(N, normalize(vec3(0.0f, 0.0f, -1.0f))));
+		vec3 N = u_NormalMat * in_Normal;
+		float L = max(0.0, dot(N, u_LightDir));
 		lightVal = vec4(u_LightCol,0.0) * vec4(L, L, L, 0.0);
 	}
 	v_Color = clamp(vec4(u_AmbientLight, 0.0) +

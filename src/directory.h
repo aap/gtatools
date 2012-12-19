@@ -26,8 +26,10 @@ public:
 	int openFile(std::ifstream &f, uint i);
 	int openFile(std::ifstream &f, std::string searchName);
 	void dump(void);
+
+	~Directory(void);
 };
 
-extern Directory directory;
+extern Directory *directory;
 
 #endif

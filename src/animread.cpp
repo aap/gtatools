@@ -46,7 +46,7 @@ enum {
 	NAME = 0x454d414e,
 	DGAN = 0x4e414744,
 	CPAN = 0x4e415043,
-	ANIM = 0x4d494e41
+	ANMS = 0x4d494e41
 };
 
 void AnimPackage::read(ifstream &ifp)
@@ -110,11 +110,12 @@ void Animation::read_1(ifstream &ifp)
 	for (uint32 i = 0; i < numObjs && ifp.tellg() < end; i++) {
 		objList.resize(objList.size()+1);
 		objList[i].read_1(ifp);
-		int last = objList[i].frames-1;
+//		int last = objList[i].frames-1;
+		size_t last = objList[i].frmList.size()-1;
 		if (objList[i].frmList[last].timeKey > endTime)
 			endTime = objList[i].frmList[last].timeKey;
 	}
-	for (uint i = 0; i < objList.size(); i++) {
+	for (size_t i = 0; i < objList.size(); i++) {
 		AnimObj &ao = objList[i];
 		for (int j = 0; j < ao.frames; j++)
 			ao.frmList[j].timeKey /= endTime;
@@ -138,7 +139,7 @@ void Animation::read_3(ifstream &ifp)
 		if (objList[i].frmList[last].timeKey > endTime)
 			endTime = objList[i].frmList[last].timeKey;
 	}
-	for (uint i = 0; i < objList.size(); i++) {
+	for (size_t i = 0; i < objList.size(); i++) {
 		AnimObj &ao = objList[i];
 		for (int j = 0; j < ao.frames; j++)
 			ao.frmList[j].timeKey /= endTime;
@@ -151,13 +152,13 @@ void AnimObj::read_1(std::ifstream &ifp)
 
 	READ_SECTION(CPAN);
 
-	READ_SECTION(ANIM);
+	READ_SECTION(ANMS);
 	char *buf = new char[28];
 	ifp.read(buf, 28);
 	name = buf;
 	stringToLower(name);
 	delete[] buf;
-	frames = readInt32(ifp);
+	frames = readInt32(ifp); // this value isn't always right it seems
 	unknown = readInt32(ifp);
 	next = readInt32(ifp);
 	prev = readInt32(ifp);

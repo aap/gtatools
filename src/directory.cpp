@@ -10,7 +10,7 @@
 
 using namespace std;
 
-Directory directory;
+Directory *directory;
 
 void Directory::addFromFile(ifstream &f, string container)
 {
@@ -136,10 +136,17 @@ int Directory::openFile(ifstream &f, uint i)
 
 void Directory::dump(void)
 {
-	for (uint i = 0; i < fileList.size(); i++) {
+	for (size_t i = 0; i < fileList.size(); i++) {
 		cout << fileList[i]->fileName << " ";
 		cout << hex << fileList[i]->start << " ";
 		cout << hex << fileList[i]->length << " ";
 		cout << fileList[i]->containingFile << endl;
 	}
+}
+
+Directory::~Directory(void)
+{
+	for (size_t i = 0; i < fileList.size(); i++)
+		delete fileList[i];
+	fileList.clear();
 }

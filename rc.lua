@@ -1,3 +1,7 @@
+GTA3 = 1
+GTAVC = 2
+GTASA = 3
+
 --
 -- Camera
 --
@@ -48,6 +52,3 @@ function renderer.setDoBFC(i) __rendererSetDoBFC(i) end
 function renderer.getDoBFC() return __rendererGetDoBFC() end
 function renderer.setLodMult(f) __rendererSetLodMult(f) end
 function renderer.getLodMult() return __rendererGetLodMult() end
-
-
-dofile("init.lua")
