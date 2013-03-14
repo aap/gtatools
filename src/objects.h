@@ -3,12 +3,11 @@
 #include <string>
 #include <vector>
 #include <fstream>
-#include "gta.h"
-#include "math.h"
-#include "drawable.h"
 #include "gl.h"
+#include "math.h"
 
 class CollisionModel;
+class Drawable;
 
 #ifndef END
 #define END 0

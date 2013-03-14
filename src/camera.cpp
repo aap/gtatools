@@ -2,6 +2,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include "gta.h"
+#include "gl.h"
 #include "math.h"
 #include "primitives.h"
 #include "pipeline.h"

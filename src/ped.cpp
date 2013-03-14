@@ -3,7 +3,9 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include "gta.h"
+#include "drawable.h"
 #include "objects.h"
+#include "renderer.h"
 
 using namespace std;
 
@@ -51,9 +53,9 @@ void Ped::reset(void)
 
 void Ped::setAnim(string an)
 {
-	for (size_t i = 0; i < gl::anpk.animList.size(); i++) {
-		if (gl::anpk.animList[i].name == an) {
-			drawable->attachAnim(&gl::anpk.animList[i]);
+	for (size_t i = 0; i < anpk.animList.size(); i++) {
+		if (anpk.animList[i].name == an) {
+			drawable->attachAnim(&anpk.animList[i]);
 			break;
 		}
 	}
@@ -73,9 +75,9 @@ void Ped::draw(void)
 	gl::state.updateMatrices();
 
 	if (canDraw()) {
-		gl::drawTransparent = false;
+		renderer->drawTransparent = false;
 		drawable->draw();
-		gl::drawTransparent = true;
+		renderer->drawTransparent = true;
 		drawable->draw();
 	}
 

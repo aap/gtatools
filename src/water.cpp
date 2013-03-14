@@ -35,7 +35,7 @@ void Water::draw(void)
 	if (renderer->doTextures)
 		glBindTexture(GL_TEXTURE_2D, tex);
 	else
-		glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
+		glBindTexture(GL_TEXTURE_2D, renderer->whiteTex);
 
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glEnableVertexAttribArray(gl::in_Vertex);

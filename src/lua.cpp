@@ -102,6 +102,8 @@ void luaInterpreter(void)
 
 	lua_register(L, "gettop", gettop);
 
+	luaInit();
+
 	rl_callback_handler_install(prompt.c_str(), handleLine);
 	while (running)
 		if(poll(&fds, 1, 500) == 1)
@@ -125,15 +127,15 @@ int setMixedAnim(lua_State *L)
 	string arg2 = luaL_checkstring(L, 2);
 	float arg3 = luaL_checknumber(L, 3);
 	int ind1 = -1, ind2 = -1;
-	for (size_t i = 0; i < gl::anpk.animList.size(); i++) {
-		if (gl::anpk.animList[i].name == arg1)
+	for (size_t i = 0; i < anpk.animList.size(); i++) {
+		if (anpk.animList[i].name == arg1)
 			ind1 = i;
-		if (gl::anpk.animList[i].name == arg2)
+		if (anpk.animList[i].name == arg2)
 			ind2 = i;
 	}
 	if (ind1 != -1 && ind2 != -1)
-		drawable.attachMixedAnim(&gl::anpk.animList[ind1],
-		                         &gl::anpk.animList[ind2],
+		drawable.attachMixedAnim(&anpk.animList[ind1],
+		                         &anpk.animList[ind2],
 		                         arg3);
 	return 0;
 }
@@ -148,9 +150,9 @@ int playerSetAnim(lua_State *L)
 int setAnim(lua_State *L)
 {
 	string arg = luaL_checkstring(L, 1);
-	for (size_t i = 0; i < gl::anpk.animList.size(); i++) {
-		if (gl::anpk.animList[i].name == arg) {
-			drawable.attachAnim(&gl::anpk.animList[i]);
+	for (size_t i = 0; i < anpk.animList.size(); i++) {
+		if (anpk.animList[i].name == arg) {
+			drawable.attachAnim(&anpk.animList[i]);
 			break;
 		}
 	}
@@ -160,9 +162,9 @@ int setAnim(lua_State *L)
 int setOvrAnim(lua_State *L)
 {
 	string arg = luaL_checkstring(L, 1);
-	for (size_t i = 0; i < gl::anpk.animList.size(); i++) {
-		if (gl::anpk.animList[i].name == arg) {
-			drawable.attachOverrideAnim(&gl::anpk.animList[i]);
+	for (size_t i = 0; i < anpk.animList.size(); i++) {
+		if (anpk.animList[i].name == arg) {
+			drawable.attachOverrideAnim(&anpk.animList[i]);
 			break;
 		}
 	}
@@ -171,8 +173,8 @@ int setOvrAnim(lua_State *L)
 
 int listAnims(lua_State *)
 {
-	for (size_t i = 0; i < gl::anpk.animList.size(); i++)
-		cout << gl::anpk.animList[i].name << endl;
+	for (size_t i = 0; i < anpk.animList.size(); i++)
+		cout << anpk.animList[i].name << endl;
 	return 0;
 }
 
@@ -195,7 +197,8 @@ int playerLoad(lua_State *L)
 	string arg2 = luaL_checkstring(L, 2);
 	player->modelName = arg1;
 	player->textureName = arg2;
-	player->loadSynch();
+//	player->loadSynch();
+	player->load();
 	return 0;
 } 
 

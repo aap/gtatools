@@ -9,6 +9,8 @@
 
 using namespace std;
 
+AnimPackage anpk;
+
 void MixedAnimation::attachAnims(Animation *a, Animation *b, float f)
 {
 	anim1 = a;

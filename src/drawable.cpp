@@ -482,7 +482,7 @@ void Drawable::updateFrames(Frame *f)
 	// urgh, probably better do bone matrices per skin
 	if (f->boneId != -1) {
 		if (f->parent &&
-		    (f->geo < 0 || f->geo >= 0 && !geoList[f->geo].isSkinned))
+		    (f->geo < 0 || (f->geo >= 0 && !geoList[f->geo].isSkinned)))
 			f->boneMat = f->parent->boneMat * f->modelMat;
 		// this is a guess, but it seems to work
 		else
@@ -569,7 +569,7 @@ void Drawable::drawFrame(Frame *f, bool recurse, bool transform)
 		glVertexAttrib4f(in_Color, 1.0f, 1.0f, 1.0f, 1.0f);
 		if (f == animRoot)
 			glVertexAttrib4f(in_Color, 1.0f, 0.0f, 0.0f, 1.0f);
-		glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
+		glBindTexture(GL_TEXTURE_2D, renderer->whiteTex);
 		gl::drawSphere(0.1f, 10, 10);
 	}
 
@@ -664,10 +664,10 @@ void Drawable::drawGeometry(int gi)
 				              t->tex);
 			} else {
 				glBindTexture(GL_TEXTURE_2D,
-				              gl::whiteTex);
+				              renderer->whiteTex);
 			}
 		} else {
-			glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
+			glBindTexture(GL_TEXTURE_2D, renderer->whiteTex);
 		}
 		glm::vec4 matCol;
 		matCol.x = float(g.materialList[matid].color[0]) / 255.0f;
@@ -681,8 +681,8 @@ void Drawable::drawGeometry(int gi)
 		if (matCol.w != 1.0f)
 			isTransparent = true;
 
-		gl::wasTransparent |= isTransparent;
-		if (isTransparent != gl::drawTransparent) {
+		renderer->wasTransparent |= isTransparent;
+		if (isTransparent != renderer->drawTransparent) {
 			offset += s.indices.size();
 			continue;
 		}
@@ -698,8 +698,8 @@ void Drawable::drawGeometry(int gi)
 			glDisable(GL_ALPHA_TEST);
 		}
 
-		if (gl::drawWire) {
-			glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
+		if (renderer->drawWire) {
+			glBindTexture(GL_TEXTURE_2D, renderer->whiteTex);
 			glDisableVertexAttribArray(in_Color);
 			glDisableVertexAttribArray(in_Normal);
 			glVertexAttrib4f(in_Color, 0.8f, 0.8f, 0.8f, 1.0f);

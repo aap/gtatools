@@ -2,6 +2,7 @@
 #define GTA_COL_H
 #include <string>
 #include <vector>
+#include <fstream>
 #include "math.h"
 
 struct ColSurface {

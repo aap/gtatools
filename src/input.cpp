@@ -2,6 +2,7 @@
 #include <GL/glfw.h>
 #include "gl.h"
 #include "gta.h"
+#include "world.h"
 #include "camera.h"
 #include "jobqueue.h"
 #include "renderer.h"
@@ -9,8 +10,6 @@
 #include "drawable.h"
 
 using namespace std;
-
-namespace gl {
 
 static int lastX, lastY;
 static int clickX, clickY;
@@ -98,6 +97,7 @@ void keypress(int key, int state)
 		int x, y;
 		glfwGetMousePos(&x, &y);
 		cout << x << " " << y << endl;
+		glfwSetMousePos(x+30, y+30);
 		break;
 	case 'B':
 		WorldObject *op;
@@ -155,24 +155,24 @@ void mouseButton(int button, int state)
 					int integer;
 				} stencil;
 				// fewer passes would probably be enough
-				stencilShift = 0;
+				gl::stencilShift = 0;
 				renderer->renderScene();
-				glReadPixels(x, height - y - 1, 1, 1,
+				glReadPixels(x, gl::height - y - 1, 1, 1,
 				             GL_STENCIL_INDEX,
 				             GL_UNSIGNED_INT, stencil.bytes);
-				stencilShift = 8;
+				gl::stencilShift = 8;
 				renderer->renderScene();
-				glReadPixels(x, height - y - 1, 1, 1,
+				glReadPixels(x, gl::height - y - 1, 1, 1,
 				             GL_STENCIL_INDEX,
 				             GL_UNSIGNED_INT, stencil.bytes+1);
-				stencilShift = 16;
+				gl::stencilShift = 16;
 				renderer->renderScene();
-				glReadPixels(x, height - y - 1, 1, 1,
+				glReadPixels(x, gl::height - y - 1, 1, 1,
 				             GL_STENCIL_INDEX,
 				             GL_UNSIGNED_INT, stencil.bytes+2);
-				stencilShift = 24;
+				gl::stencilShift = 24;
 				renderer->renderScene();
-				glReadPixels(x, height - y - 1, 1, 1,
+				glReadPixels(x, gl::height - y - 1, 1, 1,
 				             GL_STENCIL_INDEX,
 				             GL_UNSIGNED_INT, stencil.bytes+3);
 				lastSelected = stencil.integer;
@@ -191,23 +191,23 @@ void mouseMotion(int x, int y)
 	static int xoff = 0, yoff = 0;
 	static bool wrappedLast = false;
 
-	dx = float(lastX - x) / float(width);
-	dy = float(lastY - y) / float(height);
+	dx = float(lastX - x) / float(gl::width);
+	dy = float(lastY - y) / float(gl::height);
 	/* Wrap the mouse if it goes over the window border.
 	 * Unfortunately, after glfwSetMousePos is done, there can be old
 	 * events with an old mouse position,
 	 * hence the check if the pointer was wrapped the last time. */
 	if ((isLDown || isMDown || isRDown) &&
-	    ( x < 0 || y < 0 || x >= width || y >= height)) {
+	    (x < 0 || y < 0 || x >= gl::width || y >= gl::height)) {
 		if (wrappedLast) {
-			dx = float(lastX-xoff - x) / float(width);
-			dy = float(lastY-yoff - y) / float(height);
+			dx = float(lastX-xoff - x) / float(gl::width);
+			dy = float(lastY-yoff - y) / float(gl::height);
 		}
 		xoff = yoff = 0;
-		while (x+xoff >= width) xoff -= width;
-		while (y+yoff >= height) yoff -= height;
-		while (x+xoff < 0) xoff += width;
-		while (y+yoff < 0) yoff += height;
+		while (x+xoff >= gl::width) xoff -= gl::width;
+		while (y+yoff >= gl::height) yoff -= gl::height;
+		while (x+xoff < 0) xoff += gl::width;
+		while (y+yoff < 0) yoff += gl::height;
 		glfwSetMousePos(x+xoff, y+yoff);
 		wrappedLast = true;
 	} else {
@@ -414,5 +414,3 @@ void keypressSpecial(int key, int x, int y)
 	}
 }
 */
-
-}

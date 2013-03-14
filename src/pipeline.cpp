@@ -4,6 +4,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
+#include "gta.h"
 #include "gl.h"
 #include "pipeline.h"
 
@@ -80,11 +81,11 @@ void Pipeline::getVar(const char *name, GLint *var, GLint type)
 	GLint v = -1;
 
 	if (type == 0) {
-		v = glGetAttribLocation(currentPipe->program, name);
+		v = glGetAttribLocation(this->program, name);
 //		if (v == -1)
 //			cerr << "Couldn't find attribute " << name << endl;
 	} else if (type == 1) {
-		v = glGetUniformLocation(currentPipe->program, name);
+		v = glGetUniformLocation(this->program, name);
 //		if (v == -1)
 //			cerr << "Couldn't find uniform " << name << endl;
 	}
@@ -94,8 +95,7 @@ void Pipeline::getVar(const char *name, GLint *var, GLint type)
 void Pipeline::use(void)
 {
 	THREADCHECK();
-	currentPipe = this;
-	glUseProgram(currentPipe->program);
+	glUseProgram(this->program);
 
 	getVar("in_Vertex", &in_Vertex, 0);
 	getVar("in_Normal", &in_Normal, 0);

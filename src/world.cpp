@@ -86,7 +86,7 @@ void WorldSector::draw(void)
 {
 	THREADCHECK();
 	glDisable(GL_BLEND);
-	glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
+	glBindTexture(GL_TEXTURE_2D, renderer->whiteTex);
 
 	glVertexAttrib4f(gl::in_Color, 0.8f, 0.8f, 0.8f, 1.0f);
 	gl::drawCube2(min, max);
@@ -489,7 +489,7 @@ void Island::drawZones(void)
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glAlphaFunc(GL_GREATER, 0.0);
-	glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
+	glBindTexture(GL_TEXTURE_2D, renderer->whiteTex);
 
 	for (size_t i = 0; i < islandZones.size(); i++) {
 		if (islandZones[i]->islandNum == 1)

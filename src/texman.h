@@ -1,10 +1,11 @@
 #ifndef GTA_TEXMAN_H
 #define GTA_TEXMAN_H
 
-#include <renderware.h>
 #include <string>
+#include <vector>
 #include <deque>
 #include <GL/glew.h>
+#include <renderware.h>
 #include "gta.h"
 
 struct Texture {

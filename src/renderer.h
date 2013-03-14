@@ -3,8 +3,9 @@
 
 #include <vector>
 #include <deque>
-#include "world.h"
+#include "pipeline.h"
 
+class Instance;
 class Drawable;
 extern Drawable drawable;
 
@@ -19,7 +20,11 @@ private:
 	std::deque<RenderListObject> opaqueRenderList;
 	std::vector<RenderListObject> transp1RenderList;
 	std::vector<RenderListObject> transp2RenderList;
+
+	gl::Pipeline *simplePipe, *gtaPipe;
 public:
+	int init(void);
+
 	void renderScene(void);
 	void addOpaqueObject(Instance *ip, int a);
 	void addTransp1Object(Instance *ip, int a);
@@ -29,6 +34,7 @@ public:
 	void renderTransp1(void);
 	void renderTransp2(void);
 	Renderer(void);
+	~Renderer(void);
 
 	bool doZones;
 	bool doTextures;
@@ -39,6 +45,12 @@ public:
 	bool doBFC;
 	float lodMult;
 	float globalAlpha;
+
+	GLuint whiteTex;
+
+	bool drawWire;
+	bool drawTransparent;
+	bool wasTransparent;
 };
 
 extern Renderer *renderer;

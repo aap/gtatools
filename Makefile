@@ -7,7 +7,7 @@ DEP := $(patsubst $(SRCDIR)/%.cpp,$(BUILDDIR)/%.d,$(SRC))
 INC = -I$(RWDIR)/include
 CFLAGS = $(INC) -Wall -Wextra -g# -O3 -pg
 LINK = $(RWDIR)/lib/librwtools.a\
-  -lGL -lglfw -lGLEW -lpthread -llua5.1 -lreadline
+  -lGL -lglfw -lGLEW -lpthread -lreadline -llua    #lua5.1
 TARGET = gta
 
 $(TARGET): $(OBJ)

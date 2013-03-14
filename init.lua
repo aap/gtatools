@@ -60,11 +60,11 @@ cam.setDistance(10)
 cam.setYaw(0)
 cam.setPitch(4.91531)
 
-if game == GTASA then
-	playerLoad("cesar","cesar")
-else
-	playerLoad("player","player")
-end
+--if game == GTASA then
+--	playerLoad("cesar","cesar")
+--else
+--	playerLoad("player","player")
+--end
 --playerSetAnim("idle_stance")
 --setAnim("walk_gang1")
 

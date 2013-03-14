@@ -16,7 +16,9 @@
 #include "pipeline.h"
 #include "primitives.h"
 #include "directory.h"
+#include "drawable.h"
 #include "col.h"
+#include "texman.h"
 #include "jobqueue.h"
 #include "renderer.h"
 #include "objects.h"
@@ -398,7 +400,7 @@ void Model::drawBoundingSphere(void)
 	gl::state.updateMatrices();
 
 
-	glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
+	glBindTexture(GL_TEXTURE_2D, renderer->whiteTex);
 	glVertexAttrib4f(gl::in_Color, 1.0f, 1.0f, 1.0f, 0.5f);
 	glm::vec4 color;
 	if (col->island == 0)
@@ -425,7 +427,7 @@ void Model::drawCol(void)
 {
 	THREADCHECK();
 	// draw faces
-	glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
+	glBindTexture(GL_TEXTURE_2D, renderer->whiteTex);
 	glVertexAttrib4f(gl::in_Color, 1.0f, 1.0f, 1.0f, 1.0f);
 
 	vector<GLfloat> verts;

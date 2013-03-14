@@ -6,6 +6,7 @@
 
 namespace gl {
 
+
 class Pipeline {
 public:
 	void use(void);

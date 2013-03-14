@@ -107,13 +107,13 @@ void JobQueue::readTxd(void *sender, void *data)
 	glJobs.addJob(attachTxd, sender, txd);
 }
 
-void JobQueue::deleteDrawable(void *sender, void *data)
+void JobQueue::deleteDrawable(void *sender, void *)
 {
 	glJobs.addJob(::deleteDrawable, sender, 0);
 }
 
 
-static void deleteDrawable(void *sender, void *data)
+static void deleteDrawable(void *sender, void *)
 {
 	Drawable *d = (Drawable*)sender;
 	delete d;

@@ -15,11 +15,12 @@
 #include "objects.h"
 #include "world.h"
 #include "directory.h"
+#include "drawable.h"
 #include "camera.h"
 #include "timecycle.h"
 #include "water.h"
+#include "texman.h"
 #include "jobqueue.h"
-#include "lua.h"
 using namespace std;
 
 /*
@@ -29,49 +30,12 @@ using namespace std;
 string gamePath;
 char *progname;
 int game;
-uint oglThread;
+pthread_t oglThread;
 volatile bool running;
 
-int initGame(void);
 void parseDat(ifstream &f);
 
-void *lua(void *args);
-void *filereader(void *args);
-pthread_t luathread;
-
 Ped *player = 0;
-
-int main(int argc, char *argv[])
-{
-	progname = argv[0];
-	if (argc < 2) {
-		cerr << "usage: " << argv[0] << " game_path\n";
-		return 1;
-	}
-
-	gamePath = argv[1];
-
-	// start threads
-	void *args[] = { (void*) &argc, (void*) argv };
-
-	running = true;
-
-	pthread_t thread1, thread3;
-
-	pthread_create(&thread1, NULL, gl::opengl, args);
-	pthread_create(&luathread, NULL, lua, NULL);
-	pthread_create(&thread3, NULL, filereader, NULL);
-
-	// this will never happen
-	pthread_join(thread1, NULL);
-	pthread_join(luathread, NULL);
-	pthread_join(thread3, NULL);
-
-//	cout << "back in main\n";
-	cout << endl;
-
-	return 0;
-}
 
 void exitprog(void)
 {
@@ -79,43 +43,27 @@ void exitprog(void)
 	normalJobs.wakeUp();
 }
 
-void *filereader(void *args)
-{
-	while (running) {
-		while(normalJobs.processJob());
-		if (!running)
-			break;
-		normalJobs.waitForJobs();
-	}
-//	cout << "return from file reader thread\n";
-	return NULL;
-}
-
-void *lua(void *args)
-{
-	luaInterpreter();
-//	cout << "return from lua thread\n";
-	return NULL;
-}
-
 void cleanUp(void)
 {
-	SAFE_DELETE(objectList);
-	SAFE_DELETE(directory);
-	SAFE_DELETE(world);
-	SAFE_DELETE(renderer);
 	SAFE_DELETE(cam);
 	SAFE_DELETE(player);
+	SAFE_DELETE(objectList);
+	SAFE_DELETE(world);
 	SAFE_DELETE(texMan);
-
-	SAFE_DELETE(gl::simplePipe);
-	SAFE_DELETE(gl::gtaPipe);
+	SAFE_DELETE(directory);
+	SAFE_DELETE(renderer);
 
 	drawable.unload();
 }
 
 int initGame(void)
 {
+	renderer = new Renderer;
+	if (renderer->init()) {
+		cerr << "render init failed\n";
+		return 1;
+	}
+
 	directory = new Directory;
 	texMan = new TexManager;
 	world = new World;
@@ -235,8 +183,15 @@ int initGame(void)
 
 	player = new Ped;
 	player->reset();
+	if (game != GTASA) {
+		player->modelName = "player";
+		player->textureName = "player";
+	} else {
+		player->modelName = "cesar";
+		player->textureName = "cesar";
+	}
+	player->loadSynch();
 
-	renderer = new Renderer;
 	cam = new Camera;
 
 	cam->setPitch(PI/8.0f-PI/2.0f);
@@ -282,6 +237,11 @@ int initGame(void)
 		timeCycle.load(f);
 		f.close();
 	}
+
+	fileName = getPath("anim/ped.ifp");
+	f.open(fileName.c_str(), ios::binary);
+	anpk.read(f);
+	f.close();
 
 	return 0;
 }

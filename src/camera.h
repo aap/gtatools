@@ -1,7 +1,8 @@
 #ifndef GTA_CAMERA_H
 #define GTA_CAMERA_H
 #include "math.h"
-#include "gl.h"
+
+class RefFrame;
 
 class Camera
 {

@@ -1,9 +1,8 @@
-#ifndef GTA_FILEREADER_H
-#define GTA_FILEREADER_H
+#ifndef GTA_JOBQUEUE_H
+#define GTA_JOBQUEUE_H
 
 #include <pthread.h>
 #include <deque>
-#include <iostream>
 
 struct Job {
 	void (*func)(void*, void*);

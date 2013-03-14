@@ -23,12 +23,12 @@ using namespace std;
 #include <ctime>
 
 Renderer *renderer;
+static GLuint axes_vbo;
+clock_t oldtime;
 
 Drawable drawable;
 
 volatile bool threadFinished;
-
-clock_t oldtime;
 
 static void *buildListThread(void *)
 {
@@ -38,10 +38,62 @@ static void *buildListThread(void *)
 	return 0;
 }
 
+int Renderer::init(void)
+{
+	if (glewInit() != GLEW_OK) {
+		cerr << "couldn't init glew\n";
+		return 1;
+	}
+
+	simplePipe=new gl::Pipeline("shader/simple.vert", "shader/simple.frag");
+	gtaPipe=new gl::Pipeline("shader/gtaPipe.vert", "shader/gtaPipe.frag");
+
+	glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
+	glClearDepth(1.0);
+	glClearStencil(0);
+	glEnable(GL_DEPTH_TEST);
+//	glDepthFunc(GL_LESS);
+	glDepthFunc(GL_LEQUAL);
+	glEnable(GL_STENCIL_TEST);
+	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
+	int white = 0xFFFFFFFF;
+	glGenTextures(1, &whiteTex);
+	glBindTexture(GL_TEXTURE_2D, whiteTex);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexImage2D(GL_TEXTURE_2D, 0, 4,
+		     1, 1, 0, GL_RGBA,
+		     GL_UNSIGNED_BYTE, &white);
+
+	GLfloat axes[] = {
+		0.0f, 0.0f, 0.0f,
+		1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f,
+
+		1.0f, 0.0f, 0.0f, 1.0f,
+		1.0f, 0.0f, 0.0f, 1.0f,
+		0.0f, 1.0f, 0.0f, 1.0f,
+		0.0f, 1.0f, 0.0f, 1.0f,
+		0.0f, 0.0f, 1.0f, 1.0f,
+		0.0f, 0.0f, 1.0f, 1.0f
+	};
+	glGenBuffers(1, &axes_vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, axes_vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(axes), axes, GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	return 0;
+}
+
 void Renderer::renderOpaque(void)
 {
 	THREADCHECK();
-	gl::drawTransparent = false;
+	drawTransparent = false;
 	for (size_t i = 0; i < opaqueRenderList.size(); i++) {
 		Instance *ip = opaqueRenderList[i].inst;
 		WorldObject *op =
@@ -57,7 +109,7 @@ void Renderer::renderOpaque(void)
 		              (ip->index>>gl::stencilShift)&0xFF,-1);
 
 		globalAlpha = ip->getFading();
-		gl::wasTransparent = false;
+		wasTransparent = false;
 		if (doCol) {
 			if (op->col)
 				op->drawCol();
@@ -78,7 +130,7 @@ void Renderer::renderOpaque(void)
 
 		op->isFreshlyLoaded = false;
 
-		if (gl::wasTransparent) {
+		if (wasTransparent) {
 			if (op->flags & 0x40)
 				addTransp1Object(ip, ai);
 			else
@@ -101,7 +153,7 @@ next:
 void Renderer::renderTransp1(void)
 {
 	THREADCHECK();
- 	gl::drawTransparent = true;
+ 	drawTransparent = true;
 	for (size_t i = 0; i < transp1RenderList.size(); i++) {
 		Instance *ip = transp1RenderList[i].inst;
 		WorldObject *op =
@@ -131,7 +183,7 @@ void Renderer::renderTransp1(void)
 void Renderer::renderTransp2(void)
 {
 	THREADCHECK();
-	gl::drawTransparent = true;
+	drawTransparent = true;
 	for (size_t i = 0; i < transp2RenderList.size(); i++) {
 		Instance *ip = transp2RenderList[i].inst;
 		WorldObject *op =
@@ -224,12 +276,12 @@ void Renderer::renderScene(void)
 	else
 		amb = glm::vec3(w->amb.x, w->amb.y, w->amb.z);
 
-	gl::simplePipe->use();
+	simplePipe->use();
 
 	gl::state.ambientLight = amb;
 	gl::state.texture = 0;
 	gl::state.updateAll();
-	glBindTexture(GL_TEXTURE_2D, gl::whiteTex);
+	glBindTexture(GL_TEXTURE_2D, whiteTex);
 
 	glDisable(GL_DEPTH_TEST);
 	sky.draw();
@@ -240,7 +292,7 @@ void Renderer::renderScene(void)
 		cam->drawTarget();
 	}
 
-	gl::gtaPipe->use();
+	gtaPipe->use();
 
 	gl::state.fogColor.x = w->skyBot.x;
 	gl::state.fogColor.y = w->skyBot.y;
@@ -252,14 +304,14 @@ void Renderer::renderScene(void)
 	gl::state.fogEnd = w->farClp;
 	gl::state.updateAll();
 
-	gl::drawWire = false;
+	drawWire = false;
 
 	// the test object
 	if (drawable.hasModel() &&
 	    (drawable.hasTextures() || !doTextures)) {
-		gl::drawTransparent = false;
+		drawTransparent = false;
 		drawable.draw();
-		gl::drawTransparent = true;
+		drawTransparent = true;
 		drawable.draw();
 	}
 	player->draw();
@@ -304,14 +356,16 @@ void Renderer::renderScene(void)
 }
 
 Renderer::Renderer(void)
+: simplePipe(0), gtaPipe(0),
+  doZones(false), doTextures(true), doFog(true), doVertexColors(true),
+  doCol(false), doTrails(false), doBFC(false), lodMult(1.0f), globalAlpha(1.0f)
 {
-	doZones = false;
-	doTextures = true;
-	doFog = true;
-	doVertexColors = true;
-	doCol = false;
-	doTrails = false;
-	doBFC = false;
-	lodMult = 1.0f;
-	globalAlpha = 1.0f;
 }
+
+Renderer::~Renderer(void)
+{
+	delete simplePipe;
+	delete gtaPipe;
+	simplePipe = gtaPipe = 0;
+}
+

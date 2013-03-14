@@ -1,8 +1,6 @@
 #ifndef GTA_GTA_H
 #define GTA_GTA_H
 
-#define GLIBCXX_FORCE_NEW
-
 #ifdef _WIN32
   #include <windows.h>
   #undef ERROR // error in glm
@@ -13,6 +11,7 @@
   #define PSEP_S "/"
 #endif
 
+#include <pthread.h>
 #include <string>
 #include <vector>
 #include "math.h"
@@ -39,7 +38,7 @@ extern char *progname;
 extern std::string gamePath;
 extern int game;
 extern volatile bool running;
-extern uint oglThread;
+extern pthread_t oglThread;
 
 class Ped;
 extern Ped *player;

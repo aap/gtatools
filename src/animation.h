@@ -1,5 +1,5 @@
-#ifndef GTA_IFP_H
-#define GTA_IFP_H
+#ifndef GTA_ANIMATION_H
+#define GTA_ANIMATION_H
 #include <string>
 #include <vector>
 #include <fstream>
@@ -82,5 +82,7 @@ public:
 	MixedAnimation(void);
 	MixedAnimation(Animation *a, Animation *b, float f);
 };
+
+extern AnimPackage anpk;
 
 #endif

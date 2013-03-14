@@ -7,158 +7,90 @@
 #include <GL/glfw.h>
 
 #include <glm/glm.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 
 #include "gta.h"
-#include "math.h"
-#include "pipeline.h"
-#include "renderer.h"
-#include "drawable.h"
-#include "camera.h"
-#include "objects.h"
-#include "world.h"
-#include "timecycle.h"
-#include "animation.h"
-#include "lua.h"
 #include "gl.h"
-
+#include "math.h"
 #include "jobqueue.h"
-#include "directory.h"
+#include "lua.h"
+#include "renderer.h"
+#include "camera.h"
 
 using namespace std;
 
 namespace gl {
 
-static GLuint axes_vbo;
-
-Pipeline *simplePipe, *lambertPipe, *gtaPipe;
-
 int stencilShift;
 int width;
 int height;
-Pipeline *currentPipe;
 
-GLuint whiteTex;
-bool drawWire;
-bool drawTransparent;
-bool wasTransparent;
-
-AnimPackage anpk;
+}
 
 void resize(int w, int h)
 {
-	width = w;
-	height = h;
-	if (height == 0)
-		height = 1;
-	cam->setAspectRatio(GLfloat(width)/GLfloat(height));
-	glViewport(0, 0, width, height);
+	gl::width = w;
+	gl::height = h;
+	if (gl::height == 0)
+		gl::height = 1;
+	cam->setAspectRatio(GLfloat(gl::width)/GLfloat(gl::height));
+	glViewport(0, 0, gl::width, gl::height);
+}
+
+void *filereader(void *)
+{
+	while (running) {
+		while(normalJobs.processJob());
+		if (!running)
+			break;
+		normalJobs.waitForJobs();
+	}
+	return NULL;
+}
+
+void *lua(void *)
+{
+	luaInterpreter();
+	return NULL;
 }
 
 
-int initGl(void)
+int main(int argc, char *argv[])
 {
-	if (glewInit() != GLEW_OK) {
-		cerr << "couldn't init glew\n";
+	progname = argv[0];
+	if (argc < 2) {
+		cerr << "usage: " << argv[0] << " game_path\n";
 		return 1;
 	}
-
-	glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
-	glClearDepth(1.0);
-	glClearStencil(0);
-	glEnable(GL_DEPTH_TEST);
-//	glDepthFunc(GL_LESS);
-	glDepthFunc(GL_LEQUAL);
-	glEnable(GL_STENCIL_TEST);
-	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-
-	int white = 0xFFFFFFFF;
-	glGenTextures(1, &whiteTex);
-	glBindTexture(GL_TEXTURE_2D, whiteTex);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexImage2D(GL_TEXTURE_2D, 0, 4,
-		     1, 1, 0, GL_RGBA,
-		     GL_UNSIGNED_BYTE, &white);
-
-	simplePipe = new Pipeline("shader/simple.vert", "shader/simple.frag");
-//	lambertPipe = new Pipeline("shader/lambert.vert", "shader/simple.frag");
-	gtaPipe = new Pipeline("shader/gtaPipe.vert", "shader/gtaPipe.frag");
-
-	GLfloat axes[] = {
-		0.0f, 0.0f, 0.0f,
-		1.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f,
-		0.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f,
-
-		1.0f, 0.0f, 0.0f, 1.0f,
-		1.0f, 0.0f, 0.0f, 1.0f,
-		0.0f, 1.0f, 0.0f, 1.0f,
-		0.0f, 1.0f, 0.0f, 1.0f,
-		0.0f, 0.0f, 1.0f, 1.0f,
-		0.0f, 0.0f, 1.0f, 1.0f
-	};
-	glGenBuffers(1, &axes_vbo);
-	glBindBuffer(GL_ARRAY_BUFFER, axes_vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(axes), axes, GL_STATIC_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-	return 0;
-}
-
-void *opengl(void *args)
-{
-	void **a = (void**)args;
-	int *argc = (int *) (a[0]);
-	char **argv= (char **) (a[1]);
+	gamePath = argv[1];
 
 	oglThread = pthread_self();
 
-	width = 644;
-	height = 340;
+	gl::width = 644;
+	gl::height = 340;
 
 	if (!glfwInit()) {
 		cerr << "Error: could not initialize GLFW\n";
 		exitprog();
-		return NULL;
+		return 1;
 	}
-	if (!glfwOpenWindow(width, height,
+	if (!glfwOpenWindow(gl::width, gl::height,
 	                    0, 0, 0, 0,
 	                    24, 8,
 	                    GLFW_WINDOW)) {
 		cerr << "Error: could not create GLFW window\n";
 		glfwTerminate();
 		exitprog();
-		return NULL;
-	}
-
-	if (initGl()) {
-		exitprog();
-		return NULL;
+		return 1;
 	}
 
 	if (initGame()) {
 		exitprog();
-		return NULL;
+		return 1;
 	}
 
-	glfwSetMouseButtonCallback(mouseButton);
-	glfwSetMousePosCallback(mouseMotion);
-	glfwSetMouseWheelCallback(mouseWheel);
-	glfwSetKeyCallback(keypress);
-	glfwSetWindowSizeCallback(resize);
-
-	string fileName = getPath("anim/ped.ifp");
-	ifstream f(fileName.c_str(), ios::binary);
-	anpk.read(f);
-	f.close();
-
+/*
 	// Load the test object
-	if (*argc >= 4) {
+	if (argc >= 4) {
 		string dff = argv[2];
 		string txd = argv[3];
 		if (txd == "search") {
@@ -184,15 +116,27 @@ void *opengl(void *args)
 		if (drawable.loadSynch(dff, txd) == -1)
 			exit(1);
 
-		if (*argc >= 5)
+		if (argc >= 5)
 			for (size_t i = 0; i < anpk.animList.size(); i++)
 				if (anpk.animList[i].name == argv[4]) {
 					drawable.attachAnim(&anpk.animList[i]);
 					break;
 				}
 	}
+*/
 
-	luaInit();
+	glfwSetMouseButtonCallback(mouseButton);
+	glfwSetMousePosCallback(mouseMotion);
+	glfwSetMouseWheelCallback(mouseWheel);
+	glfwSetKeyCallback(keypress);
+	glfwSetWindowSizeCallback(resize);
+
+	running = true;
+
+	pthread_t thread1, thread2;
+
+	pthread_create(&thread1, NULL, lua, NULL);
+	pthread_create(&thread2, NULL, filereader, NULL);
 
 /*
 	int ret = glfwGetJoystickParam(GLFW_JOYSTICK_1, GLFW_PRESENT);
@@ -224,10 +168,12 @@ void *opengl(void *args)
 	cleanUp();
 
 	glfwTerminate();
-//	cout << "return from opengl thread\n";
-	return NULL;
-}
+	pthread_join(thread1, NULL);
+	pthread_join(thread2, NULL);
 
+	cout << endl;
+
+	return 0;
 }
 
 void RefFrame::update(void)
