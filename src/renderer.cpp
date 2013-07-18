@@ -7,6 +7,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "world.h"
+#include "enex.h"
 #include "drawable.h"
 #include "objects.h"
 #include "camera.h"
@@ -18,6 +19,8 @@
 #include "primitives.h"
 #include "renderer.h"
 #include "jobqueue.h"
+#include "phys.h"
+#include "console.h"
 using namespace std;
 
 #include <ctime>
@@ -49,11 +52,16 @@ int Renderer::init(void)
 	gtaPipe=new gl::Pipeline("shader/gtaPipe.vert", "shader/gtaPipe.frag");
 
 	glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
-	glClearDepth(1.0);
-	glClearStencil(0);
+
+//	glClearDepth(1.0);
+	glClearDepth(0.0);
+	glDepthRange(1.0f, 0.0f);
 	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_GREATER);
 //	glDepthFunc(GL_LESS);
-	glDepthFunc(GL_LEQUAL);
+//	glDepthFunc(GL_LEQUAL);
+
+	glClearStencil(0);
 	glEnable(GL_STENCIL_TEST);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
@@ -87,6 +95,20 @@ int Renderer::init(void)
 	glBufferData(GL_ARRAY_BUFFER, sizeof(axes), axes, GL_STATIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
+	GLfloat vertices[] = {
+		1.0, 0.0, 0.0,
+		0.0, 0.0, 0.0,
+		1.0, 1.0, 0.0,
+		0.0, 0.0, 0.0,
+		1.0, 1.0, 0.0,
+		0.0, 1.0, 0.0,
+	};
+	glGenBuffers(1, &rectvbo);
+	glBindBuffer(GL_ARRAY_BUFFER, rectvbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices),
+		&vertices[0], GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
 	return 0;
 }
 
@@ -105,8 +127,7 @@ void Renderer::renderOpaque(void)
 
 		ip->transform();
 
-		glStencilFunc(GL_ALWAYS,
-		              (ip->index>>gl::stencilShift)&0xFF,-1);
+		glStencilFunc(GL_ALWAYS, (ip->index>>gl::stencilShift)&0xFF,-1);
 
 		globalAlpha = ip->getFading();
 		wasTransparent = false;
@@ -154,6 +175,7 @@ void Renderer::renderTransp1(void)
 {
 	THREADCHECK();
  	drawTransparent = true;
+	glEnable(GL_ALPHA_TEST);
 	for (size_t i = 0; i < transp1RenderList.size(); i++) {
 		Instance *ip = transp1RenderList[i].inst;
 		WorldObject *op =
@@ -167,6 +189,10 @@ void Renderer::renderTransp1(void)
 
 		glStencilFunc(GL_ALWAYS,
 		              (ip->index>>gl::stencilShift)&0xFF,-1);
+		if (op->flags & 0x2000)
+			glAlphaFunc(GL_GREATER, 0.5);
+		else
+			glAlphaFunc(GL_GREATER, 0.0);
 
 		globalAlpha = ip->getFading();
 		if (ai == -1)
@@ -184,6 +210,7 @@ void Renderer::renderTransp2(void)
 {
 	THREADCHECK();
 	drawTransparent = true;
+	glEnable(GL_ALPHA_TEST);
 	for (size_t i = 0; i < transp2RenderList.size(); i++) {
 		Instance *ip = transp2RenderList[i].inst;
 		WorldObject *op =
@@ -197,6 +224,11 @@ void Renderer::renderTransp2(void)
 
 		glStencilFunc(GL_ALWAYS,
 		              (ip->index>>gl::stencilShift)&0xFF,-1);
+		if (op->flags & 0x2000)
+			glAlphaFunc(GL_GREATER, 0.5);
+		else
+			glAlphaFunc(GL_GREATER, 0.0);
+
 
 		globalAlpha = ip->getFading();
 		if (ai == -1)
@@ -260,7 +292,7 @@ void Renderer::renderScene(void)
 	Weather *w = timeCycle.getCurrentWeatherData();
 
 	// 3d scene
-	cam->setNearFar(0.1f, w->farClp);
+	cam->setNearFar(0.1f, game == GTASA ? 450 : w->farClp);
 	cam->look();	// this sets the projection and modelView matrices
 
 	gl::state.calculateNormalMat();
@@ -269,6 +301,28 @@ void Renderer::renderScene(void)
 	glm::vec4 lightDir = glm::vec4(1.0f, 1.0f, -1.0f, 0.0f);
 	lightDir = gl::state.modelView * glm::normalize(lightDir);
 	gl::state.lightDir = glm::vec3(lightDir);
+
+	if (doTrails) {
+		gl::state.col1[0] = w->rgba1.x;
+		gl::state.col1[1] = w->rgba1.y;
+		gl::state.col1[2] = w->rgba1.z;
+		gl::state.col1[3] = w->rgba1.w;
+
+		gl::state.col2[0] = w->rgba2.x;
+		gl::state.col2[1] = w->rgba2.y;
+		gl::state.col2[2] = w->rgba2.z;
+		gl::state.col2[3] = w->rgba2.w;
+	} else {
+		gl::state.col1[0] = 0.5;
+		gl::state.col1[1] = 0.5;
+		gl::state.col1[2] = 0.5;
+		gl::state.col1[3] = 0.5;
+
+		gl::state.col2[0] = 0;
+		gl::state.col2[1] = 0;
+		gl::state.col2[2] = 0;
+		gl::state.col2[3] = 0;
+	}
 
 	glm::vec3 amb;
 	if (doTrails)
@@ -280,6 +334,7 @@ void Renderer::renderScene(void)
 
 	gl::state.ambientLight = amb;
 	gl::state.texture = 0;
+	gl::state.textureType = 0;
 	gl::state.updateAll();
 	glBindTexture(GL_TEXTURE_2D, whiteTex);
 
@@ -297,11 +352,12 @@ void Renderer::renderScene(void)
 	gl::state.fogColor.x = w->skyBot.x;
 	gl::state.fogColor.y = w->skyBot.y;
 	gl::state.fogColor.z = w->skyBot.z;
-	gl::state.fogDensity = 0.0f;	// 0.0025f for SA perhaps ?
+//	gl::state.fogDensity = 0.0025f;	// 0.0025f for SA perhaps ?
+	gl::state.fogDensity = gl::alphaVal;
 	if (!doFog)
 		gl::state.fogDensity = -1.0f;
 	gl::state.fogStart = w->fogSt;
-	gl::state.fogEnd = w->farClp;
+	gl::state.fogEnd = game == GTASA ? 450 : w->farClp;
 	gl::state.updateAll();
 
 	drawWire = false;
@@ -314,7 +370,10 @@ void Renderer::renderScene(void)
 		drawTransparent = true;
 		drawable.draw();
 	}
+
 	player->draw();
+
+	coltest->drawSphere(1);
 
 	// the world
 
@@ -347,12 +406,40 @@ void Renderer::renderScene(void)
 	globalAlpha = 1.0f;
 	glDepthMask(GL_TRUE);
 	glDisable(GL_CULL_FACE);
-	water.draw();
+	water->draw();
 	if (doBFC)
 		glEnable(GL_CULL_FACE);
 	renderTransp2();
 	globalAlpha = 1.0f;
 	glDisable(GL_CULL_FACE);
+
+//	enexList->draw();
+
+	// 2d stuf
+
+	simplePipe->use();
+	gl::state.projection = glm::ortho(0.0f, 1.0f, 0.0f, 1.0f, -1.0f, 1.0f);
+	gl::state.modelView = glm::mat4(1.0f);
+	gl::state.updateAll();
+
+	if(doTrails && game == GTA3){
+		glDisable(GL_DEPTH_TEST);
+
+		glVertexAttrib4f(gl::in_Color, w->tint.x*0.6f, w->tint.y*0.6f, w->tint.z*0.6f, w->tint.w*0.6f);
+		glBindTexture(GL_TEXTURE_2D, whiteTex);
+		glBindBuffer(GL_ARRAY_BUFFER, rectvbo);
+		glEnableVertexAttribArray(gl::in_Vertex);
+		glVertexAttribPointer(gl::in_Vertex, 3, GL_FLOAT, GL_FALSE, 0, 0);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		glDisableVertexAttribArray(gl::in_Vertex);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+	}
+
+	gl::state.projection = glm::ortho(0.0f, (float)gl::width, 0.0f, (float)gl::height, -1.0f, 1.0f);
+	gl::state.updateMatrices();
+
+	if(consoleVisible)
+		console->draw();
 }
 
 Renderer::Renderer(void)

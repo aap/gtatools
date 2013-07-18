@@ -14,6 +14,7 @@
 #include "renderer.h"
 #include "objects.h"
 #include "world.h"
+#include "enex.h"
 #include "directory.h"
 #include "drawable.h"
 #include "camera.h"
@@ -21,6 +22,8 @@
 #include "water.h"
 #include "texman.h"
 #include "jobqueue.h"
+#include "console.h"
+#include "phys.h"
 using namespace std;
 
 /*
@@ -30,6 +33,7 @@ using namespace std;
 string gamePath;
 char *progname;
 int game;
+bool consoleVisible = false;
 pthread_t oglThread;
 volatile bool running;
 
@@ -49,11 +53,16 @@ void cleanUp(void)
 	SAFE_DELETE(player);
 	SAFE_DELETE(objectList);
 	SAFE_DELETE(world);
+	SAFE_DELETE(water);
+	SAFE_DELETE(console);
+	SAFE_DELETE(enexList);
 	SAFE_DELETE(texMan);
 	SAFE_DELETE(directory);
 	SAFE_DELETE(renderer);
 
 	drawable.unload();
+
+	physShutdown();
 }
 
 int initGame(void)
@@ -67,6 +76,11 @@ int initGame(void)
 	directory = new Directory;
 	texMan = new TexManager;
 	world = new World;
+	enexList = new EnexList;
+	water = new Water;
+	console = new Console;
+
+	console->init();
 
 	string datFileName = getPath("data/gta.dat");
 	ifstream f(datFileName.c_str());
@@ -194,10 +208,12 @@ int initGame(void)
 
 	cam = new Camera;
 
+/*
 	cam->setPitch(PI/8.0f-PI/2.0f);
 	cam->setDistance(20.0f);
 	cam->setAspectRatio(GLfloat(gl::width) / GLfloat(gl::height));
 	cam->setTarget(quat(335.5654907, -159.0345306, 17.85120964));
+*/
 
 	cout << "associating lods\n";
 	world->associateLods();
@@ -213,7 +229,7 @@ int initGame(void)
 		if (f.fail()) {
 			cerr << "couldn't open waterpro.dat\n";
 		} else {
-			water.loadWaterpro(f);
+			water->loadWaterpro(f);
 			f.close();
 		}
 	} else {	// must be GTASA
@@ -222,7 +238,7 @@ int initGame(void)
 		if (f.fail()) {
 			cerr << "couldn't open water.dat\n";
 		} else {
-			water.loadWater(f);
+			water->loadWater(f);
 			f.close();
 		}
 	}
@@ -243,6 +259,8 @@ int initGame(void)
 	anpk.read(f);
 	f.close();
 
+	physInit();
+
 	return 0;
 }
 
@@ -250,6 +268,7 @@ void updateGame(float timeDiff)
 {
 	if (player)
 		player->incTime(timeDiff);
+	physStep(timeDiff);
 }
 
 void parseDat(ifstream &f)

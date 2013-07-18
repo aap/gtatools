@@ -13,24 +13,81 @@ Camera *cam;
 
 void Camera::look(void)
 {
-	updateCam();
-
 	if (aim)
 		target = aim->position;
 
 	gl::state.projection = glm::perspective(fov, aspectRatio, n, f);
-	gl::state.modelView = glm::mat4(1.0f);
-	gl::state.modelView = glm::translate(gl::state.modelView,
-	                                     glm::vec3(0.0f, 0.0f, -dist));
-	gl::state.modelView = glm::rotate(gl::state.modelView,
-	                                  theta/3.1415f*180.0f,
-	                                  glm::vec3(1.0f,0.0f,0.0f));
-	gl::state.modelView = glm::rotate(gl::state.modelView,
-	                                  -phi/3.1415f*180.0f,
-	                                  glm::vec3(0.0f,0.0f,1.0f));
-	gl::state.modelView = glm::translate(gl::state.modelView,
-	                             glm::vec3(-target.x,-target.y, -target.z));
+
+	gl::state.modelView =
+		glm::lookAt(glm::vec3(position.x, position.y, position.z),
+		            glm::vec3(target.x, target.y, target.z),
+		            glm::vec3(up.x, up.y, up.z));
 	updateFrustum();
+}
+
+void Camera::setPosition(quat q)
+{
+	position = q;
+}
+
+quat Camera::getPosition(void)
+{
+	return position;
+}
+
+void Camera::setTarget(quat q)
+{
+	target = q;
+}
+
+quat Camera::getTarget(void)
+{
+	return target;
+}
+
+float Camera::getHeading(void)
+{
+	quat dir = target - position;
+	return atan2(dir.y, dir.x);
+}
+
+void Camera::turn(float yaw, float pitch)
+{
+	quat dir = target - position;
+	quat r(cos(yaw), up*sin(yaw));
+	dir = r*dir*r.conjugate();
+
+	quat right = (dir^up).normalize();
+	r = quat(cos(pitch), right*sin(pitch));
+	dir = r*dir*r.conjugate();
+
+	target = position + dir;
+}
+
+void Camera::orbit(float yaw, float pitch)
+{
+	quat dir = position - target;
+	quat r(cos(yaw), up*sin(yaw));
+	dir = r*dir*r.conjugate();
+
+	quat right = (dir^up).normalize();
+	r = quat(cos(pitch), right*sin(pitch));
+	dir = r*dir*r.conjugate();
+
+	position = target + dir;
+}
+
+void Camera::dolly(float dist)
+{
+	quat dir = (target - position).normalize()*dist;
+	position += dir;
+	target += dir;
+}
+
+void Camera::zoom(float dist)
+{
+	quat dir = (target - position).normalize()*dist;
+	position += dir;
 }
 
 void Camera::drawTarget(void)
@@ -38,58 +95,6 @@ void Camera::drawTarget(void)
 	glm::mat4 m = glm::translate(glm::mat4(1.0f),
 		glm::vec3(target.x, target.y, target.z));
 	gl::drawAxes(glm::value_ptr(m));
-}
-
-void Camera::panLR(float d)
-{
-	updateCam();
-	quat cam(-sin(theta)*sin(phi), sin(theta)*cos(phi), cos(theta));
-	quat right = (cam*up - up*cam);
-	right.normalize();
-	target += right*d;
-}
-
-void Camera::panUD(float d)
-{
-	updateCam();
-	quat cam(-sin(theta)*sin(phi), sin(theta)*cos(phi), cos(theta));
-	quat right = (cam*up - up*cam);
-	quat up_local = (right*cam - cam*right);
-	up_local.normalize();
-	target += up_local*d;
-}
-
-void Camera::turnLR(float ang)
-{
-	updateCam();
-	// calculate cam position, subtract new cam vector
-	quat pos(-sin(theta)*sin(phi), sin(theta)*cos(phi), cos(theta));
-	pos = pos * dist + target;
-
-	phi += ang;
-	quat newcam(-sin(theta)*sin(phi), sin(theta)*cos(phi), cos(theta));
-
-	target =  pos - newcam * dist;
-}
-
-void Camera::turnUD(float ang)
-{
-	updateCam();
-	// calculate cam position, subtract new cam vector
-	quat cam(-sin(theta)*sin(phi), sin(theta)*cos(phi), cos(theta));
-	quat pos = cam * dist + target;
-
-	theta += ang;
-	quat newcam(-sin(theta)*sin(phi), sin(theta)*cos(phi), cos(theta));
-
-	target =  pos - newcam * dist;
-}
-
-void Camera::moveInOut(float d)
-{
-	quat cam(-sin(theta)*sin(phi), sin(theta)*cos(phi), cos(theta));
-
-	target -= cam*d;
 }
 
 void Camera::updateFrustum(void)
@@ -148,10 +153,7 @@ void Camera::updateFrustum(void)
 	quat P(0.0f, 0.0f, n + len*0.5f);
 	quat Q(width, height, f);
 
-	quat cam(-sin(theta)*sin(phi), sin(theta)*cos(phi), cos(theta));
-	quat look = -cam;
-	cam = target + cam*dist;
-	frustumSphere = cam + look*(n + len*0.5f);
+	frustumSphere = position + (position-target).norm()*(n + len*0.5f);
 	frustumSphere.w = (P - Q).norm();
 }
 
@@ -218,110 +220,24 @@ bool Camera::isBoxInFrustumSphere(quat min, quat max)
 	return !isSphereOutsideBox(frustumSphere, min, max);
 }
 
-void Camera::updateCam()
-{
-	if (dist < 0.0f)
-		dist = 0.0f;
-
-	if (phi < 0.0f)
-		phi += 2.0f*PI;
-	else if (phi > 2.0f*PI)
-		phi -= 2.0f*PI;
-
-	if (theta < 0.0f)
-		theta += 2.0f*PI;
-	else if (theta > 2.0f*PI)
-		theta -= 2.0f*PI;
-
-/*
-	if ((0 <= theta && theta <= PI/2.0f) ||
-	    (3.0f/2.0f*PI <= theta && theta <= 2.0f*PI))
-		up.z = 1.0f;
-	else
-		up.z = -1.0f;
-*/
-}
-
 float Camera::sqDistanceTo(quat q)
 {
-	quat cam(-sin(theta)*sin(phi), sin(theta)*cos(phi), cos(theta));
-	cam *= dist;
-	cam += target;
-
-	cam -= q;
-	return cam.normsq();
+	return (position - q).normsq();
 }
 
 float Camera::distanceTo(quat q)
 {
-	quat cam(-sin(theta)*sin(phi), sin(theta)*cos(phi), cos(theta));
-	cam *= dist;
-	cam += target;
-
-	cam -= q;
-	return cam.norm();
-}
-
-void Camera::setPitch(float pitch)
-{
-	theta = pitch;
-}
-
-void Camera::setYaw(float yaw)
-{
-	phi = yaw;
-}
-
-void Camera::setDistance(float d)
-{
-	dist = d;
-}
-
-void Camera::setTarget(quat q)
-{
-	target = q;
-}
-
-float Camera::getPitch(void)
-{
-	return theta;
-}
-
-float Camera::getYaw(void)
-{
-	return phi;
-}
-
-float Camera::getDistance(void)
-{
-	return dist;
-}
-
-quat Camera::getTarget(void)
-{
-	return target;
-}
-
-float Camera::getFov(void)
-{
-	return fov;
-}
-
-quat Camera::getPosition(void)
-{
-	updateCam();
-	quat pos(-sin(theta)*sin(phi), sin(theta)*cos(phi), cos(theta));
-	return pos * dist + target;
-}
-
-void Camera::lock(RefFrame *f)
-{
-	aim = f;
+	return (position - q).norm();
 }
 
 void Camera::setFov(float f)
 {
 	fov = f;
+}
+
+float Camera::getFov(void)
+{
+	return fov;
 }
 
 void Camera::setAspectRatio(float r)
@@ -335,13 +251,17 @@ void Camera::setNearFar(float n, float f)
 	this->f = f;
 }
 
+void Camera::lock(RefFrame *f)
+{
+	aim = f;
+}
+
 Camera::Camera()
 {
 	doTarget = false;
-	theta = phi = 0.0f;
-	dist = 1.0f;
-	up = quat(0.0f, 0.0f, 1.0f);
+	position = quat(50.0f, 0.0f, 0.0f);
 	target = quat(0.0f, 0.0f, 0.0f);
+	up = quat(0.0f, 0.0f, 1.0f);
 	fov = 70.0f;
 	aspectRatio = 1.0f;
 	n = 0.1f;

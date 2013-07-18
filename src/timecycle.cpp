@@ -137,17 +137,22 @@ void Weather::readLine(vector<string> fields)
 		water = quat(255, 255, 255, 255);
 	}
 	if (game == GTASA) {
-		rgba1 = quat(atof(fields[i+3].c_str()),
-		             atof(fields[i].c_str()),
+		rgba1 = quat(atof(fields[i].c_str()),
 		             atof(fields[i+1].c_str()),
-		             atof(fields[i+2].c_str()));
+		             atof(fields[i+2].c_str()),
+		             atof(fields[i+3].c_str()));
 		i += 4;
-		rgba2 = quat(atof(fields[i+3].c_str()),
-		             atof(fields[i].c_str()),
+		rgba2 = quat(atof(fields[i].c_str()),
 		             atof(fields[i+1].c_str()),
-		             atof(fields[i+2].c_str()));
+		             atof(fields[i+2].c_str()),
+		             atof(fields[i+3].c_str()));
 		i += 4;
+	// TODO: these are 4 values actually
 		cloudAlpha = atof(fields[i++].c_str());
+	} else {
+		rgba1 = quat(128, 128, 128, 128);
+		rgba2 = quat(0, 0, 0, 0);
+		cloudAlpha = 1.0f;
 	}
 	if (game == GTA3) {
 		tint = quat(atof(fields[i+3].c_str()),
@@ -180,7 +185,6 @@ void TimeCycle::load(ifstream &f)
 	string line;
 	vector<string> fields;
 //	Weather w;
-	int numWeathers;
 	if (game == GTA3)
 		numWeathers = 4;
 	else if (game == GTAVC)
@@ -296,6 +300,17 @@ void TimeCycle::setMinute(int m)
 		minute = m;
 	}
 	updateColorStep();
+}
+
+int TimeCycle::getCurrentWeather(void)
+{
+	return currentWeather;
+}
+
+void TimeCycle::setCurrentWeather(int w)
+{
+	currentWeather = w % numWeathers;
+	cout << currentWeather << endl;
 }
 
 void TimeCycle::setColorStep(int t)

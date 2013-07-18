@@ -12,16 +12,17 @@ struct quaternion
 	quaternion(N, N, N);
 	quaternion(N, N, N, N);
 	quaternion(const quaternion<N>& quat);
+	quaternion(N, const quaternion<N>& quat);
+	quaternion<N> V(void);
 	void print(std::ostream&) const;
-	void conjugate();
-	quaternion<N> getConjugate(void) const;
-	N normsq() const;
-	N norm() const;
-	void normalize();
-	void invert();
+	quaternion<N> conjugate(void) const;
+	N normsq(void) const;
+	N norm(void) const;
+	quaternion<N> normalize();
+	quaternion<N> invert();
 	N dot(const quaternion& rhs) const;
 	N dot4(const quaternion& rhs) const;
-	quaternion<N> wedge(const quaternion& rhs) const;
+//	quaternion<N> wedge(const quaternion& rhs) const;
 	quaternion<N> slerp(const quaternion& rhs, float f) const;
 	quaternion& operator= (const quaternion& rhs);
 	quaternion& operator+= (const N& rhs);
@@ -32,6 +33,8 @@ struct quaternion
 	quaternion& operator-= (const quaternion& rhs);
 	quaternion& operator*= (const quaternion& rhs);
 	quaternion& operator/= (const quaternion& rhs);
+	quaternion  operator% (const quaternion& rhs) const;
+	quaternion  operator^ (const quaternion& rhs) const;
 	quaternion  operator+ (const quaternion& rhs) const;
 	quaternion  operator+ (const N& rhs) const;
 	quaternion  operator- (const quaternion& rhs) const;
@@ -62,6 +65,18 @@ quaternion<N>::quaternion(N w, N x, N y, N z)
 }
 
 template <class N>
+quaternion<N>::quaternion(N w, const quaternion<N>& quat)
+: w(w), x(quat.x), y(quat.y), z(quat.z)
+{
+}
+
+template <class N>
+quaternion<N> quaternion<N>::V(void)
+{
+	return quat(x, y, z);
+}
+
+template <class N>
 quaternion<N>::quaternion(const quaternion<N>& quat)
 {
 	w = quat.w;
@@ -77,15 +92,7 @@ void quaternion<N>::print(std::ostream& of) const
 }
 
 template <class N>
-void quaternion<N>::conjugate()
-{
-	x = -x;
-	y = -y;
-	z = -z;
-}
-
-template <class N>
-quaternion<N> quaternion<N>::getConjugate(void) const
+quaternion<N> quaternion<N>::conjugate(void) const
 {
 	return quaternion(w, -x, -y, -z);
 }
@@ -105,18 +112,20 @@ N quaternion<N>::norm() const
 }
 
 template <class N>
-void quaternion<N>::normalize()
+quaternion<N> quaternion<N>::normalize()
 {
 	N n = norm();
 	*this /= n;
+	return *this;
 }
 
 template <class N>
-void quaternion<N>::invert()
+quaternion<N> quaternion<N>::invert()
 {
 	conjugate();
 	N n = normsq();
 	*this /= n;
+	return *this;
 }
 
 template <class N>
@@ -131,17 +140,16 @@ N quaternion<N>::dot4(const quaternion& rhs) const
 	return w*rhs.w + x*rhs.x + y*rhs.y + z*rhs.z;
 }
 
+/*
 template <class N>
 quaternion<N> quaternion<N>::wedge(const quaternion& rhs) const
 {
-//	float xn = y*rhs.z - z*rhs.y;
-//	float yn = z*rhs.x - x*rhs.z;
-//	float zn = x*rhs.y - y*rhs.x;
 	N xn = y*rhs.z - z*rhs.y;
 	N yn = z*rhs.x - x*rhs.z;
 	N zn = x*rhs.y - y*rhs.x;
 	return quaternion(xn, yn, zn);
 }
+*/
 
 template <class N>
 quaternion<N> quaternion<N>::slerp(const quaternion& rhs, float f) const
@@ -250,6 +258,21 @@ std::ostream &operator<<(std::ostream& out, const quaternion<N>& q)
 {
 	q.print(out);
 	return out;
+}
+
+template <class N>
+quaternion<N> quaternion<N>::operator%(const quaternion<N>& rhs) const
+{
+	return quaternion(x*rhs.x, y*rhs.y, z*rhs.z);
+}
+
+template <class N>
+quaternion<N> quaternion<N>::operator^(const quaternion<N>& rhs) const
+{
+	N xn = y*rhs.z - z*rhs.y;
+	N yn = z*rhs.x - x*rhs.z;
+	N zn = x*rhs.y - y*rhs.x;
+	return quaternion(xn, yn, zn);
 }
 
 template <class N>

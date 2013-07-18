@@ -22,7 +22,8 @@ GLint in_TexCoord;
 
 void State::calculateNormalMat(void)
 {
-	normalMat = glm::inverseTranspose(glm::mat3(modelView));
+//	normalMat = glm::inverseTranspose(glm::mat3(modelView));
+	normalMat = glm::mat3(modelView);
 }
 
 void State::updateMatrices(void)
@@ -55,6 +56,7 @@ void State::updateTexture(void)
 {
 	THREADCHECK();
 	glUniform1i(u_Texture, texture);
+	glUniform1i(u_TextureType, textureType);
 }
 
 void State::updateFog(void)
@@ -64,6 +66,9 @@ void State::updateFog(void)
 	glUniform1f(u_FogDensity, fogDensity);
 	glUniform1f(u_FogStart, fogStart);
 	glUniform1f(u_FogEnd, fogEnd);
+
+	glUniform4fv(u_Col1, 1, glm::value_ptr(col1));
+	glUniform4fv(u_Col2, 1, glm::value_ptr(col2));
 }
 
 void State::updateAll(void)
@@ -112,10 +117,14 @@ void Pipeline::use(void)
 	getVar("u_MatColor", &state.u_MatColor, 1);
 
 	getVar("u_Texture", &state.u_Texture, 1);
+	getVar("u_TextureType", &state.u_TextureType, 1);
 	getVar("u_Fog.color", &state.u_FogColor, 1);
 	getVar("u_Fog.start", &state.u_FogStart, 1);
 	getVar("u_Fog.end", &state.u_FogEnd, 1);
 	getVar("u_Fog.density", &state.u_FogDensity, 1);
+
+	getVar("u_Col1", &state.u_Col1, 1);
+	getVar("u_Col2", &state.u_Col2, 1);
 }
 
 void Pipeline::load(const char *vertsrc, const char *fragsrc)

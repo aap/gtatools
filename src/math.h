@@ -4,6 +4,7 @@
 #include "quat.h"
 
 #define PI 3.14159f
+#define TODEG (180.0f/PI)
 
 typedef quaternion<float> quat;
 

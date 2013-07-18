@@ -17,7 +17,7 @@
 
 using namespace std;
 
-Water water;
+Water *water;
 
 void Water::draw(void)
 {
@@ -102,12 +102,12 @@ void Water::loadWater(ifstream &f)
 		vertices.push_back(x[2]);
 		vertices.push_back(y[2]);
 		vertices.push_back(z[2]);
-		texCoords.push_back(x[0]/32.0f);
-		texCoords.push_back(y[0]/32.0f);
-		texCoords.push_back(x[1]/32.0f);
-		texCoords.push_back(y[1]/32.0f);
-		texCoords.push_back(x[2]/32.0f);
-		texCoords.push_back(y[2]/32.0f);
+		texCoords.push_back(x[0]/16.0f);
+		texCoords.push_back(y[0]/16.0f);
+		texCoords.push_back(x[1]/16.0f);
+		texCoords.push_back(y[1]/16.0f);
+		texCoords.push_back(x[2]/16.0f);
+		texCoords.push_back(y[2]/16.0f);
 		if (fields.size() > 22) {
 			vertices.push_back(x[1]);
 			vertices.push_back(y[1]);
@@ -118,12 +118,12 @@ void Water::loadWater(ifstream &f)
 			vertices.push_back(x[3]);
 			vertices.push_back(y[3]);
 			vertices.push_back(z[3]);
-			texCoords.push_back(x[1]/32.0f);
-			texCoords.push_back(y[1]/32.0f);
-			texCoords.push_back(x[2]/32.0f);
-			texCoords.push_back(y[2]/32.0f);
-			texCoords.push_back(x[3]/32.0f);
-			texCoords.push_back(y[3]/32.0f);
+			texCoords.push_back(x[1]/16.0f);
+			texCoords.push_back(y[1]/16.0f);
+			texCoords.push_back(x[2]/16.0f);
+			texCoords.push_back(y[2]/16.0f);
+			texCoords.push_back(x[3]/16.0f);
+			texCoords.push_back(y[3]/16.0f);
 		}
 	}
 	vertices.insert(vertices.end(), texCoords.begin(), texCoords.end());

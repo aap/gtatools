@@ -4,16 +4,24 @@
 
 class RefFrame;
 
+/*
+ * Three types:
+ * 1. Position + Target
+ * 2. First Person Cam
+ * 3. Orbit Cam
+ */
 class Camera
 {
 private:
 	void updateFrustum(void);
 	void updateCam(void);
-	float theta, phi, dist;
+
+	quat position;
+	quat target;
+	quat up;
+
 	float fov, aspectRatio;
 	float n, f;
-	quat up;
-	quat target;
 	quat planes[6];
 	quat frustumSphere;
 
@@ -21,28 +29,21 @@ private:
 public:
 	bool doTarget;
 
-	void panLR(float d);
-	void panUD(float d);
-	void turnLR(float phi);
-	void turnUD(float phi);
-	void moveInOut(float d);
-
-	void setPitch(float pitch);
-	void setYaw(float yaw);
-	void setDistance(float d);
+	void setPosition(quat q);
+	quat getPosition(void);
 	void setTarget(quat q);
-	void setFov(float f);
+	quat getTarget(void);
+	float getHeading(void);
 
+	void turn(float yaw, float pitch);
+	void orbit(float yaw, float pitch);
+	void dolly(float dist);
+	void zoom(float dist);
+
+	void setFov(float f);
+	float getFov(void);
 	void setAspectRatio(float r);
 	void setNearFar(float n, float f);
-
-	float getPitch(void);
-	float getYaw(void);
-	float getDistance(void);
-	quat getTarget(void);
-	float getFov(void);
-
-	quat getPosition(void);
 
 	void lock(RefFrame *f);
 

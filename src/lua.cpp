@@ -15,6 +15,7 @@
 #include "jobqueue.h"
 #include "drawable.h"
 #include "animation.h"
+#include "timecycle.h"
 
 using namespace std;
 
@@ -23,6 +24,7 @@ void registerGeneral(lua_State *L);
 void registerCamera(lua_State *L);
 void registerWorld(lua_State *L);
 void registerGl(lua_State *L);
+void registerTime(lua_State *L);
 
 static lua_State *L = 0;
 static string prompt;
@@ -77,6 +79,7 @@ void luaInit(void)
 	registerCamera(L);
 	registerWorld(L);
 	registerGl(L);
+	registerTime(L);
 	registerGeneral(L);
 
 	luaL_dofile(L, "rc.lua");
@@ -227,9 +230,63 @@ void registerGeneral(lua_State *L)
 }
 
 /*
+ * Time
+ */
+
+int timeSetHour(lua_State *L)
+{
+	int i = luaL_checkinteger(L, 1);
+	timeCycle.setHour(i);
+	return 0;
+}
+
+int timeGetHour(lua_State *L)
+{
+	lua_pushnumber(L, timeCycle.getHour());
+	return 1;
+}
+
+int timeSetMinute(lua_State *L)
+{
+	int i = luaL_checkinteger(L, 1);
+	timeCycle.setMinute(i);
+	return 0;
+}
+
+int timeGetMinute(lua_State *L)
+{
+	lua_pushnumber(L, timeCycle.getMinute());
+	return 1;
+}
+
+int timeSetCurrentWeather(lua_State *L)
+{
+	int i = luaL_checkinteger(L, 1);
+	timeCycle.setCurrentWeather(i);
+	return 0;
+}
+
+int timeGetCurrentWeather(lua_State *L)
+{
+	lua_pushnumber(L, timeCycle.getCurrentWeather());
+	return 1;
+}
+
+void registerTime(lua_State *L)
+{
+	lua_register(L, "__timeSetHour", timeSetHour);
+	lua_register(L, "__timeGetHour", timeGetHour);
+	lua_register(L, "__timeSetMinute", timeSetMinute);
+	lua_register(L, "__timeGetMinute", timeGetMinute);
+	lua_register(L, "__timeSetCurrentWeather", timeSetCurrentWeather);
+	lua_register(L, "__timeGetCurrentWeather", timeGetCurrentWeather);
+}
+
+/*
  * Camera
  */
 
+/*
 int cameraPanLR(lua_State *L)
 {
 	float d = luaL_checknumber(L, 1);
@@ -364,9 +421,101 @@ int cameraPrint(lua_State *)
 	cout << "cam.setPitch(" << cam->getPitch() << ")\n";
 	return 0;
 }
+*/
+
+int cameraSetTarget(lua_State *L)
+{
+	float x = luaL_checknumber(L, 1);
+	float y = luaL_checknumber(L, 2);
+	float z = luaL_checknumber(L, 3);
+	cam->setTarget(quat(x, y, z));
+	return 0;
+}
+
+int cameraGetTarget(lua_State *L)
+{
+	quat q = cam->getTarget();
+	lua_pushnumber(L, q.x);
+	lua_pushnumber(L, q.y);
+	lua_pushnumber(L, q.z);
+	return 3;
+}
+
+int cameraSetPosition(lua_State *L)
+{
+	float x = luaL_checknumber(L, 1);
+	float y = luaL_checknumber(L, 2);
+	float z = luaL_checknumber(L, 3);
+	cam->setPosition(quat(x, y, z));
+	return 0;
+}
+
+int cameraGetPosition(lua_State *L)
+{
+	quat q = cam->getPosition();
+	lua_pushnumber(L, q.x);
+	lua_pushnumber(L, q.y);
+	lua_pushnumber(L, q.z);
+	return 3;
+}
+
+int cameraTurn(lua_State *L)
+{
+	float a = luaL_checknumber(L, 1);
+	float b = luaL_checknumber(L, 2);
+	cam->turn(a, b);
+	return 0;
+}
+
+int cameraOrbit(lua_State *L)
+{
+	float a = luaL_checknumber(L, 1);
+	float b = luaL_checknumber(L, 2);
+	cam->orbit(a, b);
+	return 0;
+}
+
+int cameraDolly(lua_State *L)
+{
+	float a = luaL_checknumber(L, 1);
+	cam->dolly(a);
+	return 0;
+}
+
+int cameraZoom(lua_State *L)
+{
+	float a = luaL_checknumber(L, 1);
+	cam->zoom(a);
+	return 0;
+}
+
+int cameraSetFov(lua_State *L)
+{
+	float fov = luaL_checknumber(L, 1);
+	cam->setFov(fov);
+	return 0;
+}
+
+int cameraGetFov(lua_State *L)
+{
+	lua_pushnumber(L, cam->getFov());
+	return 1;
+}
+
+int cameraLock(lua_State *L)
+{
+	int i = luaL_checkinteger(L, 1);
+	if (i)
+		cam->lock(&player->frm);
+	else
+		cam->lock(0);
+	return 0;
+}
+
 
 void registerCamera(lua_State *L)
 {
+/*
 	lua_register(L, "__cameraPanLR", cameraPanLR);
 	lua_register(L, "__cameraPanUD", cameraPanUD);
 	lua_register(L, "__cameraTurnLR", cameraTurnLR);
@@ -385,6 +534,20 @@ void registerCamera(lua_State *L)
 	lua_register(L, "__cameraGetPosition", cameraGetPosition);
 	lua_register(L, "__cameraLock", cameraLock);
 	lua_register(L, "__cameraPrint", cameraPrint);
+*/
+
+	lua_register(L, "__cameraSetPosition", cameraSetPosition);
+	lua_register(L, "__cameraGetPosition", cameraGetPosition);
+	lua_register(L, "__cameraSetTarget", cameraSetTarget);
+	lua_register(L, "__cameraGetTarget", cameraGetTarget);
+	lua_register(L, "__cameraTurn", cameraTurn);
+	lua_register(L, "__cameraOrbit", cameraOrbit);
+	lua_register(L, "__cameraDolly", cameraDolly);
+	lua_register(L, "__cameraZoom", cameraZoom);
+
+	lua_register(L, "__cameraSetFov", cameraSetFov);
+	lua_register(L, "__cameraGetFov", cameraGetFov);
+	lua_register(L, "__cameraLock", cameraLock);
 }
 
 /*

@@ -10,20 +10,22 @@
 
 #include "gta.h"
 #include "gl.h"
+#include "primitives.h"
 #include "math.h"
 #include "jobqueue.h"
 #include "lua.h"
 #include "renderer.h"
 #include "camera.h"
+#include "console.h"
 
 using namespace std;
 
 namespace gl {
+	int stencilShift;
+	int width;
+	int height;
 
-int stencilShift;
-int width;
-int height;
-
+	float alphaVal;
 }
 
 void resize(int w, int h)
@@ -32,7 +34,9 @@ void resize(int w, int h)
 	gl::height = h;
 	if (gl::height == 0)
 		gl::height = 1;
-	cam->setAspectRatio(GLfloat(gl::width)/GLfloat(gl::height));
+//	cam->setAspectRatio(GLfloat(gl::width)/GLfloat(gl::height));
+	cam->setAspectRatio(GLfloat(4.0/3.0));
+	console->setDimensions(gl::width, gl::height);
 	glViewport(0, 0, gl::width, gl::height);
 }
 
@@ -65,8 +69,12 @@ int main(int argc, char *argv[])
 
 	oglThread = pthread_self();
 
-	gl::width = 644;
-	gl::height = 340;
+//	gl::width = 644;
+//	gl::height = 340;
+	gl::width = 640;
+	gl::height = 512;
+
+	gl::alphaVal = 1.0;
 
 	if (!glfwInit()) {
 		cerr << "Error: could not initialize GLFW\n";
@@ -75,13 +83,17 @@ int main(int argc, char *argv[])
 	}
 	if (!glfwOpenWindow(gl::width, gl::height,
 	                    0, 0, 0, 0,
-	                    24, 8,
+	                    32, 8,
 	                    GLFW_WINDOW)) {
 		cerr << "Error: could not create GLFW window\n";
 		glfwTerminate();
 		exitprog();
 		return 1;
 	}
+
+	GLint depth;
+	glGetIntegerv(GL_DEPTH_BITS, &depth);
+	cout << "z-depth: " << depth << endl;
 
 	if (initGame()) {
 		exitprog();
@@ -159,7 +171,7 @@ int main(int argc, char *argv[])
 		lastTime = time;
 		frm++;
 		if ((time - startTime) >= CLOCKS_PER_SEC) {
-//			cout << frm << " fps\n";
+//			cout << dec << frm << " fps\n";
 			frm = 0;
 			startTime = time;
 		}
@@ -178,8 +190,10 @@ int main(int argc, char *argv[])
 
 void RefFrame::update(void)
 {
-	right = forward.wedge(up);
-	up = right.wedge(forward);
+//	right = forward.wedge(up);
+//	up = right.wedge(forward);
+	right = forward^up;
+	up = right^forward;
 
 	glm::vec4 x, y, z, w;
 	x.x = right.x; x.y = right.y; x.z = right.z; x.w = 0;
@@ -193,7 +207,8 @@ void RefFrame::move(quat p1, quat p2)
 {
 	quat diff = p2 - p1;
 	float a = acos(forward.y)/2;
-	quat axis = forward.wedge(quat(0.0, 1.0, 0.0));
+//	quat axis = forward.wedge(quat(0.0, 1.0, 0.0));
+	quat axis = forward^quat(0.0, 1.0, 0.0);
 	if (axis.z == 0) {
 		if (forward.y == 1)
 			a = 0;
@@ -203,7 +218,8 @@ void RefFrame::move(quat p1, quat p2)
 	}
 	axis.normalize();
 	quat q(cos(a), sin(a)*axis.x, sin(a)*axis.y, sin(a)*axis.z);
-	diff = q.getConjugate() * diff * q;
+//	diff = q.getConjugate() * diff * q;
+	diff = q.conjugate() * diff * q;
 	position += diff;
 	update();
 }
@@ -218,7 +234,8 @@ void RefFrame::rotate(float r)
 {
 	r /= 2;
 	quat q(cos(r), sin(r)*up.x, sin(r)*up.y, sin(r)*up.z);
-	forward = q.getConjugate() * forward * q;
+//	forward = q.getConjugate() * forward * q;
+	forward = q.conjugate() * forward * q;
 	update();
 }
 
@@ -233,3 +250,21 @@ void RefFrame::setHeading(float r)
 	forward = quat(0, sin(r), cos(r), 0);
 	update();
 }
+
+void RefFrame::drawSphere(float r)
+{
+	glm::mat4 mvSave = gl::state.modelView;
+	glm::mat3 nrmSave = gl::state.normalMat;
+
+	gl::state.modelView *= mat;
+
+	gl::state.calculateNormalMat();
+	gl::state.updateMatrices();
+
+	gl::drawSphere(r, 5, 5);
+
+	gl::state.modelView = mvSave;
+	gl::state.normalMat = nrmSave;
+	gl::state.updateMatrices();
+}
+

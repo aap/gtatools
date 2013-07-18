@@ -53,6 +53,9 @@ public:
 	/* fragment */
 	GLint u_Texture;
 	GLint texture;
+	GLint u_TextureType;
+	GLint textureType;
+
 	GLint u_FogColor;
 	glm::vec4 fogColor;
 	GLint u_FogStart;
@@ -61,6 +64,11 @@ public:
 	GLfloat fogEnd;
 	GLint u_FogDensity;
 	GLfloat fogDensity;
+
+	GLint u_Col1;
+	glm::vec4 col1;
+	GLint u_Col2;
+	glm::vec4 col2;
 
 	void calculateNormalMat(void);
 	void updateMatrices(void);

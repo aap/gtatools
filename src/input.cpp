@@ -3,11 +3,14 @@
 #include "gl.h"
 #include "gta.h"
 #include "world.h"
+#include "enex.h"
 #include "camera.h"
 #include "jobqueue.h"
 #include "renderer.h"
 #include "objects.h"
 #include "drawable.h"
+#include "timecycle.h"
+#include "phys.h"
 
 using namespace std;
 
@@ -17,7 +20,7 @@ static bool isLDown, isMDown, isRDown;
 static bool isShiftDown, isCtrlDown, isAltDown;
 static uint lastSelected;
 
-void handleKeyboardInput(void)
+void handleKeyboardInput1(void)
 {
 	const float dist = 5.0f;
 
@@ -27,6 +30,14 @@ void handleKeyboardInput(void)
 		true : false;
 	isAltDown = (glfwGetKey(GLFW_KEY_LALT) == GLFW_PRESS) ?
 		true : false;
+
+	if (glfwGetKey('A')) {
+		if (isShiftDown)
+			gl::alphaVal -= 0.01;
+		else
+			gl::alphaVal += 0.01;
+		cout << gl::alphaVal << endl;
+	}
 
 	if (glfwGetKey('Y')) {
 		if (isShiftDown)
@@ -44,16 +55,33 @@ void handleKeyboardInput(void)
 
 	if (glfwGetKey('W')) {
 		if (isShiftDown)
-			cam->moveInOut(dist);
+			cam->dolly(dist);
+//			cam->moveInOut(dist);
 		else
-			cam->setDistance(cam->getDistance()-dist);
+			cam->zoom(dist);
+//			cam->setDistance(cam->getDistance()-dist);
 	}
 
 	if (glfwGetKey('S')) {
 		if (isShiftDown)
-			cam->moveInOut(-dist);
+			cam->dolly(-dist);
+//			cam->moveInOut(-dist);
 		else
-			cam->setDistance(cam->getDistance()+dist);
+			cam->zoom(-dist);
+//			cam->setDistance(cam->getDistance()+dist);
+	}
+
+	if (glfwGetKey('M')) {
+		if (isShiftDown)
+			timeCycle.setMinute(timeCycle.getMinute()-1);
+		else
+			timeCycle.setMinute(timeCycle.getMinute()+1);
+	}
+	if (glfwGetKey('H')) {
+		if (isShiftDown)
+			timeCycle.setHour(timeCycle.getHour()-1);
+		else
+			timeCycle.setHour(timeCycle.getHour()+1);
 	}
 
 	int u, r, d, l;
@@ -66,39 +94,65 @@ void handleKeyboardInput(void)
 			player->setStateRunning();
 		else
 			player->setStateWalking();
+/*
 		quat dir =
 			quat(0.0, 1.0, 0.0)*u +
 			quat(1.0, 0.0, 0.0)*r +
 			quat(0.0, -1.0, 0.0)*d +
 			quat(-1.0, 0.0, 0.0)*l;
-		float a = cam->getYaw()/2.0;
+*/
+		quat dir =
+			quat(1.0, 0.0, 0.0)*u +
+			quat(0.0, -1.0, 0.0)*r +
+			quat(-1.0, 0.0, 0.0)*d +
+			quat(0.0, 1.0, 0.0)*l;
+//		float a = cam->getYaw()/2.0;
+		float a = cam->getHeading()/2.0;
 		quat q(cos(a), 0, 0, -sin(a));
-		dir = q.getConjugate() * dir * q;
+//		dir = q.getConjugate() * dir * q;
+		dir = q.conjugate() * dir * q;
 		float n;
 		if ((n = dir.norm()) != 0.0)
 			player->frm.setForward(dir/n);
 	} else {
 		player->setStateStop();
 	}
-
 }
 
-void keypress(int key, int state)
+void handleKeyboardInput2(void)
+{
+}
+
+void handleKeyboardInput(void)
+{
+	if(consoleVisible)
+		handleKeyboardInput2();
+	else
+		handleKeyboardInput1();
+}
+
+
+void keypress1(int key, int state)
 {
 	if (state != GLFW_PRESS)
 		return;
 
 	switch (key) {
+	case '`':
+		consoleVisible = !consoleVisible;
+		break;
 	case 'Q':
 	case GLFW_KEY_ESC:
 		exitprog();
 		break;
+/*
 	case 'M':
 		int x, y;
 		glfwGetMousePos(&x, &y);
 		cout << x << " " << y << endl;
 		glfwSetMousePos(x+30, y+30);
 		break;
+*/
 	case 'B':
 		WorldObject *op;
 		op = static_cast<WorldObject*>(objectList->get(
@@ -126,9 +180,32 @@ void keypress(int key, int state)
 	case 'X':
 		cam->doTarget = !cam->doTarget;
 		break;
+	case 'F':
+		physStep(0);
+		break;
 	default:
 		break;
 	}
+}
+
+void keypress2(int key, int state)
+{
+	if (state != GLFW_PRESS)
+		return;
+
+	switch (key) {
+	case '`':
+		consoleVisible = !consoleVisible;
+		break;
+	}
+}
+
+void keypress(int key, int state)
+{
+	if(consoleVisible)
+		keypress2(key, state);
+	else
+		keypress1(key, state);
 }
 
 void mouseButton(int button, int state)
@@ -175,7 +252,10 @@ void mouseButton(int button, int state)
 				glReadPixels(x, gl::height - y - 1, 1, 1,
 				             GL_STENCIL_INDEX,
 				             GL_UNSIGNED_INT, stencil.bytes+3);
-				lastSelected = stencil.integer;
+				if(stencil.integer >= 0)
+					lastSelected = stencil.integer;
+				else
+					enexList->enter(-stencil.integer);
 			}
 		}
 		if (button == GLFW_MOUSE_BUTTON_MIDDLE)
@@ -184,6 +264,7 @@ void mouseButton(int button, int state)
 			isRDown = false;
 	}
 }
+
 
 void mouseMotion(int x, int y)
 {
@@ -218,27 +299,34 @@ void mouseMotion(int x, int y)
 	lastY = y+yoff;
 	if (isLDown) {
 		if (isShiftDown) {
-			cam->turnLR(dx*2.0f);
-			cam->turnUD(-dy*2.0f);
+			cam->turn(dx*2.0f, dy*2.0f);
+//			cam->turnLR(dx*2.0f);
+//			cam->turnUD(-dy*2.0f);
 		} else {
-			cam->setYaw(cam->getYaw()+dx*2.0f);
-			cam->setPitch(cam->getPitch()-dy*2.0f);
+			cam->orbit(dx*2.0f, -dy*2.0f);
+//			cam->setYaw(cam->getYaw()+dx*2.0f);
+//			cam->setPitch(cam->getPitch()-dy*2.0f);
 		}
 	}
 	if (isMDown) {
+/*
 		if (isShiftDown) {
 		} else {
 			cam->panLR(-dx*8.0f);
 			cam->panUD(-dy*8.0f);
 		}
+*/
 	}
 	if (isRDown) {
+/*
 		if (isShiftDown) {
 		} else {
 			cam->setDistance(cam->getDistance()+dx*12.0f);
 		}
+*/
 	}
 }
+
 
 void mouseWheel(int pos)
 {
@@ -248,10 +336,12 @@ void mouseWheel(int pos)
 	int diff = pos - lastPos;
 	lastPos = pos;
 
+/*
 	if (isShiftDown)
 		cam->moveInOut(dist*diff);
 	else
 		cam->setDistance(cam->getDistance()-dist*diff);
+*/
 }
 
 void handleJoystickInput(int joy)
@@ -274,9 +364,11 @@ void handleJoystickInput(int joy)
 		accel = 2.0f;
 	if (buttons[4])
 		accel = 0.5f;
+/*
 	cam->moveInOut(-axes[2]*accel);
 	cam->turnLR(-axes[0]/10.0f);
 	cam->turnUD(axes[1]/10.0f);
+*/
 }
 
 

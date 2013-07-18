@@ -21,12 +21,15 @@ namespace gl {
 	extern int stencilShift;
 	extern int width;
 	extern int height;
+
+	extern float alphaVal;
 }
 
 class RefFrame {
 private:
-	void update(void);
 public:
+	void update(void);
+
 	quat forward;
 	quat right;
 	quat up;
@@ -38,6 +41,7 @@ public:
 	void rotate(float r);
 	void setHeading(float r);
 	void setForward(quat f);
+	void drawSphere(float r);
 };
 
 #endif

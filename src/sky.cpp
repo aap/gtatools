@@ -12,7 +12,6 @@
 #include "sky.h"
 
 using namespace std;
-//using namespace gl;
 
 Sky sky;
 
@@ -26,10 +25,10 @@ void Sky::draw(void)
 	if (game == GTASA)
 		underworld = w->skyBot;
 	GLfloat box[] = {
-		 1000, -100,  70,
-		-1000, -100,  70,
-		 1000,  100,  70,
-		-1000,  100,  70,
+		 1000, -100,  55,
+		-1000, -100,  55,
+		 1000,  100,  55,
+		-1000,  100,  55,
 		 1000,  100,  0,
 		-1000,  100,  0,
 		 1000,  100, -10,
@@ -38,8 +37,8 @@ void Sky::draw(void)
 		-1000, -100, -10,
 		 1000, -100,  0,
 		-1000, -100,  0,
-		 1000, -100,  70,
-		-1000, -100,  70,
+		 1000, -100,  55,
+		-1000, -100,  55,
 
 		w->skyTop.x, w->skyTop.y, w->skyTop.z,
 		w->skyTop.x, w->skyTop.y, w->skyTop.z,
@@ -63,8 +62,13 @@ void Sky::draw(void)
 	quat campos = cam->getPosition();
 	gl::state.modelView = glm::translate(gl::state.modelView,
 			glm::vec3(campos.x, campos.y, campos.z));
+/*
 	gl::state.modelView = glm::rotate(gl::state.modelView,
 	                                  cam->getYaw()/3.1415f*180.0f,
+	                                  glm::vec3(0.0f, 0.0f, 1.0f));
+*/
+	gl::state.modelView = glm::rotate(gl::state.modelView,
+	                                  cam->getHeading()*TODEG + 90,
 	                                  glm::vec3(0.0f, 0.0f, 1.0f));
 	gl::state.updateMatrices();
 

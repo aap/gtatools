@@ -147,6 +147,15 @@ void AnimPackage::clear(void)
 	name = "";
 }
 
+/*
+bool skipName(string name)
+{
+	if(name == "root")
+		return false;
+	return true;
+}
+*/
+
 void Animation::getKeyframe(float t, string name, KeyFrame &kf)
 {
 	size_t oi;
@@ -154,6 +163,12 @@ void Animation::getKeyframe(float t, string name, KeyFrame &kf)
 	for (oi = 0; oi < objList.size(); oi++)
 		if (objList[oi].name == name)
 			break;
+/*
+	if(skipName(name)){
+		kf.type = 0;
+		return;
+	}
+*/
 
 	if (oi < objList.size())
 		objList[oi].interpolate(t, kf);

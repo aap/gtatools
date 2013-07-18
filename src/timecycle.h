@@ -46,6 +46,7 @@ class TimeCycle
 private:
 	Weather weatherList[23][24];
 	Weather currentWeatherData;
+	int numWeathers;
 	int currentWeather;
 	int hour, minute;
 	int colorStep;	// this handles switching between day and night colors
@@ -60,6 +61,8 @@ public:
 	int getMinute(void);
 	void setHour(int);
 	void setMinute(int);
+	int getCurrentWeather(void);
+	void setCurrentWeather(int w);
 	void setColorStep(int);
 	int getColorStep(void);
 	void updateColorStep(void);

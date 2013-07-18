@@ -22,6 +22,7 @@ private:
 	std::vector<RenderListObject> transp2RenderList;
 
 	gl::Pipeline *simplePipe, *gtaPipe;
+	GLuint rectvbo;
 public:
 	int init(void);
 

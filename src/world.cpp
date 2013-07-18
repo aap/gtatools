@@ -20,6 +20,7 @@
 #include "renderer.h"
 #include "objects.h"
 #include "world.h"
+#include "enex.h"
 
 using namespace std;
 
@@ -283,6 +284,9 @@ void World::readTextIpl(ifstream &in)
 		} else if (fields[0] == "path") {
 			blockType = PATH_IPL;
 			continue;
+		} else if (fields[0] == "enex") {
+			blockType = ENEX;
+			continue;
 		} else if (fields[0] == "end") {
 			blockType = END;
 			continue;
@@ -292,6 +296,10 @@ void World::readTextIpl(ifstream &in)
 			Instance *ip = new Instance;
 			ip->initFromLine(fields);
 			addInstance(ip);
+		} else if (blockType == ENEX) {
+			Enex *enex = new Enex;
+			enex->initFromLine(fields);
+			enexList->add(enex);
 		} else if (blockType == ZONE) {
 			Zone *z = new Zone;
 			z->initFromLine(fields);
@@ -771,7 +779,8 @@ bool Instance::isCulled(void)
 	if (boundingSphere.w < 0) {
 		boundingSphere = op->col->boundingSphere;
 		boundingSphere.w = 0;
-		boundingSphere = rotation.getConjugate() * boundingSphere
+//		boundingSphere = rotation.getConjugate() * boundingSphere
+		boundingSphere = rotation.conjugate() * boundingSphere
 		                                         * rotation;
 		boundingSphere += position;
 		boundingSphere.w = op->col->boundingSphere.w;

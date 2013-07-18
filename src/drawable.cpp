@@ -503,8 +503,12 @@ void Drawable::setVertexColors(void)
 		rw::Geometry &rwg = clump->geometryList[i];
 		Geometry &geo = geoList[i];
 
-		if (!rwg.hasNightColors)
+		if (!rwg.hasNightColors || !(rwg.flags && rw::FLAGS_PRELIT))
 			continue;
+		if (rwg.nightColors.size() != rwg.vertexColors.size()) {
+			cerr << "vertex color size mismatch\n";
+			continue;
+		}
 		// 0.0 is day, 1.0 is night
 		float a = timeCycle.getColorStep() / 5.0f;
 
@@ -691,8 +695,9 @@ void Drawable::drawGeometry(int gi)
 		if (1) {
 			glEnable(GL_BLEND);
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-			glEnable(GL_ALPHA_TEST);
-			glAlphaFunc(GL_GREATER, 0.0);
+//			glEnable(GL_ALPHA_TEST);
+//			glAlphaFunc(GL_GREATER, 0.5);
+//			glAlphaFunc(GL_GREATER, alphaVal);
 		} else {
 			glDisable(GL_BLEND);
 			glDisable(GL_ALPHA_TEST);

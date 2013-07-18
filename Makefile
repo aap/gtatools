@@ -1,13 +1,14 @@
 SRCDIR = src
 BUILDDIR = build
-RWDIR = $(HOME)/rwtools
+RWDIR = $(HOME)/src/rwtools
 SRC := $(wildcard $(SRCDIR)/*.cpp)
 OBJ := $(patsubst $(SRCDIR)/%.cpp,$(BUILDDIR)/%.o,$(SRC))
 DEP := $(patsubst $(SRCDIR)/%.cpp,$(BUILDDIR)/%.d,$(SRC))
-INC = -I$(RWDIR)/include
-CFLAGS = $(INC) -Wall -Wextra -g# -O3 -pg
+INC = -I$(RWDIR)/include -I/usr/local/include/bullet
+CFLAGS = $(INC) -Wall -Wextra -g #-pg -O2
 LINK = $(RWDIR)/lib/librwtools.a\
-  -lGL -lglfw -lGLEW -lpthread -lreadline -llua    #lua5.1
+  -lGL -lglfw -lGLEW -lpthread -lreadline -llua\
+  -lBulletCollision -lBulletDynamics -lLinearMath
 TARGET = gta
 
 $(TARGET): $(OBJ)

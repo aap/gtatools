@@ -17,7 +17,7 @@ public:
 	void draw(void);
 };
 
-extern Water water;
+extern Water *water;
 
 #endif
 

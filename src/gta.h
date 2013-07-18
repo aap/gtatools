@@ -37,6 +37,7 @@ typedef unsigned int uint;
 extern char *progname;
 extern std::string gamePath;
 extern int game;
+extern bool consoleVisible;
 extern volatile bool running;
 extern pthread_t oglThread;
 

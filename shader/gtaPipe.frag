@@ -12,35 +12,23 @@ uniform fogParams u_Fog;
 
 varying vec4 v_Color;
 varying vec2 v_TexCoord;
+varying float eyez;
+varying float logz;
 uniform sampler2D u_Texture;
 
-vec4 overlay(vec4 c1, vec4 c2)
-{
-	return c1*(c1+2*c2*(vec4(1.0)-c1));
-}
+uniform vec4 u_Col1;
+uniform vec4 u_Col2;
 
-vec4 screen(vec4 c1, vec4 c2)
+void
+main(void)
 {
-	return vec4(1.0) - (vec4(1.0)-c2)*(vec4(1.0)-c1);
-}
-
-void main(void) {
-	const float LOG2 = 1.442695;
-	float z = gl_FragCoord.z / gl_FragCoord.w;
-	float fogFactor = 1.0;
-	if (u_Fog.density == 0.0) {
-		fogFactor = (u_Fog.end - z)/(u_Fog.end - u_Fog.start);
-	} else if (u_Fog.density > 0.0) {
-		fogFactor = exp2(-u_Fog.density*u_Fog.density * 
-				       z*z * LOG2);
-	}
+	float z = 1 / gl_FragCoord.w;
+	float fogFactor = (u_Fog.end - z)/(u_Fog.end - u_Fog.start);
 	fogFactor = clamp(fogFactor, 0.0, 1.0);
-
-//	vec4 blur = vec4(0.21, 0.14, 0.06, 0.0);
 
 	vec4 fragCol = v_Color * texture2D(u_Texture, v_TexCoord);
 	float alpha = fragCol[3];
 	fragCol = mix(u_Fog.color, fragCol, fogFactor);
-	fragCol[3] = alpha;
-	gl_FragColor = fragCol;
+	gl_FragColor = fragCol*(u_Col1 + u_Col2*u_Col2.w)*2;
+	gl_FragColor[3] = alpha;
 }

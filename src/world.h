@@ -13,6 +13,7 @@ enum IplSections {
 	CULL,
 	ZONE,
 	PICK,
+	ENEX,
 	PATH_IPL
 };
 
@@ -139,7 +140,6 @@ private:
 	std::vector<WorldSector> sectors;
 
 	int interior;
-
 
 	void readBinIpl(std::ifstream& f);
 	void readTextIpl(std::ifstream& f);
