@@ -17,7 +17,8 @@ using namespace rw;
 using namespace std;
 
 // I'm not too pround of this, but it works
-#ifdef DEBUG
+//#ifdef DEBUG
+#if 1234
 	#define READ_SECTION(x)\
 		fourcc = readUInt32(ifp);\
 		if (fourcc != x) {\
@@ -111,9 +112,9 @@ void Animation::read_1(ifstream &ifp)
 		objList.resize(objList.size()+1);
 		objList[i].read_1(ifp);
 //		int last = objList[i].frames-1;
-		size_t last = objList[i].frmList.size()-1;
-		if (objList[i].frmList[last].timeKey > endTime)
-			endTime = objList[i].frmList[last].timeKey;
+		size_t last = objList[i].frmList.size();
+		if(last != 0 && objList[i].frmList[last-1].timeKey > endTime)
+			endTime = objList[i].frmList[last-1].timeKey;
 	}
 	for (size_t i = 0; i < objList.size(); i++) {
 		AnimObj &ao = objList[i];
@@ -132,6 +133,7 @@ void Animation::read_3(ifstream &ifp)
 	ifp.seekg(4, ios::cur);	// frameSize
 	ifp.seekg(4, ios::cur);
 
+	endTime = 0.0f;
 	objList.resize(numObjs);
 	for (uint32 i = 0; i < numObjs; i++) {
 		objList[i].read_3(ifp);
@@ -163,6 +165,9 @@ void AnimObj::read_1(std::ifstream &ifp)
 	next = readInt32(ifp);
 	prev = readInt32(ifp);
 	ifp.seekg(size-28-4*sizeof(int32), ios::cur);
+
+	if(frames == 0)
+		return;
 
 	// KFRM
 	fourcc = readUInt32(ifp);

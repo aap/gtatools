@@ -24,7 +24,7 @@ cam = {}
 -- function cam.getPosition() return __cameraGetPosition() end
 -- function cam.Print() return __cameraPrint() end
 -- function cam.lock(i) return __cameraLock(i) end
-function cam.setPosition() return __cameraSetPosition(x, y, z) end
+function cam.setPosition(x, y, z) return __cameraSetPosition(x, y, z) end
 function cam.getPosition() return __cameraGetPosition() end
 function cam.setTarget(x, y, z) __cameraSetTarget(x, y, z) end
 function cam.getTarget() return __cameraGetTarget() end
@@ -35,6 +35,7 @@ function cam.zoom(a) return __cameraZoom(a) end
 function cam.setFov(fov) __cameraSetFov(fov) end
 function cam.getFov(fov) return __cameraGetFov() end
 function cam.lock(i) return __cameraLock(i) end
+function cam.Print() return __cameraPrint() end
 
 --
 -- World
@@ -74,3 +75,4 @@ function renderer.setDoBFC(i) __rendererSetDoBFC(i) end
 function renderer.getDoBFC() return __rendererGetDoBFC() end
 function renderer.setLodMult(f) __rendererSetLodMult(f) end
 function renderer.getLodMult() return __rendererGetLodMult() end
+function renderer.freeze(i) return __rendererFreeze(i) end

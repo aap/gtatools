@@ -265,6 +265,9 @@ void WorldObject::initFromLine(std::vector<std::string> fields, int blockType)
 	if (lineHasObjectCount)
 		objectCount = atoi(fields[i++].c_str());
 
+//	if(objectCount > 1)
+//		cout << objectCount << " " << modelName << endl;
+
 	for (uint j = 0; j < objectCount; j++) {
 		float d = atof(fields[i++].c_str());
 //		d *= d;

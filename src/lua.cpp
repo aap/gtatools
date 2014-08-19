@@ -512,6 +512,16 @@ int cameraLock(lua_State *L)
 	return 0;
 }
 
+int cameraPrint(lua_State *)
+{
+	quat position = cam->getPosition();
+	quat target = cam->getTarget();
+	cout << "cam.setPosition(" << position.x << "," << position.y
+	     << "," << position.z << ")\n";
+	cout << "cam.setTarget(" << target.x << "," << target.y
+	     << "," << target.z << ")\n";
+	return 0;
+}
 
 void registerCamera(lua_State *L)
 {
@@ -548,6 +558,7 @@ void registerCamera(lua_State *L)
 	lua_register(L, "__cameraSetFov", cameraSetFov);
 	lua_register(L, "__cameraGetFov", cameraGetFov);
 	lua_register(L, "__cameraLock", cameraLock);
+	lua_register(L, "__cameraPrint", cameraPrint);
 }
 
 /*
@@ -681,6 +692,13 @@ int rendererGetLodMult(lua_State *L)
 	return 1;
 }
 
+int rendererFreeze(lua_State *L)
+{
+	int i = luaL_checkinteger(L, 1);
+	renderer->freeze = (i != 0);
+	return 0;
+}
+
 void registerGl(lua_State *L)
 {
 	lua_register(L, "__rendererSetDoTextures", rendererSetDoTextures);
@@ -699,4 +717,5 @@ void registerGl(lua_State *L)
 	lua_register(L, "__rendererGetDoBFC", rendererGetDoBFC);
 	lua_register(L, "__rendererSetLodMult", rendererSetLodMult);
 	lua_register(L, "__rendererGetLodMult", rendererGetLodMult);
+	lua_register(L, "__rendererFreeze", rendererFreeze);
 }

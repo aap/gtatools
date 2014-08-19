@@ -56,19 +56,15 @@ void handleKeyboardInput1(void)
 	if (glfwGetKey('W')) {
 		if (isShiftDown)
 			cam->dolly(dist);
-//			cam->moveInOut(dist);
 		else
 			cam->zoom(dist);
-//			cam->setDistance(cam->getDistance()-dist);
 	}
 
 	if (glfwGetKey('S')) {
 		if (isShiftDown)
 			cam->dolly(-dist);
-//			cam->moveInOut(-dist);
 		else
 			cam->zoom(-dist);
-//			cam->setDistance(cam->getDistance()+dist);
 	}
 
 	if (glfwGetKey('M')) {
@@ -94,22 +90,13 @@ void handleKeyboardInput1(void)
 			player->setStateRunning();
 		else
 			player->setStateWalking();
-/*
 		quat dir =
 			quat(0.0, 1.0, 0.0)*u +
 			quat(1.0, 0.0, 0.0)*r +
 			quat(0.0, -1.0, 0.0)*d +
 			quat(-1.0, 0.0, 0.0)*l;
-*/
-		quat dir =
-			quat(1.0, 0.0, 0.0)*u +
-			quat(0.0, -1.0, 0.0)*r +
-			quat(-1.0, 0.0, 0.0)*d +
-			quat(0.0, 1.0, 0.0)*l;
-//		float a = cam->getYaw()/2.0;
 		float a = cam->getHeading()/2.0;
 		quat q(cos(a), 0, 0, -sin(a));
-//		dir = q.getConjugate() * dir * q;
 		dir = q.conjugate() * dir * q;
 		float n;
 		if ((n = dir.norm()) != 0.0)
@@ -179,6 +166,9 @@ void keypress1(int key, int state)
 		break;
 	case 'X':
 		cam->doTarget = !cam->doTarget;
+		break;
+	case 'R':
+		renderer->doReloadShaders = true;
 		break;
 	case 'F':
 		physStep(0);
@@ -300,30 +290,21 @@ void mouseMotion(int x, int y)
 	if (isLDown) {
 		if (isShiftDown) {
 			cam->turn(dx*2.0f, dy*2.0f);
-//			cam->turnLR(dx*2.0f);
-//			cam->turnUD(-dy*2.0f);
 		} else {
 			cam->orbit(dx*2.0f, -dy*2.0f);
-//			cam->setYaw(cam->getYaw()+dx*2.0f);
-//			cam->setPitch(cam->getPitch()-dy*2.0f);
 		}
 	}
 	if (isMDown) {
-/*
 		if (isShiftDown) {
 		} else {
-			cam->panLR(-dx*8.0f);
-			cam->panUD(-dy*8.0f);
+			cam->pan(dx*8.0f, -dy*8.0f);
 		}
-*/
 	}
 	if (isRDown) {
-/*
 		if (isShiftDown) {
 		} else {
-			cam->setDistance(cam->getDistance()+dx*12.0f);
+			cam->zoom(dx*12.0f);
 		}
-*/
 	}
 }
 

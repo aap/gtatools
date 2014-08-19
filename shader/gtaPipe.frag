@@ -29,6 +29,7 @@ main(void)
 	vec4 fragCol = v_Color * texture2D(u_Texture, v_TexCoord);
 	float alpha = fragCol[3];
 	fragCol = mix(u_Fog.color, fragCol, fogFactor);
-	gl_FragColor = fragCol*(u_Col1 + u_Col2*u_Col2.w)*2;
+
+	gl_FragColor = fragCol*(u_Col1 + u_Col2*u_Col2.w)*2.0;
 	gl_FragColor[3] = alpha;
 }

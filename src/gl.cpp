@@ -156,21 +156,21 @@ int main(int argc, char *argv[])
 */
 
 	int frm = 0;
-	clock_t startTime = clock();
-	clock_t lastTime, time;
-	lastTime = clock();
+	double startTime = glfwGetTime();
+	double lastTime, time;
+	lastTime = glfwGetTime();
 	while (running) {
-		time = clock();
+		time = glfwGetTime();
 		handleKeyboardInput();
 		handleJoystickInput(GLFW_JOYSTICK_1);
-		updateGame((time - lastTime)*1.0/CLOCKS_PER_SEC);
+		updateGame((time - lastTime));
 
 		renderer->renderScene();
 
 		glfwSwapBuffers();
 		lastTime = time;
 		frm++;
-		if ((time - startTime) >= CLOCKS_PER_SEC) {
+		if ((time - startTime) >= 1.0) {
 //			cout << dec << frm << " fps\n";
 			frm = 0;
 			startTime = time;

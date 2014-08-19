@@ -176,7 +176,9 @@ void Weather::readLine(vector<string> fields)
 	blur /= 255.0f;
 	water /= 255.0f;
 	rgba1 /= 255.0f;
+	rgba1.w *= 2.0f;
 	rgba2 /= 255.0f;
+	rgba2.w *= 2.0f;
 	tint /= 255.0f;
 }
 

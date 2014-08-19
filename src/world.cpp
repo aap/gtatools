@@ -120,7 +120,7 @@ void World::buildRenderList(void)
 	sectors[0].addToRenderList();
 	for (size_t i = 1; i < sectors.size(); i++)
 		if (cam->isBoxInFrustum(sectors[i].getMinCorner(),
-		                       sectors[i].getMaxCorner()))
+		                        sectors[i].getMaxCorner()))
 			sectors[i].addToRenderList();
 }
 
@@ -360,6 +360,13 @@ void World::associateLods(void)
 		Instance *lod = instances[i];
 		if (!lod->isLod || !lod->hires.empty())
 			continue;
+
+		WorldObject *op = static_cast<WorldObject*>(objectList->get(lod->id));
+		if (op->flags & 0x100) {
+			lod->isLod = false;
+			continue;
+		}
+		cout << "no hires: " << lod->name << " " << hex << op->flags << endl;
 
 		Instance *ip = new Instance;
 
@@ -779,7 +786,6 @@ bool Instance::isCulled(void)
 	if (boundingSphere.w < 0) {
 		boundingSphere = op->col->boundingSphere;
 		boundingSphere.w = 0;
-//		boundingSphere = rotation.getConjugate() * boundingSphere
 		boundingSphere = rotation.conjugate() * boundingSphere
 		                                         * rotation;
 		boundingSphere += position;

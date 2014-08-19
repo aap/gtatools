@@ -52,10 +52,10 @@ void cleanUp(void)
 	SAFE_DELETE(cam);
 	SAFE_DELETE(player);
 	SAFE_DELETE(objectList);
-	SAFE_DELETE(world);
-	SAFE_DELETE(water);
 	SAFE_DELETE(console);
+	SAFE_DELETE(water);
 	SAFE_DELETE(enexList);
+	SAFE_DELETE(world);
 	SAFE_DELETE(texMan);
 	SAFE_DELETE(directory);
 	SAFE_DELETE(renderer);
@@ -197,7 +197,10 @@ int initGame(void)
 
 	player = new Ped;
 	player->reset();
-	if (game != GTASA) {
+	if (game == GTA3) {
+		player->modelName = "playerx";
+		player->textureName = "playerx";
+	} else if (game == GTAVC) {
 		player->modelName = "player";
 		player->textureName = "player";
 	} else {
@@ -212,7 +215,8 @@ int initGame(void)
 	cam->setPitch(PI/8.0f-PI/2.0f);
 	cam->setDistance(20.0f);
 	cam->setAspectRatio(GLfloat(gl::width) / GLfloat(gl::height));
-	cam->setTarget(quat(335.5654907, -159.0345306, 17.85120964));
+	cam->setPosition(quat(335.5654907, -159.0345306, 17.85120964));
+	cam->setTarget(quat(0, 0, 0));
 */
 
 	cout << "associating lods\n";

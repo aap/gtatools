@@ -23,8 +23,10 @@ private:
 
 	gl::Pipeline *simplePipe, *gtaPipe;
 	GLuint rectvbo;
+
 public:
 	int init(void);
+	int reloadShaders(void);
 
 	void renderScene(void);
 	void addOpaqueObject(Instance *ip, int a);
@@ -52,6 +54,10 @@ public:
 	bool drawWire;
 	bool drawTransparent;
 	bool wasTransparent;
+
+	bool freeze;
+
+	bool doReloadShaders;
 };
 
 extern Renderer *renderer;

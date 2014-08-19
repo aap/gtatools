@@ -98,16 +98,39 @@
 --cam.setYaw(5.1724)
 --cam.setPitch(5.05643)
 
--- sa start
 if game == GTASA then
---	cam.setTarget(2248.78,-1261.29,24.1036)
---	cam.setDistance(13.0313)
---	cam.setYaw(4.77983)
---	cam.setPitch(4.76114)
+-- start
+	cam.setPosition(2235.79,-1262.167,24.7386)
+	cam.setTarget(2248.79,-1261.29,24.1036)
 	cam.setFov(55)
 	time.setCurWeather(13)
 	time.setHour(6)
 	time.setMinute(52)
+end
+
+if game == GTAVC then
+	cam.setFov(55)
+	time.setCurWeather(4)
+	time.setHour(7)
+	time.setMinute(18)
+
+-- physics
+--	cam.setPosition(0,-20,55);
+--	cam.setTarget(0,0,55);
+
+-- starisland trees
+	cam.setPosition(-311.19,-453.838,49.8557)
+	cam.setTarget(-396.103,-463.164,11.5164)
+
+-- ocean view
+--	cam.setPosition(229.55,-1278.8,12.9011)
+--	cam.setTarget(272.696,-1284.95,10.8568)
+
+end
+
+if game == GTA3 then
+	cam.setPosition(828.486,-557.21,33.3323)
+	cam.setTarget(796.191,-595.298,30.7944)
 end
 
 -- sa start2
@@ -124,6 +147,26 @@ end
 --playerSetAnim("idle_stance")
 --setAnim("walk_gang1")
 
+function camanim()
+	p1 = {-283.043, -470.489, 80.7301}
+	t1 = {-341.418, -433.688, 17.444}
+
+	p2 = {-1067.23, -137.067, 51.3209}
+	t2 = {-1129.82, -109.211, -12.5024}
+
+	n = 1/0.001
+	dur = 10*1000*1000
+	for t = 0, 1, 0.001 do
+		cam.setPosition(p1[1]*(1-t) + p2[1]*t,
+		                p1[2]*(1-t) + p2[2]*t,
+		                p1[3]*(1-t) + p2[3]*t)
+		cam.setTarget(t1[1]*(1-t) + t2[1]*t,
+		              t1[2]*(1-t) + t2[2]*t,
+		              t1[3]*(1-t) + t2[3]*t)
+		usleep(dur/n)
+	end
+end
+
 function a()
 	cam.setTarget(0,0,0)
 end
@@ -135,3 +178,5 @@ end
 function c()
 	setMixedAnim("walk_player", "run_player", 0.5);
 end
+
+playerSetAnim("roadcross")

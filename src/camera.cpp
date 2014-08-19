@@ -48,33 +48,45 @@ quat Camera::getTarget(void)
 float Camera::getHeading(void)
 {
 	quat dir = target - position;
-	return atan2(dir.y, dir.x);
+	return atan2(dir.y, dir.x)-PI/2.0f;
 }
 
 void Camera::turn(float yaw, float pitch)
 {
+	yaw /= 2.0f;
+	pitch /= 2.0f;
 	quat dir = target - position;
-	quat r(cos(yaw), up*sin(yaw));
+	quat r(cos(yaw), 0.0f, 0.0f, sin(yaw));
 	dir = r*dir*r.conjugate();
+	local_up = r*local_up*r.conjugate();
 
 	quat right = (dir^up).normalize();
 	r = quat(cos(pitch), right*sin(pitch));
 	dir = r*dir*r.conjugate();
+	local_up = (right^dir).normalize();
+	if(local_up.z >= 0) up.z = 1;
+	else up.z = -1;
 
 	target = position + dir;
 }
 
 void Camera::orbit(float yaw, float pitch)
 {
-	quat dir = position - target;
-	quat r(cos(yaw), up*sin(yaw));
+	yaw /= 2.0f;
+	pitch /= 2.0f;
+	quat dir = target - position;
+	quat r(cos(yaw), 0.0f, 0.0f, sin(yaw));
 	dir = r*dir*r.conjugate();
+	local_up = r*local_up*r.conjugate();
 
 	quat right = (dir^up).normalize();
-	r = quat(cos(pitch), right*sin(pitch));
+	r = quat(cos(-pitch), right*sin(-pitch));
 	dir = r*dir*r.conjugate();
+	local_up = (right^dir).normalize();
+	if(local_up.z >= 0) up.z = 1;
+	else up.z = -1;
 
-	position = target + dir;
+	position = target - dir;
 }
 
 void Camera::dolly(float dist)
@@ -86,8 +98,23 @@ void Camera::dolly(float dist)
 
 void Camera::zoom(float dist)
 {
-	quat dir = (target - position).normalize()*dist;
+	quat dir = (target - position);
+	float curdist = dir.norm();
+	if(dist >= curdist)
+		dist = curdist-0.01f;
+	dir = dir.normalize()*dist;
 	position += dir;
+}
+
+void Camera::pan(float x, float y)
+{
+	quat dir = (target-position).normalize();
+	quat right = (dir^up).normalize();
+	quat local_up = (right^dir).normalize();
+	dir = right*x + local_up*y;
+	position += dir;
+	target += dir;
+
 }
 
 void Camera::drawTarget(void)

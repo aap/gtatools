@@ -48,6 +48,8 @@ int Renderer::init(void)
 		return 1;
 	}
 
+	freeze = false;
+
 	simplePipe=new gl::Pipeline("shader/simple.vert", "shader/simple.frag");
 	gtaPipe=new gl::Pipeline("shader/gtaPipe.vert", "shader/gtaPipe.frag");
 
@@ -110,6 +112,15 @@ int Renderer::init(void)
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	return 0;
+}
+
+int Renderer::reloadShaders(void)
+{
+	delete simplePipe;
+	delete gtaPipe;
+	simplePipe=new gl::Pipeline("shader/simple.vert", "shader/simple.frag");
+	gtaPipe=new gl::Pipeline("shader/gtaPipe.vert", "shader/gtaPipe.frag");
+
 }
 
 void Renderer::renderOpaque(void)
@@ -285,6 +296,12 @@ void Renderer::addTransp2Object(Instance *ip, int a)
 void Renderer::renderScene(void)
 {
 	THREADCHECK();
+
+	if(doReloadShaders){
+		reloadShaders();
+		doReloadShaders = false;
+	}
+
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
 	        GL_STENCIL_BUFFER_BIT);
 
@@ -292,7 +309,7 @@ void Renderer::renderScene(void)
 	Weather *w = timeCycle.getCurrentWeatherData();
 
 	// 3d scene
-	cam->setNearFar(0.1f, game == GTASA ? 450 : w->farClp);
+	cam->setNearFar(0.1f, game == GTASA ? 450.0f : w->farClp);
 	cam->look();	// this sets the projection and modelView matrices
 
 	gl::state.calculateNormalMat();
@@ -313,15 +330,15 @@ void Renderer::renderScene(void)
 		gl::state.col2[2] = w->rgba2.z;
 		gl::state.col2[3] = w->rgba2.w;
 	} else {
-		gl::state.col1[0] = 0.5;
-		gl::state.col1[1] = 0.5;
-		gl::state.col1[2] = 0.5;
-		gl::state.col1[3] = 0.5;
+		gl::state.col1[0] = 0;
+		gl::state.col1[1] = 0;
+		gl::state.col1[2] = 0;
+		gl::state.col1[3] = 0;
 
-		gl::state.col2[0] = 0;
-		gl::state.col2[1] = 0;
-		gl::state.col2[2] = 0;
-		gl::state.col2[3] = 0;
+		gl::state.col2[0] = 1.0;
+		gl::state.col2[1] = 1.0;
+		gl::state.col2[2] = 1.0;
+		gl::state.col2[3] = 0.5;
 	}
 
 	glm::vec3 amb;
@@ -377,23 +394,26 @@ void Renderer::renderScene(void)
 
 	// the world
 
-	opaqueRenderList.clear();
 	transp1RenderList.clear();
 	transp2RenderList.clear();
 
-//	world->cleanUp();
+	if(!freeze){
+		opaqueRenderList.clear();
 
-	// Start thread to build render list
-	pthread_t thr;
-	threadFinished = false;
-	if (pthread_create(&thr, NULL, buildListThread, NULL) != 0)
-		cout << "pthread failed\n";
+	//	world->cleanUp();
 
-	while (glJobs.processJob())
-		if (threadFinished)
-			break;
+		// Start thread to build render list
+		pthread_t thr;
+		threadFinished = false;
+		if (pthread_create(&thr, NULL, buildListThread, NULL) != 0)
+			cout << "pthread failed\n";
 
-	pthread_join(thr, NULL);
+		while (glJobs.processJob())
+			if (threadFinished)
+				break;
+
+		pthread_join(thr, NULL);
+	}
 
 	// Everything is done now, draw!
 	if (doBFC)

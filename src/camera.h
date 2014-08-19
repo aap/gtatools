@@ -14,11 +14,11 @@ class Camera
 {
 private:
 	void updateFrustum(void);
-	void updateCam(void);
 
 	quat position;
 	quat target;
 	quat up;
+	quat local_up;
 
 	float fov, aspectRatio;
 	float n, f;
@@ -39,6 +39,7 @@ public:
 	void orbit(float yaw, float pitch);
 	void dolly(float dist);
 	void zoom(float dist);
+	void pan(float x, float y);
 
 	void setFov(float f);
 	float getFov(void);

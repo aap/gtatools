@@ -34,9 +34,13 @@ void main(void)
 		lightVal = vec4(u_LightCol,0.0) * vec4(L, L, L, 0.0);
 	}
 */
+/*
 	v_Color = clamp(vec4(u_AmbientLight, 0.0) +
 	                in_Color + lightVal, 0.0, 1.0);
 	v_Color *= u_MatColor;
+*/
+	v_Color = clamp(vec4(u_AmbientLight, 0.0)*u_MatColor + in_Color, 0.0, 1.0);
+	v_Color.a *= u_MatColor.a;
 
 	gl_Position = u_Projection * V;
 	v_TexCoord = in_TexCoord;

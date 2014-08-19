@@ -158,9 +158,10 @@ void Drawable::attachClump(rw::Clump *clp)
 
 		for (size_t j = 0; j < rwg.materialList.size(); j++) {
 			rw::Material &m = rwg.materialList[j];
-			if (m.hasTex)
+			if (m.hasTex) {
 				stringToLower(m.texture.name);
 				stringToLower(m.texture.maskName);
+			}
 			// TODO: to this for other textures also
 		}
 
