@@ -34,10 +34,11 @@ void resize(int w, int h)
 	gl::height = h;
 	if (gl::height == 0)
 		gl::height = 1;
-//	cam->setAspectRatio(GLfloat(gl::width)/GLfloat(gl::height));
-	cam->setAspectRatio(GLfloat(4.0/3.0));
+	cam->setAspectRatio(GLfloat(gl::width)/GLfloat(gl::height));
+//	cam->setAspectRatio(GLfloat(4.0/3.0));
 	console->setDimensions(gl::width, gl::height);
 	glViewport(0, 0, gl::width, gl::height);
+	renderer->resize(gl::width, gl::height);
 }
 
 void *filereader(void *)

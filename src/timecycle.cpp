@@ -116,15 +116,15 @@ void Weather::readLine(vector<string> fields)
 	                    atof(fields[i+2].c_str()));
 	i += 3;
 	if (game != GTASA) {
-		bottomClouds = quat(1, atof(fields[i].c_str()),
-		                       atof(fields[i+1].c_str()),
-		                       atof(fields[i+2].c_str()));
+		bottomClouds = quat(255, atof(fields[i].c_str()),
+		                         atof(fields[i+1].c_str()),
+		                         atof(fields[i+2].c_str()));
 		i += 3;
 	}
 	if (game == GTAVC) {
-		blur = quat(1, atof(fields[i].c_str()),
-		               atof(fields[i+1].c_str()),
-		               atof(fields[i+2].c_str()));
+		blur = quat(255, atof(fields[i].c_str()),
+		                 atof(fields[i+1].c_str()),
+		                 atof(fields[i+2].c_str()));
 		i += 3;
 	}
 	if (game != GTA3) {

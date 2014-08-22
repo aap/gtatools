@@ -77,6 +77,17 @@ int Renderer::init(void)
 		     1, 1, 0, GL_RGBA,
 		     GL_UNSIGNED_BYTE, &white);
 
+	glGenTextures(1, &lastFrameTex);
+	glBindTexture(GL_TEXTURE_2D, lastFrameTex);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	int black = 0x000000FF;
+	glBindTexture(GL_TEXTURE_2D, lastFrameTex);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+		     1, 1, 0, GL_RGBA,
+		     GL_UNSIGNED_BYTE, &black);
+
 	GLfloat axes[] = {
 		0.0f, 0.0f, 0.0f,
 		1.0f, 0.0f, 0.0f,
@@ -98,12 +109,37 @@ int Renderer::init(void)
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	GLfloat vertices[] = {
+		// coordinates
+		0.0, 0.0, 0.0,
+		1.0, 0.0, 0.0,
+		0.0, 1.0, 0.0,
+		1.0, 0.0, 0.0,
+		0.0, 1.0, 0.0,
+		1.0, 1.0, 0.0,
+/*
 		1.0, 0.0, 0.0,
 		0.0, 0.0, 0.0,
 		1.0, 1.0, 0.0,
 		0.0, 0.0, 0.0,
 		1.0, 1.0, 0.0,
 		0.0, 1.0, 0.0,
+*/
+
+		// uv
+/*
+		1.0, 0.0,
+		0.0, 0.0,
+		1.0, 1.0,
+		0.0, 0.0,
+		1.0, 1.0,
+		0.0, 1.0,
+*/
+		0.0, 0.0,
+		1.0, 0.0,
+		0.0, 1.0,
+		1.0, 0.0,
+		0.0, 1.0,
+		1.0, 1.0,
 	};
 	glGenBuffers(1, &rectvbo);
 	glBindBuffer(GL_ARRAY_BUFFER, rectvbo);
@@ -114,13 +150,27 @@ int Renderer::init(void)
 	return 0;
 }
 
-int Renderer::reloadShaders(void)
+void
+Renderer::reloadShaders(void)
 {
 	delete simplePipe;
 	delete gtaPipe;
 	simplePipe=new gl::Pipeline("shader/simple.vert", "shader/simple.frag");
 	gtaPipe=new gl::Pipeline("shader/gtaPipe.vert", "shader/gtaPipe.frag");
 
+}
+
+void
+Renderer::resize(int w, int h)
+{
+	THREADCHECK();
+	char *data = new char[w*h*4];
+	memset(data, 0, w*h*4);
+	glBindTexture(GL_TEXTURE_2D, lastFrameTex);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+		     w, h, 0, GL_RGBA,
+		     GL_UNSIGNED_BYTE, data);
+	delete[] data;
 }
 
 void Renderer::renderOpaque(void)
@@ -295,6 +345,7 @@ void Renderer::addTransp2Object(Instance *ip, int a)
 
 void Renderer::renderScene(void)
 {
+	static int clearscreen = 1;
 	THREADCHECK();
 
 	if(doReloadShaders){
@@ -319,7 +370,7 @@ void Renderer::renderScene(void)
 	lightDir = gl::state.modelView * glm::normalize(lightDir);
 	gl::state.lightDir = glm::vec3(lightDir);
 
-	if (doTrails) {
+	if (doTrails && game == GTASA) {
 		gl::state.col1[0] = w->rgba1.x;
 		gl::state.col1[1] = w->rgba1.y;
 		gl::state.col1[2] = w->rgba1.z;
@@ -342,7 +393,7 @@ void Renderer::renderScene(void)
 	}
 
 	glm::vec3 amb;
-	if (doTrails)
+	if (doTrails && game == GTAVC)
 		amb = glm::vec3(w->ambBl.x, w->ambBl.y, w->ambBl.z);
 	else
 		amb = glm::vec3(w->amb.x, w->amb.y, w->amb.z);
@@ -442,9 +493,9 @@ void Renderer::renderScene(void)
 	gl::state.modelView = glm::mat4(1.0f);
 	gl::state.updateAll();
 
-	if(doTrails && game == GTA3){
-		glDisable(GL_DEPTH_TEST);
+	glDisable(GL_DEPTH_TEST);
 
+	if(doTrails && game == GTA3){
 		glVertexAttrib4f(gl::in_Color, w->tint.x*0.6f, w->tint.y*0.6f, w->tint.z*0.6f, w->tint.w*0.6f);
 		glBindTexture(GL_TEXTURE_2D, whiteTex);
 		glBindBuffer(GL_ARRAY_BUFFER, rectvbo);
@@ -457,6 +508,55 @@ void Renderer::renderScene(void)
 
 	gl::state.projection = glm::ortho(0.0f, (float)gl::width, 0.0f, (float)gl::height, -1.0f, 1.0f);
 	gl::state.updateMatrices();
+
+	if(doTrails && game == GTAVC){
+		if(clearscreen){
+			int black = 0xFF000000;
+			glBindTexture(GL_TEXTURE_2D, lastFrameTex);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+				     1, 1, 0, GL_RGBA,
+				     GL_UNSIGNED_BYTE, &black);
+			clearscreen = 0;
+		}
+		glm::mat4 save = gl::state.modelView;
+		gl::state.modelView = glm::translate(gl::state.modelView,
+			glm::vec3(2.0f, -2.0f, 0.0f));
+		gl::state.modelView = glm::scale(gl::state.modelView,
+			glm::vec3(gl::width, gl::height, 1.0f));
+		gl::state.updateMatrices();
+		glBindTexture(GL_TEXTURE_2D, lastFrameTex);
+		glBindBuffer(GL_ARRAY_BUFFER, rectvbo);
+		glEnableVertexAttribArray(gl::in_Vertex);
+		glVertexAttribPointer(gl::in_Vertex, 3, GL_FLOAT, GL_FALSE, 0, 0);
+		glEnableVertexAttribArray(gl::in_TexCoord);
+		glVertexAttribPointer(gl::in_TexCoord, 2, GL_FLOAT, GL_FALSE, 0, (char*)(6*3*sizeof(float)));
+		glVertexAttrib4f(gl::in_Color, 110.0f/255.0f, 64.0f/255.0f, 0.0f, 30.0f/255.0f);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+
+		glBlendFunc(GL_ONE, GL_ONE);
+		glVertexAttrib4f(gl::in_Color, w->blur.x, w->blur.y, w->blur.z, 1.0);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		glBlendFunc(GL_ONE, GL_ONE);
+
+		gl::state.modelView = glm::scale(save,
+			glm::vec3(gl::width, gl::height, 1.0f));
+		gl::state.updateMatrices();
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+
+		glDisableVertexAttribArray(gl::in_Vertex);
+		glDisableVertexAttribArray(gl::in_TexCoord);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+		char *data = new char[gl::width*gl::height*4];
+		glReadPixels(0, 0, gl::width, gl::height, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		glBindTexture(GL_TEXTURE_2D, lastFrameTex);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+			     gl::width, gl::height, 0, GL_RGBA,
+			     GL_UNSIGNED_BYTE, data);
+
+		delete[] data;
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	}
 
 	if(consoleVisible)
 		console->draw();

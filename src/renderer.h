@@ -24,9 +24,11 @@ private:
 	gl::Pipeline *simplePipe, *gtaPipe;
 	GLuint rectvbo;
 
+	GLuint lastFrameTex;
 public:
 	int init(void);
-	int reloadShaders(void);
+	void reloadShaders(void);
+	void resize(int w, int h);
 
 	void renderScene(void);
 	void addOpaqueObject(Instance *ip, int a);

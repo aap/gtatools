@@ -119,12 +119,18 @@ if game == GTAVC then
 --	cam.setTarget(0,0,55);
 
 -- starisland trees
-	cam.setPosition(-311.19,-453.838,49.8557)
-	cam.setTarget(-396.103,-463.164,11.5164)
+--	cam.setPosition(-311.19,-453.838,49.8557)
+--	cam.setTarget(-396.103,-463.164,11.5164)
 
 -- ocean view
---	cam.setPosition(229.55,-1278.8,12.9011)
---	cam.setTarget(272.696,-1284.95,10.8568)
+	time.setCurWeather(4)
+	time.setHour(10)
+	time.setMinute(0)
+	cam.setPosition(229.55,-1278.8,12.9011)
+	cam.setTarget(272.696,-1284.95,10.8568)
+--	cam.setPosition(235.227,-1247.43,16.815)
+--	cam.setTarget(238.835,-1209.01,15.0051)
+	renderer.setDoTrails(1)
 
 end
 
