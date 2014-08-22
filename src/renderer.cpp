@@ -345,7 +345,6 @@ void Renderer::addTransp2Object(Instance *ip, int a)
 
 void Renderer::renderScene(void)
 {
-	static int clearscreen = 1;
 	THREADCHECK();
 
 	if(doReloadShaders){
@@ -510,14 +509,6 @@ void Renderer::renderScene(void)
 	gl::state.updateMatrices();
 
 	if(doTrails && game == GTAVC){
-		if(clearscreen){
-			int black = 0xFF000000;
-			glBindTexture(GL_TEXTURE_2D, lastFrameTex);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
-				     1, 1, 0, GL_RGBA,
-				     GL_UNSIGNED_BYTE, &black);
-			clearscreen = 0;
-		}
 		glm::mat4 save = gl::state.modelView;
 		gl::state.modelView = glm::translate(gl::state.modelView,
 			glm::vec3(2.0f, -2.0f, 0.0f));
